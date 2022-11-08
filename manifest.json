@@ -1,0 +1,58 @@
+{
+  "repo": "xxx",
+  "title": "WebGPU tutorial",
+  "content": [
+    {
+      "folder": "electricflower",
+      "title": "chapter 1",
+      "files": [
+        {
+          "filename": "index.html",
+          "is_readonly": true
+        },
+        {
+          "filename": "flower.js",
+          "is_readonly": true
+        },
+        {
+          "filename": "postprocess.js",
+          "is_readonly": true
+        }
+      ],
+      "sub_chapters": [
+        {
+          "folder": "test_folder2",
+          "title": "chapter 1.1",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": true
+            }
+          ],
+          "sub_chapters": [
+            {
+              "folder": "test_folder2",
+              "title": "chapter 1.1.1",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": true
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "folder": "test_folder2",
+      "title": "chapter 2",
+      "files": [
+        {
+          "filename": "index.html",
+          "is_readonly": true
+        }
+      ]
+    }
+  ]
+}
