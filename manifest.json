@@ -1,9 +1,11 @@
 {
-  "repo": "xxx",
+  "github": "xxx",
+  "prefix": "hahaha",
+  "target": "target_test",
   "title": "WebGPU tutorial",
   "content": [
     {
-      "folder": "electricflower",
+      "folder": "test_base",
       "title": "chapter 1",
       "files": [
         {
@@ -11,11 +13,7 @@
           "is_readonly": true
         },
         {
-          "filename": "flower.js",
-          "is_readonly": true
-        },
-        {
-          "filename": "postprocess.js",
+          "filename": "test.js",
           "is_readonly": true
         }
       ],
