@@ -1,0 +1,20 @@
+title = "WGPU Tutorial"
+repo = "https://github.com/shi-yan/WebGPUTutorial"
+# need to have the slash
+prefix = "WebGPUTutorial/"
+target = "../WebGPUTutorial"
+url = "https://shi-yan.github.io/WebGPUTutorial/"
+meta_image = "meta.png"
+description = """
+WebGPU example code."""
+#utilities = [ "utils" ]
+
+[[content]]
+title = "1. Basics"
+
+[[content.sub_chapters]]
+title = "1.1 Empty Canvas"
+folder = "1_1_empty_canvas"
+[[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
