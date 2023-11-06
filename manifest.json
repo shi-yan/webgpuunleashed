@@ -1,54 +1,24 @@
 {
-  "github": "xxx",
-  "prefix": "hahaha",
-  "target": "target_test",
-  "title": "WebGPU tutorial",
+  "description": "WebGPU example code.",
+  "meta_image": "meta.png",
+  "prefix": "WebGPUTutorial/",
+  "repo": "https://github.com/shi-yan/WebGPUTutorial",
+  "target": "../WebGPUTutorial",
+  "title": "WGPU Tutorial",
+  "url": "https://shi-yan.github.io/WebGPUTutorial/",
   "content": [
     {
-      "folder": "test_base",
-      "title": "chapter 1",
-      "files": [
-        {
-          "filename": "index.html",
-          "is_readonly": true
-        },
-        {
-          "filename": "test.js",
-          "is_readonly": true
-        }
-      ],
+      "title": "1. Basics",
       "sub_chapters": [
         {
-          "folder": "test_folder2",
-          "title": "chapter 1.1",
+          "folder": "1_1_empty_canvas",
+          "title": "1.1 Empty Canvas",
           "files": [
             {
               "filename": "index.html",
-              "is_readonly": true
-            }
-          ],
-          "sub_chapters": [
-            {
-              "folder": "test_folder2",
-              "title": "chapter 1.1.1",
-              "files": [
-                {
-                  "filename": "index.html",
-                  "is_readonly": true
-                }
-              ]
+              "is_readonly": false
             }
           ]
-        }
-      ]
-    },
-    {
-      "folder": "test_folder2",
-      "title": "chapter 2",
-      "files": [
-        {
-          "filename": "index.html",
-          "is_readonly": true
         }
       ]
     }
