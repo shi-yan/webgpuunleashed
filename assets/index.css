@@ -3251,7 +3251,7 @@ button:focus-visible {
 @font-face {
 	font-family: "codicon";
 	font-display: block;
-	src: url(/WebGPUTutorial/assets/codicon.ttf) format("truetype");
+	src: url(//WebGPUTutorial/assets/codicon.ttf) format("truetype");
 }
 
 .codicon[class*='codicon-'] {
