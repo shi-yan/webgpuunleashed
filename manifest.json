@@ -6,6 +6,9 @@
   "target": "../WebGPUTutorial",
   "title": "WGPU Tutorial",
   "url": "https://shi-yan.github.io/",
+  "utilities": [
+    "utils"
+  ],
   "content": [
     {
       "title": "1. Basics",
