@@ -1,0 +1,188 @@
+function createGPUBuffer(device, buffer, usage) {
+    const bufferDesc = {
+        size: buffer.byteLength,
+        usage: usage,
+        mappedAtCreation: true
+    };
+    //console.log('buffer size', buffer.byteLength);
+    let gpuBuffer = device.createBuffer(bufferDesc);
+    if (buffer instanceof Float32Array) {
+        const writeArrayNormal = new Float32Array(gpuBuffer.getMappedRange());
+        writeArrayNormal.set(buffer);
+    }
+    else if (buffer instanceof Uint16Array) {
+        const writeArrayNormal = new Uint16Array(gpuBuffer.getMappedRange());
+        writeArrayNormal.set(buffer);
+    }
+    else if (buffer instanceof Uint8Array) {
+        const writeArrayNormal = new Uint8Array(gpuBuffer.getMappedRange());
+        writeArrayNormal.set(buffer);
+    }
+    else if (buffer instanceof Uint32Array) {
+        const writeArrayNormal = new Uint32Array(gpuBuffer.getMappedRange());
+        writeArrayNormal.set(buffer);
+    }
+    else {
+        const writeArrayNormal = new Float32Array(gpuBuffer.getMappedRange());
+        writeArrayNormal.set(buffer);
+        console.error("Unhandled buffer format ", typeof gpuBuffer);
+    }
+    gpuBuffer.unmap();
+    return gpuBuffer;
+}
+
+async function img2texture(device, url) {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const imgBitmap = await createImageBitmap(blob);
+
+    const textureDescriptor = {
+        size: { width: imgBitmap.width, height: imgBitmap.height },
+        format: 'rgba8unorm',
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+    };
+
+    const texture = device.createTexture(textureDescriptor);
+
+    device.queue.copyExternalImageToTexture({ source: imgBitmap }, { texture }, textureDescriptor.size);
+
+    return texture;
+}
+
+async function loadObj(device, url) {
+    const objResponse = await fetch(url);
+    const objBody = await objResponse.text();
+
+    let obj = await (async () => {
+        return new Promise((resolve, reject) => {
+            let obj = new OBJFile(objBody);
+            obj.parse();
+            resolve(obj);
+        })
+    })();
+
+    let positions = [];
+    let normals = [];
+
+    let minX = Number.MAX_VALUE;
+    let maxX = Number.MIN_VALUE;
+
+    let minY = Number.MAX_VALUE;
+    let maxY = Number.MIN_VALUE;
+
+    let minZ = Number.MAX_VALUE;
+    let maxZ = Number.MIN_VALUE;
+
+    for (let v of obj.result.models[0].vertices) {
+        positions.push(v.x);
+        positions.push(v.y);
+        positions.push(v.z);
+        normals.push(0.0);
+        normals.push(0.0);
+        normals.push(0.0);
+    }
+
+    positions = new Float32Array(positions);
+    normals = new Float32Array(normals);
+
+    let positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
+
+    let indices = [];
+
+    for (let f of obj.result.models[0].faces) {
+        let points = [];
+        let facet_indices = [];
+        for (let v of f.vertices) {
+            const index = v.vertexIndex - 1;
+            indices.push(index);
+
+            const vertex = glMatrix.vec3.fromValues(positions[index * 3], positions[index * 3 + 1], positions[index * 3 + 2]);
+
+            minX = Math.min(positions[index * 3], minX);
+            maxX = Math.max(positions[index * 3], maxX);
+
+            minY = Math.min(positions[index * 3 + 1], minY);
+            maxY = Math.max(positions[index * 3 + 1], maxY);
+
+            minZ = Math.min(positions[index * 3 + 2], minZ);
+            maxZ = Math.max(positions[index * 3 + 2], maxZ);
+            points.push(vertex);
+            facet_indices.push(index);
+        }
+
+        const v1 = glMatrix.vec3.subtract(glMatrix.vec3.create(), points[1], points[0]);
+        const v2 = glMatrix.vec3.subtract(glMatrix.vec3.create(), points[2], points[0]);
+        const cross = glMatrix.vec3.cross(glMatrix.vec3.create(), v1, v2);
+        const normal = glMatrix.vec3.normalize(glMatrix.vec3.create(), cross);
+
+        for (let i of facet_indices) {
+            normals[i * 3] += normal[0];
+            normals[i * 3 + 1] += normal[1];
+            normals[i * 3 + 2] += normal[2];
+        }
+    }
+    let normalBuffer = createGPUBuffer(device, normals, GPUBufferUsage.VERTEX);
+
+    const indexSize = indices.length;
+
+    indices = new Uint16Array(indices);
+
+    indexBuffer = createGPUBuffer(device, indices, GPUBufferUsage.INDEX);
+    return {
+        positionBuffer, normalBuffer, indexBuffer, indexSize, center: [(minX + maxX) * 0.5, (minY + maxY) * 0.5, (minZ + maxZ) * 0.5],
+        radius: Math.max(Math.max(maxX - minX, maxY - minY), maxZ - minZ) * 0.5
+    }
+}
+
+function shaderModuleFromCode(device, codeTagId) {
+    let code = document.getElementById(codeTagId).innerText;
+    const shaderDesc = { code: code };
+    let shaderModule = device.createShaderModule(shaderDesc);
+    return shaderModule;
+}
+
+async function shaderModuleFromUrl(device, url) {
+    const codeResponse = await fetch(url);
+    const codeBody = await codeResponse.text();
+
+    const shaderDesc = { code: codeBody };
+    let shaderModule = device.createShaderModule(shaderDesc);
+    return shaderModule;
+}
+
+function configContext(device, canvas) {
+    let context = canvas.getContext('webgpu');
+
+    const canvasConfig = {
+        device: device,
+        format: navigator.gpu.getPreferredCanvasFormat(),
+        usage:
+            GPUTextureUsage.RENDER_ATTACHMENT,
+        alphaMode: 'opaque'
+    };
+
+    context.configure(canvasConfig);
+    return context;
+}
+
+function getMousePos(canvas, evt) {
+    var rect = canvas.getBoundingClientRect();
+    return {
+        x: (evt.clientX - rect.left) / (rect.right - rect.left) * canvas.width,
+        y: (evt.clientY - rect.top) / (rect.bottom - rect.top) * canvas.height
+    };
+}
+
+function imagedataToImage(imagedata) {
+    var canvas = document.createElement('canvas');
+    var ctx = canvas.getContext('2d');
+    canvas.width = imagedata.width;
+    canvas.height = imagedata.height;
+    ctx.putImageData(imagedata, 0, 0);
+
+
+    const link = document.createElement("a");
+    link.download = "image.png";
+    link.href = canvas.toDataURL();
+    link.click();
+}

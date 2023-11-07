@@ -1,20 +1,51 @@
 title = "WGPU Tutorial"
 repo = "https://github.com/shi-yan/WebGPUTutorial"
 # need to have the slash
-prefix = "/WebGPUTutorial"
+prefix = "WebGPUTutorial"
 target = "../WebGPUTutorial"
-url = "https://shi-yan.github.io"
+url = "https://shi-yan.github.io/"
 meta_image = "meta.png"
 description = """
 WebGPU example code."""
-#utilities = [ "utils" ]
+utilities = [ "utils" , "data", "shader"]
 
 [[content]]
 title = "1. Basics"
 
 [[content.sub_chapters]]
-title = "1.1 Empty Canvas"
-folder = "1_1_empty_canvas"
+title = "1.0 Empty Canvas"
+folder = "1_0_empty_canvas"
+[[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
+
+[[content.sub_chapters]]
+title = "1.1 Drawing a Triangle"
+folder = "1_1_triangle"
+[[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
+
+[[content.sub_chapters]]
+title = "1.7 Working with Textures"
+folder = "1_7_working_with_textures"
+[[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
+
+[[content.sub_chapters]]
+title = "1.14 Loading Models"
+folder = "1_14_loading_models"
+[[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
+
+[[content]]
+title = "4. Advanced"
+
+[[content.sub_chapters]]
+title = "4.1 Shadow Maps"
+folder = "4_1_shadow_maps"
 [[content.sub_chapters.files]]
 filename = "index.html"
 is_readonly = false
