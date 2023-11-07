@@ -55,6 +55,21 @@
           ]
         }
       ]
+    },
+    {
+      "title": "4. Advanced",
+      "sub_chapters": [
+        {
+          "folder": "4_1_shadow_maps",
+          "title": "4.1 Shadow Maps",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        }
+      ]
     }
   ]
 }
