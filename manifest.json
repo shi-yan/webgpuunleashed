@@ -7,7 +7,8 @@
   "title": "WGPU Tutorial",
   "url": "https://shi-yan.github.io/",
   "utilities": [
-    "utils"
+    "utils",
+    "data"
   ],
   "content": [
     {
@@ -26,6 +27,16 @@
         {
           "folder": "1_1_triangle",
           "title": "1.1 Drawing a Triangle",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "1_14_loading_models",
+          "title": "1.14 Loading Models",
           "files": [
             {
               "filename": "index.html",
