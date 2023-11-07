@@ -8,7 +8,8 @@
   "url": "https://shi-yan.github.io/",
   "utilities": [
     "utils",
-    "data"
+    "data",
+    "shader"
   ],
   "content": [
     {

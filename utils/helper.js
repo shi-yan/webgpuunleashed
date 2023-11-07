@@ -8,7 +8,7 @@ class Axis {
     }
 
     async setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer) {
-        let shaderModule = await shaderModuleFromUrl(device, 'axis_shader.wgsl');
+        let shaderModule = await shaderModuleFromUrl(device, '../shader/axis_shader.wgsl');
         const sectionCount = 10;
         const radius = 0.1;
 
@@ -282,7 +282,7 @@ class Arrow {
     }
 
     async setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer) {
-        let shaderModule = await shaderModuleFromUrl(device, 'arrow_shader.wgsl');
+        let shaderModule = await shaderModuleFromUrl(device, '../shader/arrow_shader.wgsl');
 
         let positionBuffer1 = [];
         const radius = 0.1;
@@ -590,7 +590,7 @@ class Dot {
     }
 
     async setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer) {
-        let shaderModule = await shaderModuleFromUrl(device, 'dot_shader.wgsl');
+        let shaderModule = await shaderModuleFromUrl(device, '../shader/dot_shader.wgsl');
 
         const radius = 1.0;
 
@@ -847,8 +847,8 @@ class SpotLight {
     }
 
     async setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer) {
-        let shaderModule = await shaderModuleFromUrl(device, 'arrow_shader.wgsl');
-        let shaderModule2 = await shaderModuleFromUrl(device, 'spotlight_cone_shader.wgsl');
+        let shaderModule = await shaderModuleFromUrl(device, '../shader/arrow_shader.wgsl');
+        let shaderModule2 = await shaderModuleFromUrl(device, '../shader/spotlight_cone_shader.wgsl');
 
 
         const radius = 1.0;
