@@ -36,6 +36,26 @@
           ]
         },
         {
+          "folder": "1_2_triangle_with_vertices",
+          "title": "1.2 Drawing a Triangle with Defined Vertices",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "1_3_vertex_color",
+          "title": "1.3 Applying Hardcoded Vertex Colors",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
           "folder": "1_7_working_with_textures",
           "title": "1.7 Working with Textures",
           "files": [
