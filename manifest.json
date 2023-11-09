@@ -56,6 +56,36 @@
           ]
         },
         {
+          "folder": "1_4_different_vertex_colors",
+          "title": "1.4 Different Vertex Colors",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "1_5_colored_triangle_with_a_single_buffer",
+          "title": "1.5 Colored Triangle with a Single Buffer",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "1_6_uniforms",
+          "title": "1.6 Understanding Uniforms",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
           "folder": "1_7_working_with_textures",
           "title": "1.7 Working with Textures",
           "files": [
@@ -66,8 +96,108 @@
           ]
         },
         {
+          "folder": "1_8_transformation_matrices",
+          "title": "1.8 Utilizing Transformation Matrices",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "1_9_cameras",
+          "title": "1.9 Cameras",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "1_10_triangle_strips",
+          "title": "1.10 Triangle Strips",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "1_11_front_and_back_faces",
+          "title": "1.11 Front and Back Faces",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "1_12_depth",
+          "title": "1.12 Depth",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "1_13_indices",
+          "title": "1.13 Indices",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
           "folder": "1_14_loading_models",
           "title": "1.14 Loading Models",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "1_15_normals",
+          "title": "1.15 Normals",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "1_16_lighting",
+          "title": "1.16 Lighting",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "1_17_msaa",
+          "title": "1.17 MSAA",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "1_18_mipmaps",
+          "title": "1.18 Mipmaps",
           "files": [
             {
               "filename": "index.html",
