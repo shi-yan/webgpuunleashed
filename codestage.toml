@@ -41,6 +41,27 @@ filename = "index.html"
 is_readonly = false
 
 [[content.sub_chapters]]
+title = "1.4 Different Vertex Colors"
+folder = "1_4_different_vertex_colors"
+[[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
+
+[[content.sub_chapters]]
+title = "1.5 Colored Triangle with a Single Buffer"
+folder = "1_5_colored_triangle_with_a_single_buffer"
+[[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
+
+[[content.sub_chapters]]
+title = "1.6 Understanding Uniforms"
+folder = "1_6_uniforms"
+[[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
+
+[[content.sub_chapters]]
 title = "1.7 Working with Textures"
 folder = "1_7_working_with_textures"
 [[content.sub_chapters.files]]
@@ -48,8 +69,78 @@ filename = "index.html"
 is_readonly = false
 
 [[content.sub_chapters]]
+title = "1.8 Utilizing Transformation Matrices"
+folder = "1_8_transformation_matrices"
+[[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
+
+[[content.sub_chapters]]
+title = "1.9 Cameras"
+folder = "1_9_cameras"
+[[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
+
+[[content.sub_chapters]]
+title = "1.10 Triangle Strips"
+folder = "1_10_triangle_strips"
+[[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
+
+[[content.sub_chapters]]
+title = "1.11 Front and Back Faces"
+folder = "1_11_front_and_back_faces"
+[[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
+
+[[content.sub_chapters]]
+title = "1.12 Depth"
+folder = "1_12_depth"
+[[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
+
+[[content.sub_chapters]]
+title = "1.13 Indices"
+folder = "1_13_indices"
+[[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
+
+[[content.sub_chapters]]
 title = "1.14 Loading Models"
 folder = "1_14_loading_models"
+[[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
+
+[[content.sub_chapters]]
+title = "1.15 Normals"
+folder = "1_15_normals"
+[[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
+
+[[content.sub_chapters]]
+title = "1.16 Lighting"
+folder = "1_16_lighting"
+[[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
+
+[[content.sub_chapters]]
+title = "1.17 MSAA"
+folder = "1_17_msaa"
+[[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
+
+[[content.sub_chapters]]
+title = "1.18 Mipmaps"
+folder = "1_18_mipmaps"
 [[content.sub_chapters.files]]
 filename = "index.html"
 is_readonly = false

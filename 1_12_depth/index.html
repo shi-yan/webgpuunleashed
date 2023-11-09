@@ -1,0 +1,225 @@
+<html>
+
+<body>
+    <canvas id="canvas" width="640" height="480"></canvas>
+</body>
+<script src="../utils/utils.js"></script>
+<script src="../utils/gl-matrix.js">
+    // front and back faces / depth
+</script>
+<script id="shader" type="wgsl">
+// Vertex shader
+
+@group(0) @binding(0)
+var<uniform> transform: mat4x4<f32>;
+@group(0) @binding(1)
+var<uniform> projection: mat4x4<f32>;
+
+struct VertexOutput {
+    @builtin(position) clip_position: vec4<f32>
+};
+
+@vertex
+fn vs_main(
+    @location(0) inPos: vec3<f32>
+) -> VertexOutput {
+    var out: VertexOutput;
+    out.clip_position = projection * transform * vec4<f32>(inPos, 1.0);
+    return out;
+}
+
+// Fragment shader
+
+@fragment
+fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -> @location(0) vec4<f32> {
+    if (face) {
+        return vec4<f32>(0.0, 0.0, 1.0 ,1.0);
+    }
+    else {
+        return vec4<f32>(0.0, 1.0, 0.0 ,1.0);
+    }
+}
+
+</script>
+
+<script>
+    //depth
+    async function webgpu() {
+        if (!navigator.gpu || GPUBufferUsage.COPY_SRC === undefined) {
+            console.log("no gpu")
+            return;
+        }
+
+        const adapter = await navigator.gpu.requestAdapter();
+        console.log(adapter);
+
+        let device = await adapter.requestDevice();
+        console.log(device);
+
+        const context = configContext(device, canvas);
+
+        let shaderModule = shaderModuleFromCode(device, 'shader');
+
+        const positionAttribDesc = {
+            shaderLocation: 0, // @location(0)
+            offset: 0,
+            format: 'float32x3'
+        };
+
+        const positionBufferLayoutDesc = {
+            attributes: [positionAttribDesc],
+            arrayStride: 4 * 3, // sizeof(float) * 3
+            stepMode: 'vertex'
+        };
+
+        const positions = new Float32Array([
+            -100.0, 100.0, 0.0,
+            -100.0, 100.0, 200.0,
+            100.0, 100.0, 0.0,
+            100.0, 100.0, 200.0,
+
+            100.0, -100.0, 0.0,
+            100.0, -100.0, 200.0,
+
+            -100.0, -100.0, 0.0,
+            -100.0, -100.0, 200.0,
+
+            -100.0, 100.0, 0.0,
+            -100.0, 100.0, 200.0
+        ]);
+
+
+        let positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
+
+        let translateMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
+            glMatrix.vec3.fromValues(300, 300, 300), glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(0.0, 0.0, 1.0));
+
+        let projectionMatrix = glMatrix.mat4.perspective(glMatrix.mat4.create(),
+            1.4, 640.0 / 480.0, 0.1, 1000.0);
+
+        let translateMatrixUniformBuffer = createGPUBuffer(device, translateMatrix, GPUBufferUsage.UNIFORM);
+
+        let projectionMatrixUniformBuffer = createGPUBuffer(device, projectionMatrix, GPUBufferUsage.UNIFORM);
+
+        let uniformBindGroupLayout = device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: {}
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: {}
+                }
+            ]
+        });
+
+        let uniformBindGroup = device.createBindGroup({
+            layout: uniformBindGroupLayout,
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: translateMatrixUniformBuffer
+                    }
+                },
+                {
+                    binding: 1,
+                    resource: {
+                        buffer: projectionMatrixUniformBuffer
+                    }
+                }
+            ]
+        });
+
+        const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout] };
+        const layout = device.createPipelineLayout(pipelineLayoutDesc);
+
+        const colorState = {
+            format: 'bgra8unorm'
+        };
+
+        const pipelineDesc = {
+            layout,
+            vertex: {
+                module: shaderModule,
+                entryPoint: 'vs_main',
+                buffers: [positionBufferLayoutDesc]
+            },
+            fragment: {
+                module: shaderModule,
+                entryPoint: 'fs_main',
+                targets: [colorState]
+            },
+            primitive: {
+                topology: 'triangle-strip',
+                frontFace: 'ccw',
+                cullMode: 'none'
+            },
+            depthStencil: {
+                depthWriteEnabled: true,
+                depthCompare: 'less',
+                format: 'depth24plus-stencil8'
+            }
+        };
+
+        pipeline = device.createRenderPipeline(pipelineDesc);
+
+
+
+        // 🤔 Create Depth Backing
+        const depthTextureDesc = {
+            size: [canvas.width, canvas.height, 1],
+            dimension: '2d',
+            format: 'depth24plus-stencil8',
+            usage: GPUTextureUsage.RENDER_ATTACHMENT 
+        };
+
+        let depthTexture = device.createTexture(depthTextureDesc);
+        let depthTextureView = depthTexture.createView();
+
+
+
+        let colorTexture = context.getCurrentTexture();
+        let colorTextureView = colorTexture.createView();
+
+        let colorAttachment = {
+            view: colorTextureView,
+            clearValue: { r: 1, g: 0, b: 0, a: 1 },
+            loadOp: 'clear',
+            storeOp: 'store'
+        };
+
+        const depthAttachment = {
+            view: depthTextureView,
+            depthClearValue: 1,
+            depthLoadOp: 'clear',
+            depthStoreOp: 'store',
+            stencilClearValue: 0,
+            stencilLoadOp: 'clear',
+            stencilStoreOp: 'store'
+        };
+
+        const renderPassDesc = {
+            colorAttachments: [colorAttachment],
+            depthStencilAttachment: depthAttachment
+        };
+        commandEncoder = device.createCommandEncoder();
+
+        passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
+        passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+        passEncoder.setPipeline(pipeline);
+        passEncoder.setBindGroup(0, uniformBindGroup);
+        passEncoder.setVertexBuffer(0, positionBuffer);
+        passEncoder.draw(10, 1);
+        passEncoder.end();
+
+        device.queue.submit([commandEncoder.finish()]);
+    }
+
+    webgpu();
+</script>
+
+</html>
