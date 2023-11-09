@@ -27,6 +27,20 @@ filename = "index.html"
 is_readonly = false
 
 [[content.sub_chapters]]
+title = "1.2 Drawing a Triangle with Defined Vertices"
+folder = "1_2_triangle_with_vertices"
+[[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
+
+[[content.sub_chapters]]
+title = "1.3 Applying Hardcoded Vertex Colors"
+folder = "1_3_vertex_color"
+[[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
+
+[[content.sub_chapters]]
 title = "1.7 Working with Textures"
 folder = "1_7_working_with_textures"
 [[content.sub_chapters.files]]
