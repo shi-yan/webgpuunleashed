@@ -176,12 +176,27 @@
           ]
         },
         {
-          "folder": "1_16_lighting",
           "title": "1.16 Lighting",
-          "files": [
+          "sub_chapters": [
             {
-              "filename": "index.html",
-              "is_readonly": false
+              "folder": "1_16_1_lighting",
+              "title": "1.16.1 Per-vertex Lighting",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": true
+                }
+              ]
+            },
+            {
+              "folder": "1_16_2_lighting",
+              "title": "1.16.2 Per-fragment Lighting",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": true
+                }
+              ]
             }
           ]
         },
@@ -196,12 +211,27 @@
           ]
         },
         {
-          "folder": "1_18_mipmaps",
           "title": "1.18 Mipmaps",
-          "files": [
+          "sub_chapters": [
             {
-              "filename": "index.html",
-              "is_readonly": false
+              "folder": "1_18_1_mipmaps",
+              "title": "1.18.1 Mipmaps 1",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": true
+                }
+              ]
+            },
+            {
+              "folder": "1_18_2_mipmaps",
+              "title": "1.18.2 Mipmaps 2",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": true
+                }
+              ]
             }
           ]
         }
