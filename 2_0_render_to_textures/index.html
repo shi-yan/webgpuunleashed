@@ -305,7 +305,7 @@
         async setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer) {
             let shaderModule = shaderModuleFromCode(device, 'teapot_shader');
 
-            let { positionBuffer, normalBuffer, indexBuffer, indexSize } = await loadObj(device, 'teapot.obj');
+            let { positionBuffer, normalBuffer, indexBuffer, indexSize } = await loadObj(device, '../data/teapot.obj');
             this.positionBuffer = positionBuffer;
             this.normalBuffer = normalBuffer;
             this.indexBuffer = indexBuffer;

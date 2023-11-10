@@ -373,6 +373,90 @@
       ]
     },
     {
+      "title": "3. Control",
+      "sub_chapters": [
+        {
+          "folder": "3_0_canvas_resizing",
+          "title": "3.0 Canvas Resizing",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "3_1_arcball",
+          "title": "3.1 Arcball",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "title": "3.2 Picking",
+          "sub_chapters": [
+            {
+              "folder": "3_2_1_picking_ray_casting",
+              "title": "3.2.1 Ray Casting",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": true
+                }
+              ]
+            },
+            {
+              "folder": "3_2_2_picking_color_coding",
+              "title": "3.2.2 Color Coding",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "folder": "3_3_save_image_and_video",
+          "title": "3.3 Save Image and Video",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "3_4_worker",
+          "title": "3.4 Worker",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            },
+            {
+              "filename": "worker.js",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "3_5_error_handling_and_limits",
+          "title": "3.5 Error Handling and Limits",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        }
+      ]
+    },
+    {
       "title": "4. Advanced",
       "sub_chapters": [
         {
