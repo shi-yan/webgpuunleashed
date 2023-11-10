@@ -126,10 +126,20 @@ is_readonly = false
 
 [[content.sub_chapters]]
 title = "1.16 Lighting"
-folder = "1_16_lighting"
-[[content.sub_chapters.files]]
+
+[[content.sub_chapters.sub_chapters]]
+title = "1.16.1 Per-vertex Lighting"
+folder = "1_16_1_lighting"
+[[content.sub_chapters.sub_chapters.files]]
 filename = "index.html"
-is_readonly = false
+is_readonly = true
+
+[[content.sub_chapters.sub_chapters]]
+title = "1.16.2 Per-fragment Lighting"
+folder = "1_16_2_lighting"
+[[content.sub_chapters.sub_chapters.files]]
+filename = "index.html"
+is_readonly = true
 
 [[content.sub_chapters]]
 title = "1.17 MSAA"
@@ -140,10 +150,20 @@ is_readonly = false
 
 [[content.sub_chapters]]
 title = "1.18 Mipmaps"
-folder = "1_18_mipmaps"
-[[content.sub_chapters.files]]
+
+[[content.sub_chapters.sub_chapters]]
+title = "1.18.1 Mipmaps 1"
+folder = "1_18_1_mipmaps"
+[[content.sub_chapters.sub_chapters.files]]
 filename = "index.html"
-is_readonly = false
+is_readonly = true
+
+[[content.sub_chapters.sub_chapters]]
+title = "1.18.2 Mipmaps 2"
+folder = "1_18_2_mipmaps"
+[[content.sub_chapters.sub_chapters.files]]
+filename = "index.html"
+is_readonly = true
 
 [[content]]
 title = "4. Advanced"
