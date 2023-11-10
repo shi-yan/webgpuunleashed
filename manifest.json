@@ -2,6 +2,7 @@
   "description": "WebGPU example code.",
   "meta_image": "meta.png",
   "prefix": "WebGPUTutorial",
+  "readme_folder": "readme",
   "repo": "https://github.com/shi-yan/WebGPUTutorial",
   "target": "../WebGPUTutorial",
   "title": "WGPU Tutorial",
