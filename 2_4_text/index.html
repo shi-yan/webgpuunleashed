@@ -1,0 +1,291 @@
+<html>
+
+<body>
+    <canvas id="canvas" width="640" height="480"></canvas>
+</body>
+<script src="../utils/utils.js"></script>
+<script src="../utils/gl-matrix.js">
+    //text
+</script>
+<script id="shader" type="wgsl">
+// Vertex shader
+
+@group(0) @binding(0)
+var<uniform> transform: mat4x4<f32>;
+@group(0) @binding(1)
+var<uniform> projection: mat4x4<f32>;
+
+struct VertexOutput {
+    @builtin(position) clip_position: vec4<f32>,
+    @location(0) tex_coords: vec2<f32>,
+};
+
+@vertex
+fn vs_main(
+    @location(0) inPos: vec3<f32>,
+    @location(1) inTexCoords: vec2<f32>
+) -> VertexOutput {
+    var out: VertexOutput;
+    out.clip_position = projection * transform * vec4<f32>(inPos, 1.0);
+    out.tex_coords = inTexCoords;
+    return out;
+}
+
+// Fragment shader
+
+@group(0) @binding(2)
+var t_diffuse: texture_2d<f32>;
+@group(0) @binding(3)
+var s_diffuse: sampler;
+
+@fragment
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+    var color:vec4<f32> = textureSampleLevel(t_diffuse, s_diffuse, in.tex_coords, 0);
+    return vec4<f32>(color.x, color.x,color.x, color.x);
+}
+
+</script>
+
+<script>
+    //text, explain alpha blending, texture sampler
+    function nearestPowerOf2(n) {
+        return 1 << (32 - Math.clz32(n));
+    }
+
+    function printText(device, text) {
+        const width = 320;
+        const height = 240;
+        const canvas = new OffscreenCanvas(width, height);
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, width, height);
+        ctx.globalAlpha = '0.5';
+        ctx.font = 'bold 16px Arial';
+        ctx.fillStyle = 'white';
+        const textMeasure = ctx.measureText(text); // TextM
+
+        console.log("texture measure", textMeasure);
+        console.log("width", Math.ceil(textMeasure.width))
+        ctx.fillText(text, 0, 16);
+
+        const textureDescriptor = {
+            size: { width: nearestPowerOf2(Math.ceil(textMeasure.width)), height: 16 },
+            format: 'rgba8unorm',
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+        };
+
+        console.log('texture descriptor', textureDescriptor);
+        const texture = device.createTexture(textureDescriptor);
+
+        device.queue.copyExternalImageToTexture({ source: canvas, origin: { x: 0, y: 0 } }, { texture }, textureDescriptor.size);
+
+        return texture;
+    }
+
+    async function webgpu() {
+        const adapter = await navigator.gpu.requestAdapter();
+        console.log(adapter);
+
+        let device = await adapter.requestDevice();
+        console.log(device);
+
+        let context = configContext(device, canvas);
+
+        let texture = printText(device, "Hello");
+
+        const sampler = device.createSampler({
+            addressModeU: 'repeat',
+            addressModeV: 'repeat',
+            magFilter: 'linear',
+            minFilter: 'linear',
+            mipmapFilter: 'linear',
+        });
+
+        let shaderModule = shaderModuleFromCode(device, 'shader');
+
+        const positionAttribDesc = {
+            shaderLocation: 0, // @location(0)
+            offset: 0,
+            format: 'float32x3'
+        };
+
+        const positionBufferLayoutDesc = {
+            attributes: [positionAttribDesc],
+            arrayStride: 4 * 3, // sizeof(float) * 3
+            stepMode: 'vertex'
+        };
+
+        const texCoordsAttribDesc = {
+            shaderLocation: 1, // @location(1)
+            offset: 0,
+            format: 'float32x2'
+        };
+
+        const texCoordsBufferLayoutDesc = {
+            attributes: [texCoordsAttribDesc],
+            arrayStride: 4 * 2, // sizeof(float) * 3
+            stepMode: 'vertex'
+        };
+
+        const positions = new Float32Array([
+            100.0, -100.0, 0.0,
+            100.0, 100.0, 0.0,
+            -100.0, -100.0, 0.0,
+            -100.0, 100.0, 0.0
+        ]);
+
+
+        let positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
+
+        const texCoords = new Float32Array([
+            1.0,
+            0.0,
+            // 🔴
+
+            1.0,
+            1.0,
+
+            0.0,
+            0.0,
+
+            0.0,
+            1.0
+        ]);
+
+        let texCoordsBuffer = createGPUBuffer(device, texCoords, GPUBufferUsage.VERTEX);
+
+        let translateMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
+            glMatrix.vec3.fromValues(100, 100, 100), glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(0.0, 0.0, 1.0));
+
+        let projectionMatrix = glMatrix.mat4.perspective(glMatrix.mat4.create(),
+            1.4, 640.0 / 480.0, 0.1, 1000.0);
+
+        let translateMatrixUniformBuffer = createGPUBuffer(device, translateMatrix, GPUBufferUsage.UNIFORM);
+
+        let projectionMatrixUniformBuffer = createGPUBuffer(device, projectionMatrix, GPUBufferUsage.UNIFORM);
+
+        let uniformBindGroupLayout = device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: {}
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: {}
+                },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: {}
+                },
+                {
+                    binding: 3,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler: {}
+                }
+            ]
+        });
+
+        const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout] };
+        const layout = device.createPipelineLayout(pipelineLayoutDesc);
+
+        const colorState = {
+            format: 'bgra8unorm',
+            blend: {
+                alpha: {
+                    operation: "add",
+                    srcFactor: 'one',
+                    dstFactor: 'one-minus-src',
+                },
+                color: {
+                    operation: "add",
+                    srcFactor: 'one',
+                    dstFactor: 'one-minus-src',
+                }
+            }
+        };
+
+        const pipelineDesc = {
+            layout,
+            vertex: {
+                module: shaderModule,
+                entryPoint: 'vs_main',
+                buffers: [positionBufferLayoutDesc, texCoordsBufferLayoutDesc]
+            },
+            fragment: {
+                module: shaderModule,
+                entryPoint: 'fs_main',
+                targets: [colorState]
+            },
+            primitive: {
+                topology: 'triangle-strip',
+                frontFace: 'ccw',
+                cullMode: 'none'
+            }
+        };
+
+        pipeline = device.createRenderPipeline(pipelineDesc);
+
+        let uniformBindGroup = device.createBindGroup({
+            layout: uniformBindGroupLayout,
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: translateMatrixUniformBuffer
+                    }
+                },
+                {
+                    binding: 1,
+                    resource: {
+                        buffer: projectionMatrixUniformBuffer
+                    }
+                },
+                {
+                    binding: 2,
+                    resource: texture.createView()
+                },
+                {
+                    binding: 3,
+                    resource:
+                        sampler
+                }
+            ]
+        });
+
+        let colorTexture = context.getCurrentTexture();
+        let colorTextureView = colorTexture.createView();
+
+        let colorAttachment = {
+            view: colorTextureView,
+            clearValue: { r: 1, g: 0, b: 0, a: 1 },
+            loadOp: 'clear',
+            storeOp: 'store'
+        };
+
+        const renderPassDesc = {
+            colorAttachments: [colorAttachment]
+        };
+
+        commandEncoder = device.createCommandEncoder();
+
+        passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
+        passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+        passEncoder.setPipeline(pipeline);
+        passEncoder.setBindGroup(0, uniformBindGroup);
+        passEncoder.setVertexBuffer(0, positionBuffer);
+        passEncoder.setVertexBuffer(1, texCoordsBuffer);
+        passEncoder.draw(4, 1);
+        passEncoder.end();
+
+        device.queue.submit([commandEncoder.finish()]);
+    }
+
+
+    webgpu();
+
+</script>
+
+</html>

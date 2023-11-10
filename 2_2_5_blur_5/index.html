@@ -1,0 +1,586 @@
+<html>
+
+<body>
+    <canvas id="canvas" width="640" height="480"></canvas>
+</body>
+<script src="../utils/utils.js"></script>
+<script src="../utils/gl-matrix.js"> </script>
+<script id="shader-vertical" type="wgsl">
+// Vertex shader
+
+struct VertexOutput {
+    @builtin(position) clip_position: vec4<f32>,
+    @location(0) pixel_coord: vec2<f32>,
+};
+
+@vertex
+fn vs_main(
+    @builtin(vertex_index) in_vertex_index: u32,
+    @location(0) inPixelCoords: vec2<f32>
+) -> VertexOutput {
+
+    const pos  = array<vec3<f32>, 4>(vec3(1.0, 1.0, 0.0),
+        vec3(1.0, -1.0, 0.0),
+        vec3(-1.0, 1.0, 0.0),
+        vec3(-1.0, -1.0, 0.0)); 
+    var out: VertexOutput;
+    out.clip_position = vec4<f32>(pos[in_vertex_index], 1.0);
+    out.pixel_coord = inPixelCoords;
+    return out;
+}
+
+// Fragment shader
+@group(0) @binding(0)
+var<uniform> img_size: vec2<f32>;
+//texture doesn't need <uniform>, because it is non-host-sharable (what does it mean?)
+@group(0) @binding(1)
+var t_diffuse: texture_2d<f32>;
+@group(0) @binding(2)
+var s_diffuse: sampler;
+@group(0) @binding(3)
+var<storage> weights: array<f32>;
+@group(0) @binding(4)
+var<storage> offsets: array<f32>;
+@group(0) @binding(5)
+var<uniform> kernel_size: u32;
+
+@fragment
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+    
+    var color = vec4<f32>(0.0, 0.0, 0.0, 0.0);
+
+    for(var y: u32 = 0; y < kernel_size; y++) {
+        let offsettedY = offsets[y] + in.pixel_coord.y;
+            let tex_coord = vec2(in.pixel_coord.x / img_size.x, offsettedY / img_size.y);
+            let c = textureSampleLevel(t_diffuse, s_diffuse, tex_coord,0);
+            color += c * weights[y];
+    }
+    color.w = 1.0;
+    return color;
+}
+</script>
+
+<script id="shader-horizontal" type="wgsl">
+    // Vertex shader
+    
+    @group(0) @binding(0)
+    var<uniform> transform: mat4x4<f32>;
+    @group(0) @binding(1)
+    var<uniform> projection: mat4x4<f32>;
+    
+    struct VertexOutput {
+        @builtin(position) clip_position: vec4<f32>,
+        @location(0) pixel_coord: vec2<f32>,
+    };
+    
+    @vertex
+    fn vs_main(
+        @location(0) inPos: vec3<f32>,
+        @location(1) inPixelCoords: vec2<f32>
+    ) -> VertexOutput {
+        var out: VertexOutput;
+        out.clip_position = projection * transform * vec4<f32>(inPos, 1.0);
+        out.pixel_coord = inPixelCoords;
+        return out;
+    }
+    
+    // Fragment shader
+    @group(0) @binding(2)
+    var<uniform> img_size: vec2<f32>;
+    @group(0) @binding(3)
+    var v_result: texture_2d<f32>;
+    @group(0) @binding(4)
+    var s_diffuse: sampler;
+    @group(0) @binding(5)
+    var<storage> weights: array<f32>;
+    @group(0) @binding(6)
+    var<storage> offsets: array<f32>;
+    @group(0) @binding(7)
+    var<uniform> kernel_size: u32;
+
+    
+    @fragment
+    fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+    
+        var color = vec4<f32>(0.0, 0.0, 0.0, 0.0);
+    
+        for(var x: u32 = 0; x < kernel_size; x++) {
+            let offsettedX = offsets[x] + in.pixel_coord.x;
+
+                let tex_coord = vec2(offsettedX / img_size.x, in.pixel_coord.y / img_size.y);
+                let c = textureSampleLevel(v_result, s_diffuse, tex_coord,0);
+                color += c * weights[x];
+            
+        }
+
+        color.w = 1.0;
+    
+        return color;
+    }
+</script>
+
+<script>
+    //blur 3 buffer kernel / optimization one
+    //'textureSample' must only be called from uniform control flow
+    //blur https://www.rastergrid.com/blog/2010/09/efficient-gaussian-blur-with-linear-sampling/
+    async function webgpu() {
+        const adapter = await navigator.gpu.requestAdapter();
+        console.log(adapter);
+
+        let device = await adapter.requestDevice();
+        console.log(device);
+
+        const context = configContext(device, canvas);
+        const texture = await img2texture(device, '../data/baboon.png');
+
+        const pass1TextureDescriptor = {
+            size: { width: texture.width, height: texture.height },
+            format: 'rgba8unorm',
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+        };
+
+        const pass1texture = device.createTexture(pass1TextureDescriptor)
+
+        const sampler = device.createSampler({
+            addressModeU: 'repeat',
+            addressModeV: 'repeat',
+            magFilter: 'linear',
+            minFilter: 'linear',
+            mipmapFilter: 'linear',
+        });
+
+        let shaderModuleVertical = shaderModuleFromCode(device, 'shader-vertical');
+
+        let shaderModuleHorizontal = shaderModuleFromCode(device, 'shader-horizontal');
+
+        const positionAttribDesc = {
+            shaderLocation: 0, // @location(0)
+            offset: 0,
+            format: 'float32x3'
+        };
+
+        const positionBufferLayoutDesc = {
+            attributes: [positionAttribDesc],
+            arrayStride: 4 * 3, // sizeof(float) * 3
+            stepMode: 'vertex'
+        };
+
+        const pixelCoordsAttribDesc = {
+            shaderLocation: 1, // @location(1)
+            offset: 0,
+            format: 'float32x2'
+        };
+
+        const pixelCoordsAttribDescPass1 = {
+            shaderLocation: 0, // @location(1)
+            offset: 0,
+            format: 'float32x2'
+        };
+
+        const pixelCoordsBufferLayoutDescPass1 = {
+            attributes: [pixelCoordsAttribDescPass1],
+            arrayStride: 4 * 2, // sizeof(float) * 3
+            stepMode: 'vertex'
+        };
+
+        const pixelCoordsAttribDescPass2 = {
+            shaderLocation: 1, // @location(1)
+            offset: 0,
+            format: 'float32x2'
+        };
+
+        const pixelCoordsBufferLayoutDescPass2 = {
+            attributes: [pixelCoordsAttribDescPass2],
+            arrayStride: 4 * 2, // sizeof(float) * 3
+            stepMode: 'vertex'
+        };
+
+        const positions = new Float32Array([
+            100.0, -100.0, 0.0,
+            100.0, 100.0, 0.0,
+            -100.0, -100.0, 0.0,
+            -100.0, 100.0, 0.0
+        ]);
+
+
+        const positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
+
+        const pixelCoords = new Float32Array([
+            texture.width,
+            0.0,
+            // 🔴
+
+            texture.width,
+            texture.height,
+
+            0.0,
+            0.0,
+
+            0.0,
+            texture.height
+        ]);
+
+        const pixelCoordsBuffer = createGPUBuffer(device, pixelCoords, GPUBufferUsage.VERTEX);
+
+        const imgSizeBuffer = new Float32Array([texture.width, texture.height]);
+
+        const imgSizeUniformBuffer = createGPUBuffer(device, imgSizeBuffer, GPUBufferUsage.UNIFORM);
+
+        let kValues = [];
+        let offsets = [];
+
+        const kernelSize = 8.0;
+        const sigma = 8.0;
+        let intensity = 0.0;
+
+        for (let y = - kernelSize; y <= kernelSize; y += 1.0) {
+            let gaussian_v = 1.0 / (2.0 * Math.PI * sigma * sigma) * Math.exp(-(y * y) / (2.0 * sigma * sigma));
+            intensity += gaussian_v;
+            kValues.push(gaussian_v);
+            offsets.push(y);
+        }
+
+        let kValues2 = [];
+        let offsets2 = [];
+        let i = 0;
+        for (; i < kValues.length - 1; i += 2) {
+            const A = kValues[i];
+            const B = kValues[i + 1];
+            const k = A + B;
+            const alpha = A / k;
+            const offset = offsets[i] + alpha;
+            kValues2.push(k / intensity);
+            offsets2.push(offset);
+        }
+
+        if (i < kValues.length) {
+            const A = kValues[i];
+            const offset = offsets[i];
+            kValues2.push(A / intensity);
+            offsets2.push(offset);
+        }
+
+        const kernelBuffer = new Float32Array(kValues2);
+
+        const kernelBufferStorageBuffer = createGPUBuffer(device, kernelBuffer, GPUBufferUsage.STORAGE);
+
+
+        const offsetBuffer = new Float32Array(offsets2);
+
+        const offsetBufferStorageBuffer = createGPUBuffer(device, offsetBuffer, GPUBufferUsage.STORAGE);
+
+        const kernelSizeBuffer = new Uint32Array([kValues2.length]);
+
+        const kernelBufferSizeUniformBuffer = createGPUBuffer(device, kernelSizeBuffer, GPUBufferUsage.UNIFORM);
+
+        let translateMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
+            glMatrix.vec3.fromValues(0, 0, 10), glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(0.0, 1.0, 0.0));
+
+        //https://stackoverflow.com/questions/10958656/opengl-why-far-and-near-are-negative-in-orthogonal-projection
+        let orthProjMatrix = glMatrix.mat4.ortho(glMatrix.mat4.create(), -320.0, 320.0, 240.0, -240.0, -1000.0, 1000.0);
+
+        let translateMatrixUniformBuffer = createGPUBuffer(device, translateMatrix, GPUBufferUsage.UNIFORM);
+
+        let projectionMatrixUniformBuffer = createGPUBuffer(device, orthProjMatrix, GPUBufferUsage.UNIFORM);
+
+        let uniformBindGroupLayoutPass1 = device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer: {}
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: {}
+                },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler: {}
+                },
+                {
+                    binding: 3,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer: {
+                        type: 'read-only-storage'
+                    }
+                },
+                {
+                    binding: 4,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer: {
+                        type: 'read-only-storage'
+                    }
+                },
+                {
+                    binding: 5,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer: {}
+                }
+            ]
+        });
+
+        let uniformBindGroupPass1 = device.createBindGroup({
+            layout: uniformBindGroupLayoutPass1,
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: imgSizeUniformBuffer
+                    }
+                },
+                {
+                    binding: 1,
+                    resource: texture.createView()
+                },
+                {
+                    binding: 2,
+                    resource:
+                        sampler
+                },
+                {
+                    binding: 3,
+                    resource: {
+                        buffer: kernelBufferStorageBuffer
+                    }
+                },
+                {
+                    binding: 4,
+                    resource: {
+                        buffer: offsetBufferStorageBuffer
+                    }
+                },
+                {
+                    binding: 5,
+                    resource: {
+                        buffer: kernelBufferSizeUniformBuffer
+                    }
+                }
+            ]
+        });
+
+        const pipelineLayoutDescPass1 = { bindGroupLayouts: [uniformBindGroupLayoutPass1] };
+        const pipelineLayoutPass1 = device.createPipelineLayout(pipelineLayoutDescPass1);
+
+        const colorStatePass1 = {
+            format: 'rgba8unorm'
+        };
+
+        const pipelineDescPass1 = {
+            layout: pipelineLayoutPass1,
+            vertex: {
+                module: shaderModuleVertical,
+                entryPoint: 'vs_main',
+                buffers: [pixelCoordsBufferLayoutDescPass1]
+            },
+            fragment: {
+                module: shaderModuleVertical,
+                entryPoint: 'fs_main',
+                targets: [colorStatePass1]
+            },
+            primitive: {
+                topology: 'triangle-strip',
+                frontFace: 'ccw',
+                cullMode: 'none'
+            }
+        };
+
+        const pipelinePass1 = device.createRenderPipeline(pipelineDescPass1);
+
+        let colorAttachmentPass1 = {
+            view: pass1texture.createView(),
+            clearValue: { r: 0, g: 0, b: 0, a: 0 },
+            loadOp: 'clear',
+            storeOp: 'store'
+        };
+
+        const renderPassDescPass1 = {
+            colorAttachments: [colorAttachmentPass1]
+        };
+        commandEncoder = device.createCommandEncoder();
+
+
+
+
+        passEncoder = commandEncoder.beginRenderPass(renderPassDescPass1);
+        passEncoder.setViewport(0, 0, texture.width, texture.height, 0, 1);
+        passEncoder.setPipeline(pipelinePass1);
+        passEncoder.setBindGroup(0, uniformBindGroupPass1);
+        passEncoder.setVertexBuffer(0, pixelCoordsBuffer);
+        passEncoder.draw(4, 1);
+        passEncoder.end();
+
+
+
+
+        let uniformBindGroupLayoutPass2 = device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: {}
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: {}
+                },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer: {}
+                },
+                {
+                    binding: 3,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: {}
+                },
+                {
+                    binding: 4,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler: {}
+                },
+                {
+                    binding: 5,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer: {
+                        type: 'read-only-storage'
+                    }
+                },
+                {
+                    binding: 6,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer: {
+                        type: 'read-only-storage'
+                    }
+                },
+                {
+                    binding: 7,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    buffer: {}
+                }
+            ]
+        });
+
+        let uniformBindGroupPass2 = device.createBindGroup({
+            layout: uniformBindGroupLayoutPass2,
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: translateMatrixUniformBuffer
+                    }
+                },
+                {
+                    binding: 1,
+                    resource: {
+                        buffer: projectionMatrixUniformBuffer
+                    }
+                },
+                {
+                    binding: 2,
+                    resource: {
+                        buffer: imgSizeUniformBuffer
+                    }
+                },
+                {
+                    binding: 3,
+                    resource: pass1texture.createView()
+                },
+                {
+                    binding: 4,
+                    resource:
+                        sampler
+                },
+                {
+                    binding: 5,
+                    resource: {
+                        buffer: kernelBufferStorageBuffer
+                    }
+                },
+                {
+                    binding: 6,
+                    resource: {
+                        buffer: offsetBufferStorageBuffer
+                    }
+                },
+                {
+                    binding: 7,
+                    resource: {
+                        buffer: kernelBufferSizeUniformBuffer
+                    }
+                }
+            ]
+        });
+
+
+
+
+
+        const pipelineLayoutDescPass2 = { bindGroupLayouts: [uniformBindGroupLayoutPass2] };
+        const pipelineLayoutPass2 = device.createPipelineLayout(pipelineLayoutDescPass2);
+
+
+        const colorStatePass2 = {
+            format: 'bgra8unorm'
+        };
+
+        const pipelineDescPass2 = {
+            layout: pipelineLayoutPass2,
+            vertex: {
+                module: shaderModuleHorizontal,
+                entryPoint: 'vs_main',
+                buffers: [positionBufferLayoutDesc, pixelCoordsBufferLayoutDescPass2]
+            },
+            fragment: {
+                module: shaderModuleHorizontal,
+                entryPoint: 'fs_main',
+                targets: [colorStatePass2]
+            },
+            primitive: {
+                topology: 'triangle-strip',
+                frontFace: 'ccw',
+                cullMode: 'none'
+            }
+        };
+
+        const pipelinePass2 = device.createRenderPipeline(pipelineDescPass2);
+
+
+
+
+
+
+        let pass2texture = context.getCurrentTexture();
+
+        let colorAttachmentPass2 = {
+            view: pass2texture.createView(),
+            clearValue: { r: 1.0, g: 0.0, b: 0.0, a: 1.0 },
+            loadOp: 'clear',
+            storeOp: 'store'
+        }
+
+        const renderPassDescPass2 = {
+            colorAttachments: [colorAttachmentPass2]
+        }
+
+
+        let passEncoder2 = commandEncoder.beginRenderPass(renderPassDescPass2);
+        passEncoder2.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+        passEncoder2.setPipeline(pipelinePass2);
+        passEncoder2.setBindGroup(0, uniformBindGroupPass2);
+        passEncoder2.setVertexBuffer(0, positionBuffer);
+        passEncoder2.setVertexBuffer(1, pixelCoordsBuffer);
+        passEncoder2.draw(4, 1);
+        passEncoder2.end();
+
+
+        device.queue.submit([commandEncoder.finish()]);
+    }
+
+    webgpu();
+</script>
+
+</html>

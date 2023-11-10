@@ -238,6 +238,141 @@
       ]
     },
     {
+      "title": "2. 2D Techniques",
+      "sub_chapters": [
+        {
+          "folder": "2_0_render_to_textures",
+          "title": "2.0 Render to Textures",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "2_1_orthogonal_cameras",
+          "title": "2.1 Orthogonal Cameras",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "title": "2.2 Blur",
+          "sub_chapters": [
+            {
+              "folder": "2_2_1_blur_1",
+              "title": "2.2.1 Blur 1",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": true
+                }
+              ]
+            },
+            {
+              "folder": "2_2_2_blur_2",
+              "title": "2.2.2 Blur 2",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": true
+                }
+              ]
+            },
+            {
+              "folder": "2_2_3_blur_3",
+              "title": "2.2.3 Blur 3",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": true
+                }
+              ]
+            },
+            {
+              "folder": "2_2_4_blur_4",
+              "title": "2.2.4 Blur 4",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": true
+                }
+              ]
+            },
+            {
+              "folder": "2_2_5_blur_5",
+              "title": "2.2.5 Blur 5",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "2.3 Video",
+          "sub_chapters": [
+            {
+              "folder": "2_3_1_video_1",
+              "title": "2.3.1 Video 1",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": true
+                }
+              ]
+            },
+            {
+              "folder": "2_3_2_video_2",
+              "title": "2.3.2 Video 2",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "folder": "2_4_text",
+          "title": "2.4 Text",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "2_5_billboard",
+          "title": "2.5 Billboard",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "2_6_fake_3d",
+          "title": "2.6 Fake 3D",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        }
+      ]
+    },
+    {
       "title": "4. Advanced",
       "sub_chapters": [
         {
