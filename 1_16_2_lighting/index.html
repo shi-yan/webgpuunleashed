@@ -104,7 +104,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         const shaderDesc = { code: code };
         let shaderModule = device.createShaderModule(shaderDesc);
 
-        let { positionBuffer, normalBuffer, indexBuffer, indexSize } = await loadObj(device, 'teapot.obj');
+        let { positionBuffer, normalBuffer, indexBuffer, indexSize } = await loadObj(device, '../data/teapot.obj');
 
 
        // let rotationMatrix = glMatrix.mat4.fromRotation(glMatrix.mat4.create(), Math.PI / 2.0, glMatrix.vec3.fromValues(1.0, 0.0, 0.0));

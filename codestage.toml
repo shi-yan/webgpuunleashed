@@ -259,6 +259,64 @@ filename = "index.html"
 is_readonly = false
 
 [[content]]
+title = "3. Control"
+
+[[content.sub_chapters]]
+title = "3.0 Canvas Resizing"
+folder = "3_0_canvas_resizing"
+[[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
+
+[[content.sub_chapters]]
+title = "3.1 Arcball"
+folder = "3_1_arcball"
+[[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
+
+[[content.sub_chapters]]
+title = "3.2 Picking"
+
+[[content.sub_chapters.sub_chapters]]
+title = "3.2.1 Ray Casting"
+folder = "3_2_1_picking_ray_casting"
+[[content.sub_chapters.sub_chapters.files]]
+filename = "index.html"
+is_readonly = true
+
+[[content.sub_chapters.sub_chapters]]
+title = "3.2.2 Color Coding"
+folder = "3_2_2_picking_color_coding"
+[[content.sub_chapters.sub_chapters.files]]
+filename = "index.html"
+is_readonly = true
+
+[[content.sub_chapters]]
+title = "3.3 Save Image and Video"
+folder = "3_3_save_image_and_video"
+[[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
+
+[[content.sub_chapters]]
+title = "3.4 Worker"
+folder = "3_4_worker"
+[[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
+[[content.sub_chapters.files]]
+filename = "worker.js"
+is_readonly = false
+
+[[content.sub_chapters]]
+title = "3.5 Error Handling and Limits"
+folder = "3_5_error_handling_and_limits"
+[[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
+
+[[content]]
 title = "4. Advanced"
 
 [[content.sub_chapters]]
