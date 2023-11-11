@@ -119,11 +119,11 @@
     @group(0) @binding(14)
     var s_shade: sampler;
 
-    fn specular(lightDir:vec3<f32>, viewDir:vec3<f32>, normal:vec3<f32>,  specularColor:vec3<f32>, 
-        shininess:f32) -> vec3<f32> {
+    fn specular(lightDir:vec3<f32>, viewDir:vec3<f32>, normal:vec3<f32>, 
+        shininess:f32) -> f32 {
        let reflectDir:vec3<f32> = reflect(-lightDir, normal);
        let specDot:f32 = max(dot(reflectDir, viewDir), 0.0);
-       return pow(specDot, shininess) * specularColor;
+       return pow(specDot, shininess) ;
    }
 
     @fragment
@@ -152,17 +152,15 @@
             }
         }
         visibility /= 25.0;
-        var diffuse:vec3<f32> = textureSample(t_shade, s_shade,  max(dot(-lightDir, n), 0.0)*visibility ).xyz;
+        var intensity:f32 = max(dot(-lightDir, n), 0.0)* diffuseReflectionConstant + specular(-lightDir, viewDir, n, shininess) * specularReflectionConstant;
+        var diffuse:vec3<f32> = textureSample(t_shade, s_shade,   intensity * visibility ).xyz;
+
         if (face) {
             var wldLoc2light:vec3<f32> = in.wldLoc-lightLoc;
             var align:f32 = dot( normalize(wldLoc2light),lightDir);
 
             if (align > 0.9) {
-                var radiance:vec3<f32>  = ambientColor.rgb * ambientReflectionConstant + 
-                        diffuse* diffuseReflectionConstant +
-                        specular(-lightDir, viewDir, n, specularColor.rgb, shininess) * specularReflectionConstant;
-        
-                return vec4<f32>(radiance   ,1.0);
+                return vec4<f32>(diffuse, 1.0);
             }
         } 
         return vec4<f32>( 0.0,0.0,0.0,1.0);
@@ -263,9 +261,15 @@
                     shadeTextureColors.push(191);
                     shadeTextureColors.push(255);
                 }
-                else {
+                else if (i >= 80 && i < 124) {
                     shadeTextureColors.push(191);
                     shadeTextureColors.push(242);
+                    shadeTextureColors.push(255);
+                    shadeTextureColors.push(255);
+                }
+                else {
+                    shadeTextureColors.push(255);
+                    shadeTextureColors.push(255);
                     shadeTextureColors.push(255);
                     shadeTextureColors.push(255);
                 }
@@ -631,7 +635,7 @@
 
             this.lightPipeline = device.createRenderPipeline(lightPipelineDesc);
 
-            const outlinePipelineLayoutDesc = {bindGroupLayouts: [uniformBindGroupLayoutOutline]};
+            const outlinePipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayoutOutline] };
 
             const outlinePipelineDesc = {
                 layout: device.createPipelineLayout(outlinePipelineLayoutDesc),
