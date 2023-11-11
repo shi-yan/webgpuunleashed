@@ -4,57 +4,11 @@
     <canvas id="canvas" width="640" height="480" style="width:100%;height:100%"></canvas>
 </body>
 <script src="../utils/gl-matrix.js">
-    //https://ameye.dev/notes/rendering-outlines/
-    //https://www.videopoetics.com/tutorials/pixel-perfect-outline-shaders-unity/#working-in-clip-space
-    //https://bgolus.medium.com/the-quest-for-very-wide-outlines-ba82ed442cd9
-    // https://gamedev.stackexchange.com/questions/168407/normal-matrix-in-plain-english#:~:text=The%20inverse%20transpose%20of%20the,scaling%20factors%20and%20the%20rotation.
-    // 1. 1d texture
-    //2 . outline
-    //3. specular light
-    //4. screenspace outline
-    //5. scale by screen aspect ratio
-    // https://gamedev.stackexchange.com/questions/168407/normal-matrix-in-plain-english#:~:text=The%20inverse%20transpose%20of%20the,scaling%20factors%20and%20the%20rotation.
+    //https://www.hdri-hub.com/hdrishop/freesamples/freehdri/item/113-hdr-111-parking-space-free
+    //https://www.oreilly.com/library/view/webgl-programming-guide/9780133364903/appe.html
 </script>
 <script src="../utils/OBJFile.js"> </script>
 <script src="../utils/utils.js"></script>
-
-<script id="object_outline_shader" type="wgsl">
-    // Vertex shader
-    
-    @group(0) @binding(0)
-    var<uniform> modelView: mat4x4<f32>;
-    @group(0) @binding(1)
-    var<uniform> projection: mat4x4<f32>;
-    @group(0) @binding(2)
-    var<uniform> normalMatrix: mat4x4<f32>;
-    @group(0) @binding(3)
-    var<uniform> screenDim: vec2<f32>;
-    
-    struct VertexOutput {
-        @builtin(position) clip_position: vec4<f32>,
-    };
-    
-    @vertex
-    fn vs_main(
-        @location(0) inPos: vec3<f32>,
-        @location(1) inNormal: vec3<f32>
-    ) -> VertexOutput {
-        var out: VertexOutput;
-        out.clip_position = projection * modelView * vec4<f32>(inPos, 1.0);
-        var clip_normal:vec4<f32> = projection * normalMatrix * vec4<f32>(inNormal, 0.0);
-
-        out.clip_position =vec4<f32>( out.clip_position.xy + normalize(clip_normal.xy)*6.4/screenDim * out.clip_position.w,out.clip_position.zw );
-        return out;
-    }
-    
-    // Fragment shader
-
-    @fragment
-    fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-        return vec4<f32>( 0.0,0.0,0.0,1.0);
-    }
-</script>
-
 <script id="object_with_shadow_shader" type="wgsl">
     // Vertex shader
     
@@ -80,8 +34,19 @@
     var<uniform> shininess:f32;// = 20.0;
         
     const diffuseReflectionConstant:f32 = 1.0;
-    const specularReflectionConstant:f32 = 0.0;
-    const ambientReflectionConstant: f32 = 0.0;
+    const specularReflectionConstant:f32 = 1.0;
+    const ambientReflectionConstant: f32 = 1.0;
+    
+    fn specular(lightDir:vec3<f32>, viewDir:vec3<f32>, normal:vec3<f32>,  specularColor:vec3<f32>, 
+         shininess:f32) -> vec3<f32> {
+        let reflectDir:vec3<f32> = reflect(-lightDir, normal);
+        let specDot:f32 = max(dot(reflectDir, viewDir), 0.0);
+        return pow(specDot, shininess) * specularColor;
+    }
+    
+    fn diffuse(lightDir:vec3<f32>, normal:vec3<f32>,  diffuseColor:vec3<f32>) -> vec3<f32>{
+        return max(dot(lightDir, normal), 0.0) * diffuseColor;
+    }
     
     struct VertexOutput {
         @builtin(position) clip_position: vec4<f32>,
@@ -122,21 +87,11 @@
     var<uniform> lightModelViewMatrix: mat4x4<f32>;
     @group(0) @binding(12)
     var<uniform> lightProjectionMatrix: mat4x4<f32>;
-    @group(0) @binding(13)
-    var t_shade: texture_1d<f32>;
-    @group(0) @binding(14)
-    var s_shade: sampler;
-
-    fn specular(lightDir:vec3<f32>, viewDir:vec3<f32>, normal:vec3<f32>, 
-        shininess:f32) -> f32 {
-       let reflectDir:vec3<f32> = reflect(-lightDir, normal);
-       let specDot:f32 = max(dot(reflectDir, viewDir), 0.0);
-       return pow(specDot, shininess) ;
-   }
 
     @fragment
     fn fs_main(in: VertexOutput,   @builtin(front_facing) face: bool) -> @location(0) vec4<f32> {
 
+     
         var lightLoc:vec3<f32> = in.lightLoc;
         var lightDir:vec3<f32> = normalize(in.lightDir);
         var n:vec3<f32> = normalize(in.normal);
@@ -148,30 +103,44 @@
         var uv:vec2<f32> = 0.5*(fragmentPosInScreenSpace.xy + vec2(1.0,1.0));
 
         var visibility = 0.0;
-        let oneOverShadowDepthTextureSize = 1.0 / 1024.0;
-        for (var y = -2; y <= 2; y++) {
-            for (var x = -2; x <= 2; x++) {
+            let oneOverShadowDepthTextureSize = 1.0 / 1024.0;
+            for (var y = -2; y <= 2; y++) {
+              for (var x = -2; x <= 2; x++) {
                 let offset = vec2<f32>(vec2(x, y)) * oneOverShadowDepthTextureSize;
           
                 visibility += textureSampleCompare(
                     t_depth, s_depth,
                     vec2(uv.x, 1.0-uv.y) + offset,depth  - 0.0003
                 );
+              }
             }
-        }
-        visibility /= 25.0;
-        var intensity:f32 = max(dot(-lightDir, n), 0.0)* diffuseReflectionConstant + specular(-lightDir, viewDir, n, shininess) * specularReflectionConstant;
-        var diffuse:vec3<f32> = textureSample(t_shade, s_shade,   intensity * visibility ).xyz;
+            visibility /= 25.0;
 
+
+        //var light2ClosestSurfaceDist = textureSample(t_depth, s_depth, vec2(uv.x, 1.0-uv.y));
         if (face) {
-            var wldLoc2light:vec3<f32> = in.wldLoc-lightLoc;
-            var align:f32 = dot( normalize(wldLoc2light),lightDir);
+            //if (depth < light2ClosestSurfaceDist+0.0001) {
 
-            if (align > 0.9) {
-                return vec4<f32>(diffuse, 1.0);
-            }
+                var wldLoc2light:vec3<f32> =   in.wldLoc-lightLoc;
+
+                //var lightDir:vec3<f32> =  
+                var align:f32 = dot( normalize(wldLoc2light),lightDir);
+
+                if (align > 0.9) {
+                    var radiance:vec3<f32>  = ambientColor.rgb * ambientReflectionConstant + 
+                        diffuse(-lightDir, n, diffuseColor.rgb)* diffuseReflectionConstant +
+                        specular(-lightDir, viewDir, n, specularColor.rgb, shininess) * specularReflectionConstant;
+        
+                    return vec4<f32>(radiance * visibility ,1.0);
+                   // return vec4<f32>(0.0,0.0,light2ClosestSurfaceDist,1.0);
+                }
+
+                //return vec4<f32>(1.0,1.0,0.0,1.0);
+            //}
+          
         } 
-        return vec4<f32>( 0.0,0.0,0.0,1.0);
+            return vec4<f32>( 0.0,0.0,0.0,1.0);
+        
     }
 </script>
 
@@ -223,26 +192,28 @@
 <script>
     let angle = 0.0;
 
+    class Skybox {
+        constructor() {
+            
+        }
+    }
+
     class Teapot {
         constructor() {
             this.pipeline = null;
             this.lightPipeline = null;
-            this.outlinePipeline = null;
             this.positionBuffer = null;
             this.normalBuffer = null;
             this.indexBuffer = null;
             this.uniformBindGroup = null;
             this.indexSize = null;
             this.uniformBindGroupLight = null;
-            this.uniformBindGroupOutline = null;
         }
 
         async setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer,
-            depthTexture, sampler, lightModelViewMatrixUniformBuffer, lightProjectionMatrixUniformBuffer,
-            screenDimUniformBuffer) {
+            depthTexture, sampler, lightModelViewMatrixUniformBuffer, lightProjectionMatrixUniformBuffer) {
             let shaderModule = shaderModuleFromCode(device, 'object_with_shadow_shader');
             let shaderModuleLight = shaderModuleFromCode(device, 'light_view_shader');
-            let shaderModuleOutline = shaderModuleFromCode(device, 'object_outline_shader');
 
             let { positionBuffer, normalBuffer, indexBuffer, indexSize } = await loadObj(device, '../data/teapot.obj');
             this.positionBuffer = positionBuffer;
@@ -250,47 +221,6 @@
             this.indexBuffer = indexBuffer;
             this.indexSize = indexSize;
 
-            const shadeTextureDesc = {
-                size: [128],
-                dimension: '1d',
-                format: "rgba8unorm",
-                usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
-            };
-            let shadeTextureColors = [];
-            for (let i = 0; i < 128; ++i) {
-                if (i < 40) {
-                    shadeTextureColors.push(95);
-                    shadeTextureColors.push(121);
-                    shadeTextureColors.push(127);
-                    shadeTextureColors.push(255);
-                }
-                else if (i >= 40 && i < 80) {
-                    shadeTextureColors.push(143);
-                    shadeTextureColors.push(181);
-                    shadeTextureColors.push(191);
-                    shadeTextureColors.push(255);
-                }
-                else if (i >= 80 && i < 124) {
-                    shadeTextureColors.push(191);
-                    shadeTextureColors.push(242);
-                    shadeTextureColors.push(255);
-                    shadeTextureColors.push(255);
-                }
-                else {
-                    shadeTextureColors.push(255);
-                    shadeTextureColors.push(255);
-                    shadeTextureColors.push(255);
-                    shadeTextureColors.push(255);
-                }
-            }
-
-            let shadeTexture = device.createTexture(shadeTextureDesc);
-            device.queue.writeTexture({ texture: shadeTexture }, new Uint8Array(shadeTextureColors), {
-                offset: 0,
-                bytesPerRow: 128 * 4,
-                rowsPerImage: 1
-            }, { width: 128 });
-            await device.queue.onSubmittedWorkDone();
 
             let uniformBindGroupLayoutLight = device.createBindGroupLayout({
                 entries: [
@@ -324,32 +254,6 @@
                     }
                 ]
             });
-
-            let uniformBindGroupLayoutOutline = device.createBindGroupLayout({
-                entries: [
-                    {
-                        binding: 0,
-                        visibility: GPUShaderStage.VERTEX,
-                        buffer: {}
-                    },
-                    {
-                        binding: 1,
-                        visibility: GPUShaderStage.VERTEX,
-                        buffer: {}
-                    },
-                    {
-                        binding: 2,
-                        visibility: GPUShaderStage.VERTEX,
-                        buffer: {}
-                    },
-                    {
-                        binding: 3,
-                        visibility: GPUShaderStage.VERTEX,
-                        buffer: {}
-                    }
-                ]
-            });
-
 
 
             let uniformBindGroupLayout = device.createBindGroupLayout({
@@ -422,18 +326,6 @@
                         binding: 12,
                         visibility: GPUShaderStage.FRAGMENT,
                         buffer: {}
-                    },
-                    {
-                        binding: 13,
-                        visibility: GPUShaderStage.FRAGMENT,
-                        texture: {
-                            viewDimension: '1d'
-                        }
-                    },
-                    {
-                        binding: 14,
-                        visibility: GPUShaderStage.FRAGMENT,
-                        sampler: {}
                     }
                 ]
             });
@@ -443,43 +335,6 @@
             const specularUniformBuffer = createGPUBuffer(device, new Float32Array([1.0, 1.0, 1.0, 1.0]), GPUBufferUsage.UNIFORM);
             const shininessUniformBuffer = createGPUBuffer(device, new Float32Array([20.0]), GPUBufferUsage.UNIFORM);
 
-            const shadeSampler = device.createSampler({
-                addressModeU: 'clamp-to-edge',
-                addressModeV: 'clamp-to-edge',
-                magFilter: 'linear',
-                minFilter: 'linear',
-                mipmapFilter: 'linear'
-            });
-
-            this.uniformBindGroupOutline = device.createBindGroup({
-                layout: uniformBindGroupLayoutOutline,
-                entries: [
-                    {
-                        binding: 0,
-                        resource: {
-                            buffer: modelViewMatrixUniformBuffer
-                        }
-                    },
-                    {
-                        binding: 1,
-                        resource: {
-                            buffer: projectionMatrixUniformBuffer
-                        }
-                    },
-                    {
-                        binding: 2,
-                        resource: {
-                            buffer: normalMatrixUniformBuffer
-                        }
-                    },
-                    {
-                        binding: 3,
-                        resource: {
-                            buffer: screenDimUniformBuffer
-                        }
-                    }
-                ]
-            });
 
             this.uniformBindGroup = device.createBindGroup({
                 layout: uniformBindGroupLayout,
@@ -558,15 +413,6 @@
                         resource: {
                             buffer: lightProjectionMatrixUniformBuffer
                         }
-                    },
-                    {
-                        binding: 13,
-                        resource: shadeTexture.createView()
-                    },
-                    {
-                        binding: 14,
-                        resource:
-                            shadeSampler
                     },
                 ]
             });
@@ -655,43 +501,6 @@
             };
 
             this.lightPipeline = device.createRenderPipeline(lightPipelineDesc);
-
-            const outlinePipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayoutOutline] };
-
-            const outlinePipelineDesc = {
-                layout: device.createPipelineLayout(outlinePipelineLayoutDesc),
-                vertex: {
-                    module: shaderModuleOutline,
-                    entryPoint: 'vs_main',
-                    buffers: [positionBufferLayoutDesc, normalBufferLayoutDesc]
-                },
-                fragment: {
-                    module: shaderModuleOutline,
-                    entryPoint: 'fs_main',
-                    targets: [colorState]
-                },
-                primitive: {
-                    topology: 'triangle-list',
-                    frontFace: 'ccw',
-                    cullMode: 'front'
-                },
-                depthStencil: {
-                    depthWriteEnabled: true,
-                    depthCompare: 'less',
-                    format: 'depth32float'
-                }
-            }
-
-            this.outlinePipeline = device.createRenderPipeline(outlinePipelineDesc);
-        }
-
-        encodeForOutline(encoder) {
-            encoder.setPipeline(this.outlinePipeline);
-            encoder.setBindGroup(0, this.uniformBindGroupOutline);
-            encoder.setVertexBuffer(0, this.positionBuffer);
-            encoder.setVertexBuffer(1, this.normalBuffer);
-            encoder.setIndexBuffer(this.indexBuffer, 'uint16');
-            encoder.drawIndexed(this.indexSize);
         }
 
         encodeForLight(encoder) {
@@ -714,7 +523,7 @@
 
     class Arcball {
         constructor() {
-            this.radius = 6.0;
+            this.radius = 8.0;
             this.forwardVector = glMatrix.vec4.fromValues(this.radius, 0.0, 0.0, 0.0);
             this.upVector = glMatrix.vec4.fromValues(0.0, 0.0, 1.0, 0.0);
             this.currentRotation = glMatrix.mat4.create();
@@ -837,17 +646,11 @@
 
         let lightModelViewMatrixUniformBuffer = createGPUBuffer(device, modelViewMatrix, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
-        let screenDim = new Float32Array([canvas.width, canvas.height]);
-
-        const screenDimUniformBuffer = createGPUBuffer(device, screenDim, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
-
         let teapot = new Teapot();
         await teapot.setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer,
-            lightDepthTexture, sampler, lightModelViewMatrixUniformBuffer, lightProjectionMatrixUniformBuffer,screenDimUniformBuffer);
-
+            lightDepthTexture, sampler, lightModelViewMatrixUniformBuffer, lightProjectionMatrixUniformBuffer);
 
         let depthTexture = null;
-
 
         let lightDepthAttachment = {
             view: lightDepthTexture.createView(),
@@ -878,14 +681,13 @@
         };
 
         let copiedBuffer = createGPUBuffer(device, new Float32Array(1024 * 1024), GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
+
         async function render() {
             const devicePixelRatio = window.devicePixelRatio || 1;
             let currentCanvasWidth = canvas.clientWidth * devicePixelRatio;
             let currentCanvasHeight = canvas.clientHeight * devicePixelRatio;
 
             let projectionMatrixUniformBufferUpdate = null;
-            let screenDimUniformBufferUpdate = null;
-
 
             if (depthTexture === null || currentCanvasWidth != canvas.width || currentCanvasHeight != canvas.height) {
                 canvas.width = currentCanvasWidth;
@@ -916,10 +718,6 @@
                     1.4, canvas.width / canvas.height, 0.1, 1000.0);
 
                 projectionMatrixUniformBufferUpdate = createGPUBuffer(device, projectionMatrix, GPUBufferUsage.COPY_SRC);
-
-                const screenDim = new Float32Array([canvas.width, canvas.height]);
-
-                screenDimUniformBufferUpdate = createGPUBuffer(device, screenDim, GPUBufferUsage.COPY_SRC);
             }
 
             let modelViewMatrix = arcball.getMatrices();
@@ -943,6 +741,7 @@
                 glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(0.0, 0.0, 1.0));
 
             let lightModelViewMatrixUniformBufferUpdate = createGPUBuffer(device, lightModelViewMatrix, GPUBufferUsage.COPY_SRC);
+
 
             let colorTexture = context.getCurrentTexture();
             let colorTextureView = colorTexture.createView();
@@ -975,10 +774,6 @@
                 commandEncoder.copyBufferToBuffer(projectionMatrixUniformBufferUpdate, 0,
                     projectionMatrixUniformBuffer, 0, projectionMatrix.byteLength);
             }
-            if (screenDimUniformBufferUpdate) {
-                commandEncoder.copyBufferToBuffer(screenDimUniformBufferUpdate, 0,
-                    screenDimUniformBuffer, 0, screenDim.byteLength);
-            }
             commandEncoder.copyBufferToBuffer(lightModelViewMatrixUniformBufferUpdate, 0,
                 lightModelViewMatrixUniformBuffer, 0, lightModelViewMatrix.byteLength);
             commandEncoder.copyBufferToBuffer(modelViewMatrixUniformBufferUpdate, 0,
@@ -998,19 +793,17 @@
             //device.queue.submit([commandEncoder.finish()]);
             const passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
             passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
-            teapot.encodeForOutline(passEncoder);
             teapot.encode(passEncoder);
+     
             passEncoder.end();
 
             device.queue.submit([commandEncoder.finish()]);
+
 
             await device.queue.onSubmittedWorkDone();
 
             if (projectionMatrixUniformBufferUpdate) {
                 projectionMatrixUniformBufferUpdate.destroy();
-            }
-            if (screenDimUniformBufferUpdate) {
-                screenDimUniformBufferUpdate.destroy();
             }
             modelViewMatrixUniformBufferUpdate.destroy();
             normalMatrixUniformBufferUpdate.destroy();
