@@ -326,3 +326,10 @@ folder = "5_1_shadow_maps"
 [[content.sub_chapters.files]]
 filename = "index.html"
 is_readonly = false
+
+[[content.sub_chapters]]
+title = "5.2 Toon Shading"
+folder = "5_2_toon_shading"
+[[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
