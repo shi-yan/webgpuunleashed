@@ -458,11 +458,21 @@
       ]
     },
     {
-      "title": "4. Advanced",
+      "title": "5. Advanced",
       "sub_chapters": [
         {
-          "folder": "4_1_shadow_maps",
-          "title": "4.1 Shadow Maps",
+          "folder": "5_1_shadow_maps",
+          "title": "5.1 Shadow Maps",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "5_2_toon_shading",
+          "title": "5.2 Toon Shading",
           "files": [
             {
               "filename": "index.html",
