@@ -8,6 +8,7 @@ meta_image = "meta.png"
 description = """
 WebGPU example code."""
 utilities = [ "utils" , "data", "shader"]
+readme_folder = "readme"
 
 [[content]]
 title = "1. Basics"
@@ -317,11 +318,11 @@ filename = "index.html"
 is_readonly = false
 
 [[content]]
-title = "4. Advanced"
+title = "5. Advanced"
 
 [[content.sub_chapters]]
-title = "4.1 Shadow Maps"
-folder = "4_1_shadow_maps"
+title = "5.1 Shadow Maps"
+folder = "5_1_shadow_maps"
 [[content.sub_chapters.files]]
 filename = "index.html"
 is_readonly = false
