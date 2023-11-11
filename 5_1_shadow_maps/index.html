@@ -904,26 +904,6 @@
 
         let lightModelViewMatrixUniformBuffer = createGPUBuffer(device, modelViewMatrix, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
-        let widthScale = 1.0;
-        let heightScale = 1.0;
-
-        const radius = 0.9;
-
-        if (canvas.width > canvas.height) {
-            widthScale = radius * canvas.height / canvas.width;
-            heightScale = radius;
-        }
-        else {
-            widthScale = radius;
-            heightScale = radius * canvas.width / canvas.height;
-        }
-
-
-        let scale = new Float32Array([widthScale, heightScale]);
-
-        const scaleUniformBuffer = createGPUBuffer(device, scale, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
-
-
         let teapot = new Teapot();
         await teapot.setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer,
             lightDepthTexture, sampler, lightModelViewMatrixUniformBuffer, lightProjectionMatrixUniformBuffer);
@@ -993,8 +973,6 @@
             let currentCanvasHeight = canvas.clientHeight * devicePixelRatio;
 
             let projectionMatrixUniformBufferUpdate = null;
-            let scaleUniformBufferUpdate = null;
-
 
             if (depthTexture === null || currentCanvasWidth != canvas.width || currentCanvasHeight != canvas.height) {
                 canvas.width = currentCanvasWidth;
@@ -1025,23 +1003,6 @@
                     1.4, canvas.width / canvas.height, 0.1, 1000.0);
 
                 projectionMatrixUniformBufferUpdate = createGPUBuffer(device, projectionMatrix, GPUBufferUsage.COPY_SRC);
-
-                let widthScale = 1.0;
-                let heightScale = 1.0;
-
-                if (canvas.width > canvas.height) {
-                    widthScale = radius * canvas.height / canvas.width;
-                    heightScale = radius;
-                }
-                else {
-                    widthScale = radius;
-                    heightScale = radius * canvas.width / canvas.height;
-                }
-
-                scale = new Float32Array([widthScale, heightScale]);
-
-                scaleUniformBufferUpdate = createGPUBuffer(device, scale, GPUBufferUsage.COPY_SRC);
-
             }
 
             let modelViewMatrix = arcball.getMatrices();
@@ -1112,10 +1073,6 @@
                 commandEncoder.copyBufferToBuffer(projectionMatrixUniformBufferUpdate, 0,
                     projectionMatrixUniformBuffer, 0, projectionMatrix.byteLength);
             }
-            if (scaleUniformBufferUpdate) {
-                commandEncoder.copyBufferToBuffer(scaleUniformBufferUpdate, 0,
-                    scaleUniformBuffer, 0, scale.byteLength);
-            }
             commandEncoder.copyBufferToBuffer(lightModelViewMatrixUniformBufferUpdate, 0,
                 lightModelViewMatrixUniformBuffer, 0, lightModelViewMatrix.byteLength);
             commandEncoder.copyBufferToBuffer(modelViewMatrixUniformBufferUpdate, 0,
@@ -1179,9 +1136,6 @@
             }
             if (projectionMatrixUniformBufferUpdate) {
                 projectionMatrixUniformBufferUpdate.destroy();
-            }
-            if (scaleUniformBufferUpdate) {
-                scaleUniformBufferUpdate.destroy();
             }
             modelViewMatrixUniformBufferUpdate.destroy();
             normalMatrixUniformBufferUpdate.destroy();
