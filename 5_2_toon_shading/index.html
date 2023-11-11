@@ -7,9 +7,11 @@
     //https://ameye.dev/notes/rendering-outlines/
     //https://www.videopoetics.com/tutorials/pixel-perfect-outline-shaders-unity/#working-in-clip-space
     //https://bgolus.medium.com/the-quest-for-very-wide-outlines-ba82ed442cd9
-
+    // https://gamedev.stackexchange.com/questions/168407/normal-matrix-in-plain-english#:~:text=The%20inverse%20transpose%20of%20the,scaling%20factors%20and%20the%20rotation.
     // 1. 1d texture
     //2 . outline
+    //3. specular light
+    //4. screenspace outline
 </script>
 <script src="../utils/OBJFile.js"> </script>
 <script src="../utils/utils.js"></script>
@@ -24,6 +26,8 @@
     var<uniform> projection: mat4x4<f32>;
     @group(0) @binding(2)
     var<uniform> normalMatrix: mat4x4<f32>;
+    @group(0) @binding(3)
+    var<uniform> screenDim: vec2<f32>;
     
     struct VertexOutput {
         @builtin(position) clip_position: vec4<f32>,
@@ -35,7 +39,10 @@
         @location(1) inNormal: vec3<f32>
     ) -> VertexOutput {
         var out: VertexOutput;
-        out.clip_position = projection * modelView * vec4<f32>(inPos + normalize(inNormal)*0.03, 1.0);
+        out.clip_position = projection * modelView * vec4<f32>(inPos, 1.0);
+        var clip_normal:vec4<f32> = projection * normalMatrix * vec4<f32>(inNormal, 0.0);
+
+        out.clip_position =vec4<f32>( out.clip_position.xy + normalize(clip_normal.xy)*0.004 * out.clip_position.w,out.clip_position.zw );
         return out;
     }
     
