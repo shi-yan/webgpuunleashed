@@ -211,9 +211,26 @@
     
     // Fragment shader
 
+    const pi:f32 = 3.141592654;
+    @group(0) @binding(2)
+    var t_diffuse: texture_2d<f32>;
+    @group(0) @binding(3)
+    var s_diffuse: sampler;
+
     @fragment
     fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-        return vec4<f32>( normalize(in.worldPos),1.0);
+        var n:vec3<f32> = normalize(in.worldPos);
+
+        var len:f32 = sqrt (n.x *n.x + n.y*n.y);
+
+        var s:f32 = acos( n.x / len);
+
+        if (n.y < 0) {
+            s = 2.0 * pi - s;
+        }
+
+        s = s / (2.0 * pi);
+        return textureSampleLevel(t_diffuse, s_diffuse, vec2(s , ((asin(n.z) * -2.0 / pi ) + 1.0) * 0.5), 0);
     }
 
 </script>
@@ -256,6 +273,16 @@
 
             this.positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
 
+            const sampler = device.createSampler({
+                addressModeU: 'repeat',
+                addressModeV: 'repeat',
+                magFilter: 'linear',
+                minFilter: 'linear',
+                mipmapFilter: 'linear',
+            });
+
+            const texture = await img2texture(device, '../data/parking_lot.jpg');
+
             let uniformBindGroupLayout = device.createBindGroupLayout({
                 entries: [
                     {
@@ -267,6 +294,16 @@
                         binding: 1,
                         visibility: GPUShaderStage.VERTEX,
                         buffer: {}
+                    },
+                    {
+                        binding: 2,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        texture: {}
+                    },
+                    {
+                        binding: 3,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        sampler: {}
                     }
                 ]
             });
@@ -285,6 +322,16 @@
                         resource: {
                             buffer: projectionMatrixUniformBuffer
                         }
+                    },
+                    {
+                        binding: 2,
+                        resource: texture.createView()
+                    },
+                    {
+                        binding: 3,
+                        resource:
+                            sampler
+
                     }
                 ]
             });
