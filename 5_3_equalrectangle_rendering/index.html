@@ -90,8 +90,6 @@
 
     @fragment
     fn fs_main(in: VertexOutput,   @builtin(front_facing) face: bool) -> @location(0) vec4<f32> {
-
-     
         var lightLoc:vec3<f32> = in.lightLoc;
         var lightDir:vec3<f32> = normalize(in.lightDir);
         var n:vec3<f32> = normalize(in.normal);
@@ -116,8 +114,6 @@
             }
             visibility /= 25.0;
 
-
-        //var light2ClosestSurfaceDist = textureSample(t_depth, s_depth, vec2(uv.x, 1.0-uv.y));
         if (face) {
             //if (depth < light2ClosestSurfaceDist+0.0001) {
 
@@ -189,12 +185,161 @@
     }
 </script>
 
+<script id="skybox" type="wgsl">
+    // Vertex shader
+    
+    @group(0) @binding(0)
+    var<uniform> modelView: mat4x4<f32>;
+    @group(0) @binding(1)
+    var<uniform> projection: mat4x4<f32>;
+    
+    struct VertexOutput {
+        @builtin(position) clip_position: vec4<f32>,
+        @location(0) worldPos: vec3<f32>
+    };
+    
+    @vertex
+    fn vs_main(
+        @location(0) inPos: vec3<f32>
+    ) -> VertexOutput {
+        var out: VertexOutput;
+        out.worldPos = inPos;
+        var wldLoc:vec4<f32> = modelView * vec4<f32>(inPos, 1.0);
+        out.clip_position = projection * wldLoc;
+        return out;
+    }
+    
+    // Fragment shader
+
+    @fragment
+    fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+        return vec4<f32>( normalize(in.worldPos),1.0);
+    }
+
+</script>
+
 <script>
     let angle = 0.0;
 
     class Skybox {
         constructor() {
-            
+            this.pipeline = null;
+            this.positionBuffer = null;
+            this.uniformBindGroup = null;
+        }
+
+        async setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer) {
+            let shaderModule = shaderModuleFromCode(device, 'skybox');
+
+            const positions = new Float32Array([
+                100.0, -100.0, 50.0, -100.0, -100.0, 50.0, -100.0, 100.0, 50.0,
+                -100.0, 100.0, 50.0, 100.0, 100.0, 50.0, 100.0, -100.0, 50.0,
+
+                -100.0, 100.0, -50.0, -100.0, -100.0, -50.0, 100.0, -100.0, -50.0,
+                100.0, -100.0, -50.0, 100.0, 100.0, -50.0, -100.0, 100.0, -50.0,
+
+
+                -100.0, 50.0, -100.0, 100.0, 50.0, -100.0, -100.0, 50.0, 100.0,
+                100.0, 50.0, 100.0, -100.0, 50.0, 100.0, 100.0, 50.0, -100.0,
+
+                -100.0, -50.0, -100.0, -100.0, -50.0, 100.0, 100.0, -50.0, -100.0,
+                100.0, -50.0, 100.0, 100.0, -50.0, -100.0, -100.0, -50.0, 100.0,
+
+
+                50.0, 100.0, -100.0, 50.0, -100.0, -100.0, 50.0, -100.0, 100.0,
+                50.0, -100.0, 100.0, 50.0, 100.0, 100.0, 50.0, 100.0, -100.0,
+
+                -50.0, -100.0, 100.0, -50.0, -100.0, -100.0, -50.0, 100.0, -100.0,
+                -50.0, 100.0, -100.0, -50.0, 100.0, 100.0, -50.0, -100.0, 100.0,
+
+            ]);
+
+            this.positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
+
+            let uniformBindGroupLayout = device.createBindGroupLayout({
+                entries: [
+                    {
+                        binding: 0,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    },
+                    {
+                        binding: 1,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    }
+                ]
+            });
+
+            this.uniformBindGroup = device.createBindGroup({
+                layout: uniformBindGroupLayout,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: {
+                            buffer: modelViewMatrixUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 1,
+                        resource: {
+                            buffer: projectionMatrixUniformBuffer
+                        }
+                    }
+                ]
+            });
+
+            const positionAttribDesc = {
+                shaderLocation: 0, // @location(0)
+                offset: 0,
+                format: 'float32x3'
+            };
+
+            const positionBufferLayoutDesc = {
+                attributes: [positionAttribDesc],
+                arrayStride: 4 * 3, // sizeof(float) * 3
+                stepMode: 'vertex'
+            };
+
+            const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout] };
+            const layout = device.createPipelineLayout(pipelineLayoutDesc);
+
+            const colorState = {
+                format: 'bgra8unorm'
+            };
+
+            const pipelineDesc = {
+                layout,
+                vertex: {
+                    module: shaderModule,
+                    entryPoint: 'vs_main',
+                    buffers: [positionBufferLayoutDesc]
+                },
+                fragment: {
+                    module: shaderModule,
+                    entryPoint: 'fs_main',
+                    targets: [colorState]
+                },
+                primitive: {
+                    topology: 'triangle-list',
+                    frontFace: 'ccw',
+                    cullMode: 'back'
+                },
+                depthStencil: {
+                    depthWriteEnabled: true,
+                    depthCompare: 'less',
+                    format: 'depth32float'
+                }
+            };
+
+            this.pipeline = device.createRenderPipeline(pipelineDesc);
+        }
+
+        encode(encoder) {
+            encoder.setPipeline(this.pipeline);
+            encoder.setBindGroup(0, this.uniformBindGroup);
+            encoder.setVertexBuffer(0, this.positionBuffer);
+            encoder.draw(36, 1);
         }
     }
 
@@ -650,6 +795,9 @@
         await teapot.setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer,
             lightDepthTexture, sampler, lightModelViewMatrixUniformBuffer, lightProjectionMatrixUniformBuffer);
 
+        let skybox = new Skybox();
+        await skybox.setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer);
+
         let depthTexture = null;
 
         let lightDepthAttachment = {
@@ -793,8 +941,9 @@
             //device.queue.submit([commandEncoder.finish()]);
             const passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
             passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+            skybox.encode(passEncoder);
             teapot.encode(passEncoder);
-     
+
             passEncoder.end();
 
             device.queue.submit([commandEncoder.finish()]);
