@@ -26,11 +26,9 @@
     @group(0) @binding(5)
     var<uniform> ambientColor:vec4<f32>;// = vec4<f32>(0.15, 0.10, 0.10, 1.0);
     @group(0) @binding(6)
-    var<uniform> diffuseColor:vec4<f32>;// = vec4<f32>(0.55, 0.55, 0.55, 1.0);
-    @group(0) @binding(7)
     var<uniform> specularColor:vec4<f32>;// = vec4<f32>(1.0, 1.0, 1.0, 1.0);
     
-    @group(0) @binding(8)
+    @group(0) @binding(7)
     var<uniform> shininess:f32;// = 20.0;
         
     const diffuseReflectionConstant:f32 = 1.0;
@@ -45,7 +43,7 @@
     }
     
     fn diffuse(lightDir:vec3<f32>, normal:vec3<f32>,  diffuseColor:vec3<f32>) -> vec3<f32>{
-        return max(dot(lightDir, normal), 0.0) * diffuseColor;
+        return max(dot(lightDir, normal), 0.3) * diffuseColor;
     }
     
     struct VertexOutput {
@@ -79,14 +77,19 @@
     }
     
     // Fragment shader
-    @group(0) @binding(9)
+    @group(0) @binding(8)
     var t_depth: texture_depth_2d;
-    @group(0) @binding(10)
+    @group(0) @binding(9)
     var s_depth: sampler_comparison;
-    @group(0) @binding(11)
+    @group(0) @binding(10)
     var<uniform> lightModelViewMatrix: mat4x4<f32>;
-    @group(0) @binding(12)
+    @group(0) @binding(11)
     var<uniform> lightProjectionMatrix: mat4x4<f32>;
+    @group(0) @binding(12)
+    var t_diffuse: texture_2d<f32>;
+    @group(0) @binding(13)
+    var s_diffuse: sampler;
+    const pi:f32 = 3.141592654;
 
     @fragment
     fn fs_main(in: VertexOutput,   @builtin(front_facing) face: bool) -> @location(0) vec4<f32> {
@@ -121,22 +124,28 @@
 
                 //var lightDir:vec3<f32> =  
                 var align:f32 = dot( normalize(wldLoc2light),lightDir);
+           
+                let nn:vec3<f32> = reflect(-viewDir, n);
+
+                var len:f32 = sqrt (nn.x *nn.x + nn.y*nn.y);
+                var s:f32 = acos( nn.x / len);
+                if (nn.y < 0) {
+                    s = 2.0 * pi - s;
+                }
+                s = s / (2.0 * pi);
+                var tex_coord:vec2<f32> = vec2(s , ((asin(nn.z) * -2.0 / pi ) + 1.0) * 0.5);
+                var diffuseColor:vec4<f32> =
+                        textureSampleLevel(t_diffuse, s_diffuse, tex_coord, 0);
 
                 if (align > 0.9) {
                     var radiance:vec3<f32>  = ambientColor.rgb * ambientReflectionConstant + 
-                        diffuse(-lightDir, n, diffuseColor.rgb)* diffuseReflectionConstant +
+                        diffuse(-lightDir, n, diffuseColor.rgb) * diffuseReflectionConstant +
                         specular(-lightDir, viewDir, n, specularColor.rgb, shininess) * specularReflectionConstant;
         
-                    return vec4<f32>(radiance * visibility ,1.0);
-                   // return vec4<f32>(0.0,0.0,light2ClosestSurfaceDist,1.0);
+                    return vec4<f32>(radiance ,1.0);
                 }
-
-                //return vec4<f32>(1.0,1.0,0.0,1.0);
-            //}
-          
-        } 
-            return vec4<f32>( 0.0,0.0,0.0,1.0);
-        
+        }
+        return vec4<f32>( 0.0,0.0,0.0,1.0);
     }
 </script>
 
@@ -230,7 +239,9 @@
         }
 
         s = s / (2.0 * pi);
-        return textureSampleLevel(t_diffuse, s_diffuse, vec2(s , ((asin(n.z) * -2.0 / pi ) + 1.0) * 0.5), 0);
+
+        var tex_coord:vec2<f32> = vec2(s , ((asin(n.z) * -2.0 / pi ) + 1.0) * 0.5);
+        return textureSampleLevel(t_diffuse, s_diffuse, tex_coord, 0);
     }
 
 </script>
@@ -493,21 +504,21 @@
                     {
                         binding: 8,
                         visibility: GPUShaderStage.FRAGMENT,
-                        buffer: {}
-                    },
-                    {
-                        binding: 9,
-                        visibility: GPUShaderStage.FRAGMENT,
                         texture: {
                             sampleType: "depth"
                         }
                     },
                     {
-                        binding: 10,
+                        binding: 9,
                         visibility: GPUShaderStage.FRAGMENT,
                         sampler: {
                             type: 'comparison',
                         },
+                    },
+                    {
+                        binding: 10,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        buffer: {}
                     },
                     {
                         binding: 11,
@@ -517,16 +528,31 @@
                     {
                         binding: 12,
                         visibility: GPUShaderStage.FRAGMENT,
-                        buffer: {}
+                        texture: {
+                        }
+                    },
+                    {
+                        binding: 13,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        sampler: {
+                        },
                     }
                 ]
             });
 
             const ambientUniformBuffer = createGPUBuffer(device, new Float32Array([0.15, 0.10, 0.10, 1.0]), GPUBufferUsage.UNIFORM);
-            const diffuseUniformBuffer = createGPUBuffer(device, new Float32Array([0.55, 0.55, 0.55, 1.0]), GPUBufferUsage.UNIFORM);
             const specularUniformBuffer = createGPUBuffer(device, new Float32Array([1.0, 1.0, 1.0, 1.0]), GPUBufferUsage.UNIFORM);
             const shininessUniformBuffer = createGPUBuffer(device, new Float32Array([20.0]), GPUBufferUsage.UNIFORM);
 
+            const texture = await img2texture(device, '../data/parking_lot_env.png');
+
+            const sampler_env = device.createSampler({
+                addressModeU: 'repeat',
+                addressModeV: 'repeat',
+                magFilter: 'linear',
+                minFilter: 'linear',
+                mipmapFilter: 'linear',
+            });
 
             this.uniformBindGroup = device.createBindGroup({
                 layout: uniformBindGroupLayout,
@@ -570,41 +596,44 @@
                     {
                         binding: 6,
                         resource: {
-                            buffer: diffuseUniformBuffer
+                            buffer: specularUniformBuffer
                         }
                     },
                     {
                         binding: 7,
                         resource: {
-                            buffer: specularUniformBuffer
-                        }
-                    },
-                    {
-                        binding: 8,
-                        resource: {
                             buffer: shininessUniformBuffer
                         }
                     },
                     {
-                        binding: 9,
+                        binding: 8,
                         resource: depthTexture.createView()
                     },
                     {
-                        binding: 10,
+                        binding: 9,
                         resource:
                             sampler
                     },
                     {
-                        binding: 11,
+                        binding: 10,
                         resource: {
                             buffer: lightModelViewMatrixUniformBuffer
                         }
                     },
                     {
-                        binding: 12,
+                        binding: 11,
                         resource: {
                             buffer: lightProjectionMatrixUniformBuffer
                         }
+                    },
+                    {
+                        binding: 12,
+                        resource: texture.createView()
+                    },
+                    {
+                        binding: 13,
+                        resource:
+                            sampler_env
                     },
                 ]
             });
