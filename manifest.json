@@ -479,6 +479,16 @@
               "is_readonly": false
             }
           ]
+        },
+        {
+          "folder": "5_3_equalrectangle_rendering",
+          "title": "5.3 Equalrectangle Rendering",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
         }
       ]
     }

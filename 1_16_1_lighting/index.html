@@ -28,9 +28,9 @@ const specularColor:vec4<f32> = vec4<f32>(1.0, 1.0, 1.0, 1.0);
 
 const shininess:f32 = 20.0;
 
-const diffuseReflectionConstant:f32 = 1.0;
-const specularReflectionConstant:f32 = 1.0;
-const ambientReflectionConstant: f32 = 1.0;
+const diffuseConstant:f32 = 1.0;
+const specularConstant:f32 = 1.0;
+const ambientConstant: f32 = 1.0;
 
 fn specular(lightDir:vec3<f32>, viewDir:vec3<f32>, normal:vec3<f32>,  specularColor:vec3<f32>, 
      shininess:f32) -> vec3<f32> {
@@ -58,9 +58,9 @@ fn vs_main(
     var viewDir:vec3<f32> = normalize((normalMatrix * vec4<f32>(-viewDirection, 0.0)).xyz);
     var lightDir:vec3<f32> = normalize((normalMatrix * vec4<f32>(-lightDirection, 0.0)).xyz);
 
-    var radiance:vec3<f32>  = ambientColor.rgb * ambientReflectionConstant + 
-        diffuse(lightDir, n, diffuseColor.rgb)* diffuseReflectionConstant +
-        specular(lightDir, viewDir, n, specularColor.rgb, shininess) * specularReflectionConstant;
+    var radiance:vec3<f32>  = ambientColor.rgb * ambientConstant + 
+        diffuse(lightDir, n, diffuseColor.rgb)* diffuseConstant +
+        specular(lightDir, viewDir, n, specularColor.rgb, shininess) * specularConstant;
   
     var out: VertexOutput;
     out.clip_position = projection * modelView * vec4<f32>(inPos, 1.0);

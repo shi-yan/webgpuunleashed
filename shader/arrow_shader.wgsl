@@ -13,9 +13,9 @@ const ambientColor:vec4<f32> = vec4<f32>(0.15, 0.10, 0.10, 1.0);
 //const diffuseColor:vec4<f32> = vec4<f32>(0.55, 0.55, 0.55, 1.0);
 const specularColor:vec4<f32> = vec4<f32>(1.0, 1.0, 1.0, 1.0);
 const shininess:f32 = 20.0;        
-const diffuseReflectionConstant:f32 = 1.0;
-const specularReflectionConstant:f32 = 1.0;
-const ambientReflectionConstant: f32 = 1.0;
+const diffuseConstant:f32 = 1.0;
+const specularConstant:f32 = 1.0;
+const ambientConstant: f32 = 1.0;
 
 fn fromRotation(axis:vec3<f32>, rad:f32) -> mat4x4<f32> {
     var x:f32 = axis[0];
@@ -109,9 +109,9 @@ fn fs_main(in: VertexOutput,   @builtin(front_facing) face: bool) -> @location(0
         var n:vec3<f32> = normalize(in.normal);
         var viewDir: vec3<f32> = in.viewDir;
 
-        var radiance:vec3<f32>  = ambientColor.rgb * ambientReflectionConstant + 
-            diffuse(lightDir, n, in.color.rgb)* diffuseReflectionConstant +
-            specular(lightDir, viewDir, n, specularColor.rgb, shininess) * specularReflectionConstant;
+        var radiance:vec3<f32>  = ambientColor.rgb * ambientConstant + 
+            diffuse(lightDir, n, in.color.rgb)* diffuseConstant +
+            specular(lightDir, viewDir, n, specularColor.rgb, shininess) * specularConstant;
       
         return vec4<f32>(radiance ,1.0);
     } else {
