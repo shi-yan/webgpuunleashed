@@ -1,6 +1,21 @@
 <html>
 
-<body style="margin: 0px; position: relative;">
+<head>
+    <style>
+        html {
+            position: relative;
+            height: 100%;
+        }
+
+        body {
+            margin: 0px;
+            position: relative;
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body>
     <canvas id="canvas" width="640" height="480" style="width:100%;height:100%"></canvas>
 </body>
 <script src="../utils/gl-matrix.js">
@@ -152,7 +167,7 @@
             this.selectionUniformBuffer = null;
         }
 
-        async setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer,viewDirectionUniformBuffer,lightDirectionUniformBuffer) {
+        async setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer) {
             let shaderModuleNormal = shaderModuleFromCode(device, 'teapot_shader')
             let shaderModuleColorCoding = shaderModuleFromCode(device, 'teapot_shader_colorcoding')
 
@@ -560,11 +575,11 @@
 
         let modelViewMatrixUniformBuffer = createGPUBuffer(device, modelViewMatrix, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
-        let viewDir = glMatrix.vec3.fromValues( 10.0, 10.0, 10);
+        let viewDir = glMatrix.vec3.fromValues(10.0, 10.0, 10);
 
-        let viewDirectionUniformBuffer = createGPUBuffer(device,viewDir, GPUBufferUsage.UNIFORM| GPUBufferUsage.COPY_DST);
+        let viewDirectionUniformBuffer = createGPUBuffer(device, viewDir, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
-        let lightDirectionUniformBuffer = createGPUBuffer(device,viewDir , GPUBufferUsage.UNIFORM| GPUBufferUsage.COPY_DST);
+        let lightDirectionUniformBuffer = createGPUBuffer(device, viewDir, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
 
         let modelViewMatrixInverse = glMatrix.mat4.invert(glMatrix.mat4.create(), modelViewMatrix);
@@ -580,7 +595,7 @@
 
 
         let teapot = new Teapot();
-        await teapot.setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer,viewDirectionUniformBuffer,lightDirectionUniformBuffer);
+        await teapot.setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer);
 
         let depthTexture = null;
         let colorCodeTexture = null;
@@ -715,7 +730,7 @@
 
                 copiedBuffer.unmap();
                 inRendering = false;
-              
+
                 return picked;
             }
 
@@ -740,7 +755,7 @@
 
                 let normalMatrixUniformBufferUpdate = createGPUBuffer(device, normalMatrix, GPUBufferUsage.COPY_SRC);
 
-                let viewDir = glMatrix.vec3.fromValues( -arcball.forwardVector[0],-arcball.forwardVector[1],-arcball.forwardVector[2]);
+                let viewDir = glMatrix.vec3.fromValues(-arcball.forwardVector[0], -arcball.forwardVector[1], -arcball.forwardVector[2]);
                 let viewDirectionUniformBufferUpdate = createGPUBuffer(device, viewDir, GPUBufferUsage.COPY_SRC);
 
                 let canvasColorTexture = context.getCurrentTexture();
