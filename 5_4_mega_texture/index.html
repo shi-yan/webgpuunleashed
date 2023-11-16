@@ -35,24 +35,62 @@ var<uniform> transform: mat4x4<f32>;
 var<uniform> projection: mat4x4<f32>;
 
 struct VertexOutput {
-    @builtin(position) clip_position: vec4<f32>
+    @builtin(position) clip_position: vec4<f32>,
+    @location(0) tex:vec2<f32>,
+    @location(1) @interpolate(flat) tile:vec2<u32>,
+    @location(2) tex2:vec2<f32>,
 };
 
 @vertex
 fn vs_main(
-    @location(0) inPos: vec3<f32>,
+    @location(0) inPos: vec4<f32>,
     @location(1) loc: vec2<u32>
 ) -> VertexOutput {
     var out: VertexOutput;
-    out.clip_position = projection * transform * vec4<f32>(inPos.xy + vec2<f32>(loc)*256.0, inPos.z, 1.0);
+    out.tile = loc;
+    out.tex = inPos.zw ;
+    out.tex2 = inPos.zw + vec2<f32>(loc);
+    out.clip_position = projection * transform * vec4<f32>(inPos.xy + vec2<f32>(loc)*256.0, 0.0, 1.0);
     return out;
 }
 
 // Fragment shader
-
+@group(0)
+@binding(2)
+var<uniform> level_tile_count: array<vec4<u32>, 8>; //must align to 16bytes
+@group(0)
+@binding(3)
+var<storage,read_write> visible_tiles: array<u32>;
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    return vec4(0.0,0.0,1.0,1.0);
+    var dx:vec2<f32> = dpdxFine(in.tex * 256.0);
+    var dy:vec2<f32> = dpdyFine(in.tex * 256.0);
+    var d:f32 = max(dot(dx, dx), dot(dy, dy));
+    var level:f32 = max(f32(floor(0.5*log2(d))),0.0);
+
+    /*if ( level > 0.01 || level < -0.01) {
+        return vec4(1.0,1.0,1.0,1.0);
+    }*/
+
+    var edge_size:f32 =  pow(2, level) * 256.0;
+
+    var x:f32 = (f32(in.tile.x) * 256.0 + in.tex.x*256.0) / edge_size;
+    var y:f32 = (f32(in.tile.y) * 256.0 + in.tex.y*256.0) / edge_size;
+
+    var base:i32 = 0;
+    if (level - 1 >= 0) {
+        for(var i:i32 = 0;i<i32(level-1);i+=1){
+            base += i32(level_tile_count[i].x);
+        }
+    }
+    base = i32(floor(x)); // + floor(y)*f32(level_tile_count[i32(level)].x));
+    visible_tiles[base] = 1;
+    //return vec4(f32(in.tile.x)/255.0,f32(in.tile.y)/255.0,level ,1.0);
+
+    /*if( (in.tile.x + in.tile.y) % 2 == 0) {
+        return vec4(1.0,1.0,1.0,1.0);
+    }*/
+    return vec4(level ,0.0,0.0,1.0);
 }
 
 </script>
@@ -68,6 +106,9 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             this.pipeline = null;
             this.uniformBindGroup = null;
             this.tileLocBuffer = null;
+            this.tileVisibilityBuffer = null;
+            this.tileVisibilityBufferRead = null;
+            this.overallTileCount = 0;
         }
 
         async setup(device, translateMatrixUniformBuffer, projectionMatrixUniformBuffer) {
@@ -80,20 +121,20 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             const positionAttribDesc = {
                 shaderLocation: 0, // @location(0)
                 offset: 0,
-                format: 'float32x3'
+                format: 'float32x4'
             };
 
             const positionBufferLayoutDesc = {
                 attributes: [positionAttribDesc],
-                arrayStride: 4 * 3, // sizeof(float) * 3
+                arrayStride: 4 * 4, // sizeof(float) * 4
                 stepMode: 'vertex'
             };
 
             const positions = new Float32Array([
-                256.0, 0.0, 0.0,
-                256.0, 256.0, 0.0,
-                0.0, 0.0, 0.0,
-                0.0, 256.0, 0.0
+                256.0, 0.0, 1.0, 0.0,
+                256.0, 256.0, 1.0, 1.0,
+                0.0, 0.0, 0.0, 0.0,
+                0.0, 256.0, 0.0, 1.0
             ]);
 
             this.positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
@@ -121,6 +162,31 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
             this.tileLocBuffer = createGPUBuffer(device, new Uint32Array(tiles), GPUBufferUsage.VERTEX);
 
+            let levelTileCount = [
+                42 * 36, 0, 0, 0,
+                21 * 18, 0, 0, 0,
+                11 * 9, 0, 0, 0,
+                6 * 5, 0, 0, 0,
+                3 * 3, 0, 0, 0,
+                2 * 2, 0, 0, 0,
+                1, 0, 0, 0,
+                1, 0, 0, 0,
+                1, 0, 0, 0,
+            ];
+
+            for (let i = 0; i < 9; ++i) {
+                this.overallTileCount += levelTileCount[i * 4];
+            }
+
+            this.overallTileCount = Math.ceil(this.overallTileCount * 0.25) * 4  // must be 4 bytes aligned for buffer copy
+
+            levelTileCount = createGPUBuffer(device, new Uint32Array(levelTileCount), GPUBufferUsage.UNIFORM);
+
+            console.log("tile count ", this.overallTileCount);
+
+            this.tileVisibilityBuffer = createGPUBuffer(device, new Uint32Array(this.overallTileCount), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
+            this.tileVisibilityBufferRead = createGPUBuffer(device, new Uint32Array(this.overallTileCount), GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
+
             let uniformBindGroupLayout = device.createBindGroupLayout({
                 entries: [
                     {
@@ -132,6 +198,16 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                         binding: 1,
                         visibility: GPUShaderStage.VERTEX,
                         buffer: {}
+                    },
+                    {
+                        binding: 2,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        buffer: {}
+                    },
+                    {
+                        binding: 3,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        buffer: { type: "storage" }
                     }
                 ]
             });
@@ -149,6 +225,18 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                         binding: 1,
                         resource: {
                             buffer: projectionMatrixUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 2,
+                        resource: {
+                            buffer: levelTileCount
+                        }
+                    },
+                    {
+                        binding: 3,
+                        resource: {
+                            buffer: this.tileVisibilityBuffer
                         }
                     }
                 ]
@@ -181,7 +269,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             };
 
             this.pipeline = device.createRenderPipeline(pipelineDesc);
-
         }
 
         encode(encoder) {
@@ -247,15 +334,22 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
             tile.encode(passEncoder);
             passEncoder.end();
-
+            commandEncoder.copyBufferToBuffer(tile.tileVisibilityBuffer, 0,
+                tile.tileVisibilityBufferRead, 0, tile.overallTileCount);
             device.queue.submit([commandEncoder.finish()]);
             await device.queue.onSubmittedWorkDone();
 
+            await tile.tileVisibilityBufferRead.mapAsync(GPUMapMode.READ, 0, tile.overallTileCount*4);
+
+            let vb = tile.tileVisibilityBufferRead.getMappedRange(0, tile.overallTileCount*4);
 
             if (projectionMatrixUniformBufferUpdate) {
                 projectionMatrixUniformBufferUpdate.destroy();
                 updatedProjectionMatrix = null;
             }
+
+            console.log(new Uint32Array(vb));
+            tile.tileVisibilityBufferRead.unmap();
 
             requestAnimationFrame(render);
 
@@ -291,10 +385,11 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 pivotX += deltaX * scale;
                 pivotY += deltaY * scale;
 
-                updatedProjectionMatrix = glMatrix.mat4.ortho(glMatrix.mat4.create(), pivotX - 320.0*scale, pivotX + 320.0*scale, pivotY + 240.0*scale, pivotY - 240.0*scale, -1000.0, 1000.0);
+                updatedProjectionMatrix = glMatrix.mat4.ortho(glMatrix.mat4.create(), pivotX - 320.0 * scale, pivotX + 320.0 * scale, pivotY + 240.0 * scale, pivotY - 240.0 * scale, -1000.0, 1000.0);
 
                 prevX = x;
                 prevY = y;
+                //requestAnimationFrame(render);
             }
             e.preventDefault();
             e.stopPropagation();
@@ -319,7 +414,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             e.preventDefault();
             e.stopPropagation();
 
-            updatedProjectionMatrix = glMatrix.mat4.ortho(glMatrix.mat4.create(), pivotX - 320.0*scale, pivotX + 320.0*scale, pivotY + 240.0*scale, pivotY - 240.0*scale, -1000.0, 1000.0);
+            updatedProjectionMatrix = glMatrix.mat4.ortho(glMatrix.mat4.create(), pivotX - 320.0 * scale, pivotX + 320.0 * scale, pivotY + 240.0 * scale, pivotY - 240.0 * scale, -1000.0, 1000.0);
 
         }
     }
