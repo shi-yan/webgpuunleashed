@@ -37,8 +37,7 @@ var<uniform> projection: mat4x4<f32>;
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
     @location(0) tex:vec2<f32>,
-    @location(1) @interpolate(flat) tile:vec2<u32>,
-    @location(2) tex2:vec2<f32>,
+    @location(1) @interpolate(flat) tile:vec2<u32>
 };
 
 @vertex
@@ -49,7 +48,6 @@ fn vs_main(
     var out: VertexOutput;
     out.tile = loc;
     out.tex = inPos.zw ;
-    out.tex2 = inPos.zw + vec2<f32>(loc);
     out.clip_position = projection * transform * vec4<f32>(inPos.xy + vec2<f32>(loc)*256.0, 0.0, 1.0);
     return out;
 }
@@ -68,10 +66,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     var d:f32 = max(dot(dx, dx), dot(dy, dy));
     var level:f32 = max(f32(floor(0.5*log2(d))),0.0);
 
-    /*if ( level > 0.01 || level < -0.01) {
-        return vec4(1.0,1.0,1.0,1.0);
-    }*/
-
     var edge_size:f32 =  pow(2, level) * 256.0;
 
     var x:f32 = (f32(in.tile.x) * 256.0 + in.tex.x*256.0) / edge_size;
@@ -80,17 +74,17 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     var base:i32 = 0;
     if (level - 1 >= 0) {
         for(var i:i32 = 0;i<i32(level-1);i+=1){
-            base += i32(level_tile_count[i].x);
+            base += i32(level_tile_count[i].x * level_tile_count[i].y);
         }
     }
-    base = i32(floor(x)); // + floor(y)*f32(level_tile_count[i32(level)].x));
+    base = i32(floor(x) + floor(y)*f32(level_tile_count[i32(level)].x));
     visible_tiles[base] = 1;
     //return vec4(f32(in.tile.x)/255.0,f32(in.tile.y)/255.0,level ,1.0);
 
-    /*if( (in.tile.x + in.tile.y) % 2 == 0) {
+    if( (in.tile.x + in.tile.y) % 2 == 0) {
         return vec4(1.0,1.0,1.0,1.0);
-    }*/
-    return vec4(level ,0.0,0.0,1.0);
+    }
+    return vec4(0.0 ,0.0,0.0,1.0);
 }
 
 </script>
@@ -163,19 +157,19 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             this.tileLocBuffer = createGPUBuffer(device, new Uint32Array(tiles), GPUBufferUsage.VERTEX);
 
             let levelTileCount = [
-                42 * 36, 0, 0, 0,
-                21 * 18, 0, 0, 0,
-                11 * 9, 0, 0, 0,
-                6 * 5, 0, 0, 0,
-                3 * 3, 0, 0, 0,
-                2 * 2, 0, 0, 0,
+                42 , 36, 0, 0,
+                21 , 18, 0, 0,
+                11 , 9, 0, 0,
+                6 , 5, 0, 0,
+                3 , 5, 0, 0,
+                2 , 5, 0, 0,
                 1, 0, 0, 0,
                 1, 0, 0, 0,
                 1, 0, 0, 0,
             ];
 
             for (let i = 0; i < 9; ++i) {
-                this.overallTileCount += levelTileCount[i * 4];
+                this.overallTileCount += levelTileCount[i * 4] * levelTileCount[i * 4+1];
             }
 
             this.overallTileCount = Math.ceil(this.overallTileCount * 0.25) * 4  // must be 4 bytes aligned for buffer copy
@@ -348,7 +342,15 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 updatedProjectionMatrix = null;
             }
 
-            console.log(new Uint32Array(vb));
+            //console.log();
+            vb = new Uint32Array(vb);
+            for(let i =0;i<42 * 36;++i){
+                if (vb[i] == 1){
+                    x = i % 42;
+                    y = Math.floor( i / 42);
+                    console.log("selected ",x,y);
+                }
+            }
             tile.tileVisibilityBufferRead.unmap();
 
             requestAnimationFrame(render);
