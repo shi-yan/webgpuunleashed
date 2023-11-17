@@ -25,7 +25,9 @@
     //https://silverspaceship.com/src/svt/
     //https://webbtelescope.org/contents/media/images/2023/137/01HBBMDH12APPEGB8DXVVEP8XA?news=true
 </script>
-<script src="../utils/utils.js"></script>
+<script src="../utils/utils.js">
+    //talk about debugging
+</script>
 <script id="tile_visibility_shader" type="wgsl">
 // Vertex shader
 
@@ -90,6 +92,74 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 </script>
 
 <script>
+
+    async function downloadTexture(device, texture, width, height) {
+        const bufferWidth = Math.ceil(width / 256.0) * 256;
+        const copiedBuffer = createGPUBuffer(device, new Uint8Array(bufferWidth * height * 4), GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
+
+        const commandEncoder = device.createCommandEncoder();
+        commandEncoder.copyTextureToBuffer({ texture: texture, origin: { x:0, y:0 } }, { buffer: copiedBuffer, bytesPerRow: bufferWidth * 4 }, { width: width, height: height });
+        device.queue.submit([commandEncoder.finish()]);
+
+        await device.queue.onSubmittedWorkDone();
+
+        await copiedBuffer.mapAsync(GPUMapMode.READ, 0, bufferWidth * height * 4);
+
+        const x = new Uint8ClampedArray(copiedBuffer.getMappedRange());
+        const imageData = new ImageData(x, 1024, 1024);
+        imagedataToImage(imageData);
+
+        copiedBuffer.unmap();
+
+        copiedBuffer.destroy();
+    }
+
+    class VisibleTileHashTable {
+        constructor() {
+            this.table = new Map();
+            this.available = [];
+            this.texture = null;
+        }
+
+        setup(device) {
+            for (let i = 0; i < 16; ++i) {
+                this.available.push(i);
+            }
+
+            const textureDesc = {
+                size: [1024, 1024, 1],
+                dimension: '2d',
+                format: 'bgra8unorm',
+                usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC
+            };
+            this.texture = device.createTexture(textureDesc);
+
+        }
+
+        async loadTileIntoTexture(device, x, y, level) {
+            const key = (x << 24) | (y << 16) | (level << 8);
+
+            if (!this.table.has(key) && this.available.length > 0) {
+                const id = this.available.shift();
+
+                this.table.set(key, id);
+
+                const url = '../crab_nebula/crab_' + level + '_' + x + '_' + y + '.png';
+
+                const response = await fetch(url);
+                const blob = await response.blob();
+                const imgBitmap = await createImageBitmap(blob);
+
+                console.log("origin", { x: 256 * (id % 4), y: 256 * Math.floor(id / 4) })
+                device.queue.copyExternalImageToTexture({ source: imgBitmap }, {
+                    texture: this.texture,
+                    origin: { x: 256 * (id % 4), y: 256 * Math.floor(id / 4) }
+                }, { width: 256, height: 256 });
+
+            }
+        }
+    }
+
     const imageWidth = 10752;
     const imageHeight = 9216;
 
@@ -100,7 +170,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             this.pipeline = null;
             this.uniformBindGroup = null;
             this.tileLocBuffer = null;
-            this.tileVisibilityBufferZeros= null;
+            this.tileVisibilityBufferZeros = null;
             this.tileVisibilityBuffer = null;
             this.tileVisibilityBufferRead = null;
             this.overallTileCount = 0;
@@ -158,19 +228,19 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             this.tileLocBuffer = createGPUBuffer(device, new Uint32Array(tiles), GPUBufferUsage.VERTEX);
 
             let levelTileCount = [
-                42 , 36, 0, 0,
-                21 , 18, 0, 0,
-                11 , 9, 0, 0,
-                6 , 5, 0, 0,
-                3 , 5, 0, 0,
-                2 , 5, 0, 0,
+                42, 36, 0, 0,
+                21, 18, 0, 0,
+                11, 9, 0, 0,
+                6, 5, 0, 0,
+                3, 5, 0, 0,
+                2, 5, 0, 0,
                 1, 0, 0, 0,
                 1, 0, 0, 0,
                 1, 0, 0, 0,
             ];
 
             for (let i = 0; i < 9; ++i) {
-                this.overallTileCount += levelTileCount[i * 4] * levelTileCount[i * 4+1];
+                this.overallTileCount += levelTileCount[i * 4] * levelTileCount[i * 4 + 1];
             }
 
             this.overallTileCount = Math.ceil(this.overallTileCount * 0.25) * 4  // must be 4 bytes aligned for buffer copy
@@ -178,7 +248,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             levelTileCount = createGPUBuffer(device, new Uint32Array(levelTileCount), GPUBufferUsage.UNIFORM);
 
             console.log("tile count ", this.overallTileCount);
-            this.tileVisibilityBufferZeros = createGPUBuffer(device,new Uint32Array(this.overallTileCount), GPUBufferUsage.COPY_SRC);
+            this.tileVisibilityBufferZeros = createGPUBuffer(device, new Uint32Array(this.overallTileCount), GPUBufferUsage.COPY_SRC);
             this.tileVisibilityBuffer = createGPUBuffer(device, new Uint32Array(this.overallTileCount), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST);
             this.tileVisibilityBufferRead = createGPUBuffer(device, new Uint32Array(this.overallTileCount), GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
 
@@ -298,6 +368,13 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         let tile = new Tile();
         await tile.setup(device, translateMatrixUniformBuffer, projectionMatrixUniformBuffer);
 
+        let visibleTiles = new VisibleTileHashTable();
+        visibleTiles.setup(device);
+
+        await visibleTiles.loadTileIntoTexture(device, 0, 0, 0);
+
+        await downloadTexture(device, visibleTiles.texture, 1024, 1024);
+
         let updatedProjectionMatrix = null;
         render = async () => {
 
@@ -336,9 +413,9 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             device.queue.submit([commandEncoder.finish()]);
             await device.queue.onSubmittedWorkDone();
 
-            await tile.tileVisibilityBufferRead.mapAsync(GPUMapMode.READ, 0, tile.overallTileCount*4);
+            await tile.tileVisibilityBufferRead.mapAsync(GPUMapMode.READ, 0, tile.overallTileCount * 4);
 
-            let vb = tile.tileVisibilityBufferRead.getMappedRange(0, tile.overallTileCount*4);
+            let vb = tile.tileVisibilityBufferRead.getMappedRange(0, tile.overallTileCount * 4);
 
             if (projectionMatrixUniformBufferUpdate) {
                 projectionMatrixUniformBufferUpdate.destroy();
@@ -347,11 +424,11 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
             //console.log();
             vb = new Uint32Array(vb);
-            for(let i =0;i<42 * 36;++i){
-                if (vb[i] == 1){
+            for (let i = 0; i < 42 * 36; ++i) {
+                if (vb[i] == 1) {
                     x = i % 42;
-                    y = Math.floor( i / 42);
-                    console.log("selected ",x,y);
+                    y = Math.floor(i / 42);
+                    //console.log("selected ", x, y);
                 }
             }
             tile.tileVisibilityBufferRead.unmap();
