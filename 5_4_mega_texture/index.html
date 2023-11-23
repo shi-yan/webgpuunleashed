@@ -81,6 +81,9 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     }
     base = i32(floor(x) + floor(y)*f32(level_tile_count[i32(level)].x));
     visible_tiles[base] = 1;
+    /*if (visible_tiles[0] < u32(base)) {
+        visible_tiles[0] = u32(base);
+    }*/
     //return vec4(f32(in.tile.x)/255.0,f32(in.tile.y)/255.0,level ,1.0);
 
     discard;
@@ -221,6 +224,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
     overallTileCount = Math.ceil(overallTileCount * 0.25) * 4  // must be 4 bytes aligned for buffer copy
 
+    console.log("overalltilecount", overallTileCount);
 
     function key(width, height, x, y, level) {
         let base = 0;
@@ -671,14 +675,14 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                     projectionMatrixUniformBuffer, 0, updatedProjectionMatrix.byteLength);
             }
             commandEncoder.copyBufferToBuffer(tile.tileVisibilityBufferZeros, 0,
-                tile.tileVisibilityBuffer, 0, overallTileCount);
+                tile.tileVisibilityBuffer, 0, overallTileCount*4);
             const passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
 
             passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
             tile.encodeVisibility(passEncoder);
             passEncoder.end();
             commandEncoder.copyBufferToBuffer(tile.tileVisibilityBuffer, 0,
-                tile.tileVisibilityBufferRead, 0, overallTileCount);
+                tile.tileVisibilityBufferRead, 0, overallTileCount*4);
             device.queue.submit([commandEncoder.finish()]);
             await device.queue.onSubmittedWorkDone();
 
@@ -692,6 +696,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             }
 
             vb = new Uint32Array(vb);
+            console.log("debug oversize ", vb[0])
             let vt = [];
             for (let i = 0; i < 42 * 36; ++i) {
                 if (vb[i] == 1) {
