@@ -37,7 +37,6 @@ var<uniform> transform: mat4x4<f32>;
 var<uniform> projection: mat4x4<f32>;
 
 const tileSize:f32 = 256.0;
-const textureSize:f32 = 2048.0;
 
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
@@ -84,13 +83,8 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     }
     base += i32(floor(x) + floor(y)*f32(level_tile_count[i32(level)].x));
     visible_tiles[base] = 1;
-    /*if (visible_tiles[0] < u32(base)) {
-        visible_tiles[0] = u32(base);
-    }*/
-    //return vec4(f32(in.tile.x)/255.0,f32(in.tile.y)/255.0,level ,1.0);
-
     discard;
-    return vec4<f32>(1.0, 0.0, 0.0, 1.0);
+    return vec4(1.0,0.0,0.0,1.0);
 }
 
 </script>
@@ -105,6 +99,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
     const tileSize:f32 = 256.0;
     const textureSize:f32 = 2048.0;
+    const padding:f32 = 2.0;
     
     struct VertexOutput {
         @builtin(position) clip_position: vec4<f32>,
@@ -155,7 +150,9 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         }
         base += i32(floor(x) + floor(y)*f32(level_tile_count[i32(level)].x));
 
-        return textureSampleLevel(t_diffuse, s_diffuse, hash[base] + vec2((x-floor(x))*tileSize/textureSize,(y-floor(y))*tileSize/textureSize), 0);
+        return textureSampleLevel(t_diffuse, s_diffuse,hash[base]+ vec2(((x-floor(x))*tileSize + padding) * tileSize/ ((padding*2 + tileSize)*textureSize),
+        ((y-floor(y))*tileSize + padding) * tileSize/ ((padding*2 + tileSize)*textureSize)
+        ), 0);
     }    
 </script>
 
@@ -164,6 +161,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     const imageHeight = 9216;
     const tileSize = 256;
     const textureSize = 2048;
+    const padding = 2;
     const visibleTileCountOnTexture = textureSize * textureSize / (tileSize * tileSize);
     const levelCount = Math.log2(tileSize) + 1;
 
@@ -197,7 +195,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     function keyToLevel(key) {
         let keyRemain = key;
         let level = 0;
-        
+
         while (keyRemain >= levelTileCount[level * 4] * levelTileCount[level * 4 + 1]) {
             keyRemain -= levelTileCount[level * 4] * levelTileCount[level * 4 + 1];
             level += 1;
@@ -310,7 +308,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
         setup(device) {
             const textureDesc = {
-                size: [textureSize, textureSize, 1],
+                size: [textureSize+textureSize/tileSize * padding*2, textureSize+textureSize/tileSize * padding*2, 1],
                 dimension: '2d',
                 format: 'rgba8unorm',
                 usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC
@@ -322,18 +320,20 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
         async loadTileIntoTexture(device, bufferUpdate, imageWidth, imageHeight, x, y, level, tileKey, id) {
             const writeArray = new Float32Array(bufferUpdate.getMappedRange(tileKey * 2 * 4, 8));
-            writeArray.set([(tileSize / textureSize) * (id % (textureSize / tileSize)), (tileSize / textureSize) * Math.floor(id / (textureSize / tileSize))]);
+            writeArray.set([(tileSize / textureSize) * (id % (textureSize / tileSize)),
+            (tileSize / textureSize) * Math.floor(id / (textureSize / tileSize))]);
 
             const url = '../crab_nebula/crab_' + level + '_' + y + '_' + x + '.png';
-            console.log("url ", url, id, [(tileSize / textureSize) * (id % (textureSize / tileSize)), (tileSize / textureSize) * Math.floor(id / (textureSize / tileSize))]);
 
             const response = await fetch(url);
             const blob = await response.blob();
             const imgBitmap = await createImageBitmap(blob);
+            //console.log(url,imgBitmap.width, imgBitmap.height,{ width: tileSize+padding*2, height: tileSize+padding*2 });
+
             device.queue.copyExternalImageToTexture({ source: imgBitmap }, {
                 texture: this.texture,
-                origin: { x: tileSize * (id % (textureSize / tileSize)), y: tileSize * Math.floor(id / (textureSize / tileSize)) }
-            }, { width: tileSize, height: tileSize });
+                origin: { x: (padding*2+tileSize) * (id % (textureSize / tileSize)), y: (padding*2+ tileSize) * Math.floor(id / (textureSize / tileSize)) }
+            }, { width: tileSize+padding*2, height: tileSize+padding*2 });
         }
 
         async assembleTexture(device, imageWidth, imageHeight, tiles) {
