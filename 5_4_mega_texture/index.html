@@ -36,6 +36,9 @@ var<uniform> transform: mat4x4<f32>;
 @group(0) @binding(1)
 var<uniform> projection: mat4x4<f32>;
 
+const tileSize:f32 = 256.0;
+const textureSize:f32 = 2048.0;
+
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
     @location(0) tex:vec2<f32>,
@@ -50,7 +53,7 @@ fn vs_main(
     var out: VertexOutput;
     out.tile = loc;
     out.tex = inPos.zw ;
-    out.clip_position = projection * transform * vec4<f32>(inPos.xy + vec2<f32>(loc)*256.0, 0.0, 1.0);
+    out.clip_position = projection * transform * vec4<f32>(inPos.xy + vec2<f32>(loc)*tileSize, 0.0, 1.0);
     return out;
 }
 
@@ -63,23 +66,23 @@ var<uniform> level_tile_count: array<vec4<u32>, 8>; //must align to 16bytes
 var<storage,read_write> visible_tiles: array<u32>;
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    var dx:vec2<f32> = dpdxFine(in.tex * 256.0);
-    var dy:vec2<f32> = dpdyFine(in.tex * 256.0);
+    var dx:vec2<f32> = dpdxFine(in.tex * tileSize);
+    var dy:vec2<f32> = dpdyFine(in.tex * tileSize);
     var d:f32 = max(dot(dx, dx), dot(dy, dy));
     var level:f32 = max(f32(floor(0.5*log2(d))),0.0);
 
-    var edge_size:f32 =  pow(2, level) * 256.0;
+    var edge_size:f32 =  pow(2, level) * tileSize;
 
-    var x:f32 = (f32(in.tile.x) * 256.0 + in.tex.x*256.0) / edge_size;
-    var y:f32 = (f32(in.tile.y) * 256.0 + in.tex.y*256.0) / edge_size;
+    var x:f32 = (f32(in.tile.x) * tileSize + in.tex.x*tileSize) / edge_size;
+    var y:f32 = (f32(in.tile.y) * tileSize + in.tex.y*tileSize) / edge_size;
 
     var base:i32 = 0;
-    if (level - 1 >= 0) {
-        for(var i:i32 = 0;i<i32(level-1);i+=1){
+    if (level > 0) {
+        for(var i:i32 = 0;i<i32(level);i+=1){
             base += i32(level_tile_count[i].x * level_tile_count[i].y);
         }
     }
-    base = i32(floor(x) + floor(y)*f32(level_tile_count[i32(level)].x));
+    base += i32(floor(x) + floor(y)*f32(level_tile_count[i32(level)].x));
     visible_tiles[base] = 1;
     /*if (visible_tiles[0] < u32(base)) {
         visible_tiles[0] = u32(base);
@@ -88,7 +91,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
     discard;
     return vec4<f32>(1.0, 0.0, 0.0, 1.0);
-
 }
 
 </script>
@@ -100,6 +102,9 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     var<uniform> transform: mat4x4<f32>;
     @group(0) @binding(1)
     var<uniform> projection: mat4x4<f32>;
+
+    const tileSize:f32 = 256.0;
+    const textureSize:f32 = 2048.0;
     
     struct VertexOutput {
         @builtin(position) clip_position: vec4<f32>,
@@ -115,7 +120,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         var out: VertexOutput;
         out.tile = loc;
         out.tex = inPos.zw ;
-        out.clip_position = projection * transform * vec4<f32>(inPos.xy + vec2<f32>(loc)*256.0, 0.0, 1.0);
+        out.clip_position = projection * transform * vec4<f32>(inPos.xy + vec2<f32>(loc)*tileSize, 0.0, 1.0);
         return out;
     }
     
@@ -133,41 +138,75 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
     @fragment
     fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-        var dx:vec2<f32> = dpdxFine(in.tex * 256.0);
-        var dy:vec2<f32> = dpdyFine(in.tex * 256.0);
+        var dx:vec2<f32> = dpdxFine(in.tex * tileSize);
+        var dy:vec2<f32> = dpdyFine(in.tex * tileSize);
         var d:f32 = max(dot(dx, dx), dot(dy, dy));
         var level:f32 = max(f32(floor(0.5*log2(d))),0.0);
+        var edge_size:f32 =  pow(2, level) * tileSize;
     
-        var edge_size:f32 =  pow(2, level) * 256.0;
-    
-        var x:f32 = (f32(in.tile.x) * 256.0 + in.tex.x*256.0) / edge_size;
-        var y:f32 = (f32(in.tile.y) * 256.0 + in.tex.y*256.0) / edge_size;
+        var x:f32 = (f32(in.tile.x) * tileSize + in.tex.x * tileSize) / edge_size;
+        var y:f32 = (f32(in.tile.y) * tileSize + in.tex.y * tileSize) / edge_size;
     
         var base:i32 = 0;
-        if (level - 1 >= 0) {
-            for(var i:i32 = 0;i<i32(level-1);i+=1){
+        if (level > 0) {
+            for(var i:i32 = 0;i<i32(level);i+=1){
                 base += i32(level_tile_count[i].x * level_tile_count[i].y);
             }
         }
-        base = i32(floor(x) + floor(y)*f32(level_tile_count[i32(level)].x));
+        base += i32(floor(x) + floor(y)*f32(level_tile_count[i32(level)].x));
 
-        return textureSampleLevel(t_diffuse, s_diffuse, hash[base] + in.tex *256.0 / 1024.0, 0);
-    }
-    
-    </script>
+        return textureSampleLevel(t_diffuse, s_diffuse, hash[base] + vec2((x-floor(x))*tileSize/textureSize,(y-floor(y))*tileSize/textureSize), 0);
+    }    
+</script>
 
 <script>
-
-
     const imageWidth = 10752;
     const imageHeight = 9216;
     const tileSize = 256;
-    const textureSize = 1024;
+    const textureSize = 2048;
     const visibleTileCountOnTexture = textureSize * textureSize / (tileSize * tileSize);
-    const levelCount = Math.log2(256) + 1;
+    const levelCount = Math.log2(tileSize) + 1;
 
     const tileH = Math.ceil(imageWidth / tileSize);
     const tileV = Math.ceil(imageHeight / tileSize);
+
+    let levelTileCount = [];
+
+    let isDragging = false;
+    let prevX = 0;
+    let prevY = 0;
+    let pivotX = 0;
+    let pivotY = 0;
+    let scale = 1.0;
+
+    for (let l = 0; l < levelCount; ++l) {
+        const levelTileSize = tileSize * Math.pow(2, l);
+
+        const levelTileH = Math.ceil(imageWidth / levelTileSize);
+        const levelTileV = Math.ceil(imageHeight / levelTileSize);
+
+        levelTileCount.push(...[levelTileH, levelTileV, levelTileSize, 0]);
+    }
+
+    let overallTileCount = 0;
+
+    for (let i = 0; i < levelCount; ++i) {
+        overallTileCount += levelTileCount[i * 4] * levelTileCount[i * 4 + 1];
+    }
+
+    function keyToLevel(key) {
+        let keyRemain = key;
+        let level = 0;
+        
+        while (keyRemain >= levelTileCount[level * 4] * levelTileCount[level * 4 + 1]) {
+            keyRemain -= levelTileCount[level * 4] * levelTileCount[level * 4 + 1];
+            level += 1;
+        }
+
+        return { level, tileH: levelTileCount[level * 4], tileV: levelTileCount[level * 4 + 1], tileSize: levelTileCount[level * 4 + 2], keyRemain }
+    }
+
+    console.log("overalltilecount", overallTileCount);
 
     class KeyIdManager {
 
@@ -199,7 +238,12 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             }
 
             //3. for all visible tiles
+            console.log("number of keys", keys);
             for (let k of keys) {
+
+                const l = keyToLevel(k);
+                console.log("debug level", l)
+
                 // if this tile was visible before, skip updating texture map
                 if (this.used.has(k)) {
                     const id = this.used.get(k);
@@ -210,10 +254,11 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                     const id = this.available.shift();
                     newUsed.set(k, id);
                     result.push({ key: k, id });
-                    const level = 0;
-                    const x = k % 42;
-                    const y = Math.floor(k / 42);
-                    await loadTileIntoTexture( x, y, level, k, id);
+                    const level = l.level;
+                    const x = l.keyRemain % l.tileH;
+                    const y = Math.floor(l.keyRemain / l.tileH);
+                    console.log("debug load tex", x, y, level);
+                    await loadTileIntoTexture(x, y, level, k, id);
                 }
             }
             this.used = newUsed;
@@ -221,55 +266,21 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         }
     }
 
-    let levelTileCount = [
-        42, 36, 0, 0,
-        21, 18, 0, 0,
-        11, 9, 0, 0,
-        6, 5, 0, 0,
-        3, 5, 0, 0,
-        2, 5, 0, 0,
-        1, 0, 0, 0,
-        1, 0, 0, 0,
-        1, 0, 0, 0,
-    ];
-
-    let overallTileCount = 0;
-
-    for (let i = 0; i < 9; ++i) {
-        overallTileCount += levelTileCount[i * 4] * levelTileCount[i * 4 + 1];
-    }
-
-    overallTileCount = Math.ceil(overallTileCount * 0.25) * 4  // must be 4 bytes aligned for buffer copy
-
-    console.log("overalltilecount", overallTileCount);
-
     function key(width, height, x, y, level) {
         let base = 0;
         let tileH = 0;
         let tileV = 0;
         for (let i = 0; i < level; ++i) {
-            tileH = Math.ceil(width / (256 * Math.pow(2, level)));
-            tileV = Math.ceil(height / (256 * Math.pow(2, level)));
+            tileH = Math.ceil(width / (tileSize * Math.pow(2, level)));
+            tileV = Math.ceil(height / (tileSize * Math.pow(2, level)));
             base += tileH * tileV;
         }
 
         return y * tileH + x + base;
     }
 
-    function allTileCount(width, height, level) {
-        let base = 0;
-        let tileH = 0;
-        let tileV = 0;
-        for (let i = 0; i < level; ++i) {
-            tileH = Math.ceil(width / (256 * Math.pow(2, level)));
-            tileV = Math.ceil(height / (256 * Math.pow(2, level)));
-            base += tileH * tileV;
-        }
-        return base;
-    }
-
     async function downloadTexture(device, texture, width, height) {
-        const bufferWidth = Math.ceil(width / 256.0) * 256;
+        const bufferWidth = Math.ceil(width / 256) * 256; //alignment requirement
         const copiedBuffer = createGPUBuffer(device, new Uint8Array(bufferWidth * height * 4), GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
 
         const commandEncoder = device.createCommandEncoder();
@@ -281,7 +292,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         await copiedBuffer.mapAsync(GPUMapMode.READ, 0, bufferWidth * height * 4);
 
         const x = new Uint8ClampedArray(copiedBuffer.getMappedRange());
-        const imageData = new ImageData(x, 1024, 1024);
+        const imageData = new ImageData(x, width, height);
         imagedataToImage(imageData);
 
         copiedBuffer.unmap();
@@ -291,7 +302,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
     class VisibleTileHashTable {
         constructor() {
-            this.table = new Float32Array(allTileCount() * 2);
             this.texture = null;
             this.tileTexCoordBuffer = null;
             this.tileTexCoordBufferUpdate = null;
@@ -299,11 +309,10 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         }
 
         setup(device) {
-
             const textureDesc = {
-                size: [1024, 1024, 1],
+                size: [textureSize, textureSize, 1],
                 dimension: '2d',
-                format: 'bgra8unorm',
+                format: 'rgba8unorm',
                 usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC
             };
             this.texture = device.createTexture(textureDesc);
@@ -312,29 +321,26 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         }
 
         async loadTileIntoTexture(device, bufferUpdate, imageWidth, imageHeight, x, y, level, tileKey, id) {
-            //  console.log("id",x,y,level,id)
-            this.table.set(tileKey * 2, [0.25 * (id % 4), 0.25 * Math.floor(id / 4)]);
-
             const writeArray = new Float32Array(bufferUpdate.getMappedRange(tileKey * 2 * 4, 8));
-            writeArray.set([0.25 * (id % 4), 0.25 * Math.floor(id / 4)]);
+            writeArray.set([(tileSize / textureSize) * (id % (textureSize / tileSize)), (tileSize / textureSize) * Math.floor(id / (textureSize / tileSize))]);
 
             const url = '../crab_nebula/crab_' + level + '_' + y + '_' + x + '.png';
+            console.log("url ", url, id, [(tileSize / textureSize) * (id % (textureSize / tileSize)), (tileSize / textureSize) * Math.floor(id / (textureSize / tileSize))]);
 
             const response = await fetch(url);
             const blob = await response.blob();
             const imgBitmap = await createImageBitmap(blob);
-            //  console.log({ x: 256 * (id % 4), y: 256 * Math.floor(id / 4) });
             device.queue.copyExternalImageToTexture({ source: imgBitmap }, {
                 texture: this.texture,
-                origin: { x: 256 * (id % 4), y: 256 * Math.floor(id / 4) }
-            }, { width: 256, height: 256 });
+                origin: { x: tileSize * (id % (textureSize / tileSize)), y: tileSize * Math.floor(id / (textureSize / tileSize)) }
+            }, { width: tileSize, height: tileSize });
         }
 
         async assembleTexture(device, imageWidth, imageHeight, tiles) {
             await this.tileTexCoordBufferUpdate.mapAsync(GPUMapMode.WRITE, 0, overallTileCount * 2 * 4);
 
-            tiles = await this.keyIdManager.generate(tiles, async ( x, y, level, k, id) => {
-                await this.loadTileIntoTexture(device, this.tileTexCoordBufferUpdate, imageWidth, imageHeight,  x, y, level, k, id);
+            tiles = await this.keyIdManager.generate(tiles, async (x, y, level, k, id) => {
+                await this.loadTileIntoTexture(device, this.tileTexCoordBufferUpdate, imageWidth, imageHeight, x, y, level, k, id);
             });
 
             console.log(tiles);
@@ -355,7 +361,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         }
 
         async setup(device, translateMatrixUniformBuffer, projectionMatrixUniformBuffer, tileTexCoordBuffer, assembledTexture) {
-
             let codeVisibility = document.getElementById('tile_visibility_shader').innerText;
 
             const shaderDescVisibility = { code: codeVisibility };
@@ -379,10 +384,10 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             };
 
             const positions = new Float32Array([
-                256.0, 0.0, 1.0, 0.0,
-                256.0, 256.0, 1.0, 1.0,
+                tileSize, 0.0, 1.0, 0.0,
+                tileSize, tileSize, 1.0, 1.0,
                 0.0, 0.0, 0.0, 0.0,
-                0.0, 256.0, 0.0, 1.0
+                0.0, tileSize, 0.0, 1.0
             ]);
 
             this.positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
@@ -633,7 +638,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         let translateMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
             glMatrix.vec3.fromValues(0, 0, 10), glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(0.0, 1.0, 0.0));
 
-        let orthProjMatrix = glMatrix.mat4.ortho(glMatrix.mat4.create(), -320.0, 320.0, 240.0, -240.0, -1000.0, 1000.0);
+        let orthProjMatrix = glMatrix.mat4.ortho(glMatrix.mat4.create(), canvas.width * -0.5 * scale, canvas.width * 0.5 * scale, canvas.height * 0.5 * scale, canvas.height * -0.5 * scale, -1000.0, 1000.0);
 
         let translateMatrixUniformBuffer = createGPUBuffer(device, translateMatrix, GPUBufferUsage.UNIFORM);
 
@@ -658,7 +663,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         render = async () => {
 
             let projectionMatrixUniformBufferUpdate = null;
-
+            // what happens if we use the canvas texture here
             let colorAttachment = {
                 view: colorTextureForVisibility.createView(),
                 clearValue: { r: 1, g: 0, b: 0, a: 1 },
@@ -699,14 +704,16 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             }
 
             vb = new Uint32Array(vb);
-            console.log("debug oversize ", vb[0])
             let vt = [];
-            for (let i = 0; i < 42 * 36; ++i) {
+            for (let i = 0; i < overallTileCount; ++i) {
                 if (vb[i] == 1) {
                     vt.push(i);
                 }
             }
             tile.tileVisibilityBufferRead.unmap();
+
+            console.log(vt);
+
             await visibleTiles.assembleTexture(device, imageWidth,
                 imageHeight, vt);
             /*if (!hasDumped) {
@@ -745,13 +752,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
         requestAnimationFrame(render);
 
-        let isDragging = false;
-        let prevX = 0;
-        let prevY = 0;
-        let pivotX = 0;
-        let pivotY = 0;
-        let scale = 1.0;
-
         canvas.onmousedown = (e) => {
             isDragging = true;
             var rect = canvas.getBoundingClientRect();
@@ -773,7 +773,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 pivotX += deltaX * scale;
                 pivotY += deltaY * scale;
 
-                updatedProjectionMatrix = glMatrix.mat4.ortho(glMatrix.mat4.create(), pivotX - 320.0 * scale, pivotX + 320.0 * scale, pivotY + 240.0 * scale, pivotY - 240.0 * scale, -1000.0, 1000.0);
+                updatedProjectionMatrix = glMatrix.mat4.ortho(glMatrix.mat4.create(), pivotX - canvas.width * 0.5 * scale, pivotX + canvas.width * 0.5 * scale, pivotY + canvas.height * 0.5 * scale, pivotY - canvas.height * 0.5 * scale, -1000.0, 1000.0);
 
                 prevX = x;
                 prevY = y;
@@ -802,7 +802,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             e.preventDefault();
             e.stopPropagation();
 
-            updatedProjectionMatrix = glMatrix.mat4.ortho(glMatrix.mat4.create(), pivotX - 320.0 * scale, pivotX + 320.0 * scale, pivotY + 240.0 * scale, pivotY - 240.0 * scale, -1000.0, 1000.0);
+            updatedProjectionMatrix = glMatrix.mat4.ortho(glMatrix.mat4.create(), pivotX - canvas.width * 0.5 * scale, pivotX + canvas.width * 0.5 * scale, pivotY + canvas.height * 0.5 * scale, pivotY - canvas.height * 0.5 * scale, -1000.0, 1000.0);
 
         }
     }
