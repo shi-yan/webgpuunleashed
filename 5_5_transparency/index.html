@@ -19,13 +19,7 @@
     <canvas id="canvas" width="640" height="480" style="width:100%;height:100%"></canvas>
 </body>
 <script src="../utils/gl-matrix.js">
-    //shadow, explain vec4 vec3 (1.0) (0.0)
-    // should split into 3 sections
-    // 1. visualization/spotlight
-    // 2. dump depth map
-    // 3. shadow
-    // 4. remove artifact
-    // 5. use comparison sampler?
+    //base
 </script>
 <script src="../utils/OBJFile.js"> </script>
 <script src="../utils/utils.js"></script>
@@ -152,7 +146,7 @@
                         diffuse(-lightDir, n, diffuseColor.rgb)* diffuseConstant +
                         specular(-lightDir, viewDir, n, specularColor.rgb, shininess) * specularConstant;
         
-                    return vec4<f32>(radiance * visibility ,1.0);
+                    return vec4<f32>(radiance * visibility ,0.1);
                    // return vec4<f32>(0.0,0.0,light2ClosestSurfaceDist,1.0);
                 }
 
@@ -432,7 +426,19 @@
             const layout = device.createPipelineLayout(pipelineLayoutDesc);
 
             const colorState = {
-                format: 'bgra8unorm'
+                format: 'bgra8unorm',
+                blend: {
+                    alpha: {
+                        operation: "add",
+                        srcFactor: 'one',
+                        dstFactor: 'one-minus-src',
+                    },
+                    color: {
+                        operation: "add",
+                        srcFactor: 'one',
+                        dstFactor: 'one-minus-src',
+                    }
+                }
             };
 
             const pipelineDesc = {
@@ -718,7 +724,19 @@
             const layout = device.createPipelineLayout(pipelineLayoutDesc);
 
             const colorState = {
-                format: 'bgra8unorm'
+                format: 'bgra8unorm',
+                blend: {
+                    alpha: {
+                        operation: "add",
+                        srcFactor: 'one',
+                        dstFactor: 'one-minus-src',
+                    },
+                    color: {
+                        operation: "add",
+                        srcFactor: 'one',
+                        dstFactor: 'one-minus-src',
+                    }
+                }
             };
 
             const pipelineDesc = {
@@ -796,7 +814,7 @@
 
     class Arcball {
         constructor() {
-            this.radius = 15.0;
+            this.radius = 5.0;
             this.forwardVector = glMatrix.vec4.fromValues(this.radius, 0.0, 0.0, 0.0);
             this.upVector = glMatrix.vec4.fromValues(0.0, 0.0, 1.0, 0.0);
             this.currentRotation = glMatrix.mat4.create();
@@ -877,7 +895,6 @@
             compare: "less",
         });
 
-
         const lightDepthTextureDesc = {
             size: [1024, 1024, 1],
             dimension: '2d',
@@ -936,21 +953,7 @@
         let dot = new Dot();
         await dot.setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer);
 
-        let spotlight = new SpotLight();
-        await spotlight.setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer);
-        let spotLightId = spotlight.upsertSpotLight(null, glMatrix.vec3.fromValues(3.0, 3.0, 2.0), glMatrix.vec3.fromValues(1.0, 1.0, 1.0), glMatrix.vec3.fromValues(0.0, 1.0, 0.0));
-
-
-        /*dot.upsertDot(null, glMatrix.vec3.fromValues(2.0,2.0,2.0), glMatrix.vec3.fromValues(0.0,1.0,1.0));
-
-        dot.upsertDot(null, glMatrix.vec3.fromValues(-2.0,-2.0,2.0), glMatrix.vec3.fromValues(1.0,1.0,0.0));
-
-        dot.refreshBuffer(device);*/
-
-
-
         let depthTexture = null;
-
 
         let lightDepthAttachment = {
             view: lightDepthTexture.createView(),
@@ -1035,17 +1038,12 @@
 
             let lightDir = glMatrix.vec3.fromValues(Math.cos(angle) * 8.0, Math.sin(angle) * 8.0, 10);
             let lightDirectionUniformBufferUpdate = createGPUBuffer(device, lightDir, GPUBufferUsage.COPY_SRC);
-            spotlight.upsertSpotLight(spotLightId, lightDir, glMatrix.vec3.fromValues(-Math.cos(angle) * 8.0, -Math.sin(angle) * 8.0, -10), glMatrix.vec3.fromValues(0.0, 1.0, 0.0));
-            spotlight.refreshBuffer(device);
-
-            //console.log("spot light dis:", glMatrix.vec3.length(glMatrix.vec3.fromValues(-Math.cos(angle) * 8.0, -Math.sin(angle) * 8.0, -10)));
 
             let lightModelViewMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
                 glMatrix.vec3.fromValues(Math.cos(angle) * 8.0, Math.sin(angle) * 8.0, 10),
                 glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(0.0, 0.0, 1.0));
 
             let lightModelViewMatrixUniformBufferUpdate = createGPUBuffer(device, lightModelViewMatrix, GPUBufferUsage.COPY_SRC);
-
 
             let colorTexture = context.getCurrentTexture();
             let colorTextureView = colorTexture.createView();
@@ -1094,21 +1092,13 @@
             teapot.encodeForLight(lightPassEncoder);
             lightPassEncoder.end();
             commandEncoder.copyTextureToBuffer({ texture: lightDepthTexture, origin: { x: 0, y: 0 } }, { buffer: copiedBuffer, bytesPerRow: 1024 * 4 }, { width: 1024, height: 1024 });
-            //device.queue.submit([commandEncoder.finish()]);
             const passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
             passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
             teapot.encode(passEncoder);
             plane.encode(passEncoder);
-            //arrow.encode(passEncoder);
-            //dot.encode(passEncoder);
-            spotlight.encode(passEncoder);
             passEncoder.end();
 
-            /*passEncoder2 = commandEncoder.beginRenderPass(renderPassDesc2);
-            axis.encode(passEncoder2);
-            passEncoder2.end();*/
             device.queue.submit([commandEncoder.finish()]);
-
 
             await device.queue.onSubmittedWorkDone();
 
