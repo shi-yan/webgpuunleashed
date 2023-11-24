@@ -36,7 +36,7 @@ var<uniform> transform: mat4x4<f32>;
 @group(0) @binding(1)
 var<uniform> projection: mat4x4<f32>;
 
-const tileSize:f32 = 256.0;
+const tileSizeWithoutPadding:f32 = 256.0;
 
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
@@ -52,7 +52,7 @@ fn vs_main(
     var out: VertexOutput;
     out.tile = loc;
     out.tex = inPos.zw ;
-    out.clip_position = projection * transform * vec4<f32>(inPos.xy + vec2<f32>(loc)*tileSize, 0.0, 1.0);
+    out.clip_position = projection * transform * vec4<f32>(inPos.xy + vec2<f32>(loc)*tileSizeWithoutPadding, 0.0, 1.0);
     return out;
 }
 
@@ -65,15 +65,15 @@ var<uniform> level_tile_count: array<vec4<u32>, 8>; //must align to 16bytes
 var<storage,read_write> visible_tiles: array<u32>;
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    var dx:vec2<f32> = dpdxFine(in.tex * tileSize);
-    var dy:vec2<f32> = dpdyFine(in.tex * tileSize);
+    var dx:vec2<f32> = dpdxFine(in.tex * tileSizeWithoutPadding);
+    var dy:vec2<f32> = dpdyFine(in.tex * tileSizeWithoutPadding);
     var d:f32 = max(dot(dx, dx), dot(dy, dy));
     var level:f32 = max(f32(floor(0.5*log2(d))),0.0);
 
-    var edge_size:f32 =  pow(2, level) * tileSize;
+    var edge_size:f32 =  pow(2, level) * tileSizeWithoutPadding;
 
-    var x:f32 = (f32(in.tile.x) * tileSize + in.tex.x*tileSize) / edge_size;
-    var y:f32 = (f32(in.tile.y) * tileSize + in.tex.y*tileSize) / edge_size;
+    var x:f32 = (f32(in.tile.x) * tileSizeWithoutPadding + in.tex.x*tileSizeWithoutPadding) / edge_size;
+    var y:f32 = (f32(in.tile.y) * tileSizeWithoutPadding + in.tex.y*tileSizeWithoutPadding) / edge_size;
 
     var base:i32 = 0;
     if (level > 0) {
@@ -97,8 +97,8 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     @group(0) @binding(1)
     var<uniform> projection: mat4x4<f32>;
 
-    const tileSize:f32 = 256.0;
-    const textureSize:f32 = 2048.0;
+    const tileSizeWithoutPadding:f32 = 256.0;
+    const textureSizeWithoutPadding:f32 = 2048.0;
     const padding:f32 = 2.0;
     
     struct VertexOutput {
@@ -115,7 +115,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         var out: VertexOutput;
         out.tile = loc;
         out.tex = inPos.zw ;
-        out.clip_position = projection * transform * vec4<f32>(inPos.xy + vec2<f32>(loc)*tileSize, 0.0, 1.0);
+        out.clip_position = projection * transform * vec4<f32>(inPos.xy + vec2<f32>(loc)*tileSizeWithoutPadding, 0.0, 1.0);
         return out;
     }
     
@@ -133,14 +133,14 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
     @fragment
     fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-        var dx:vec2<f32> = dpdxFine(in.tex * tileSize);
-        var dy:vec2<f32> = dpdyFine(in.tex * tileSize);
+        var dx:vec2<f32> = dpdxFine(in.tex * tileSizeWithoutPadding);
+        var dy:vec2<f32> = dpdyFine(in.tex * tileSizeWithoutPadding);
         var d:f32 = max(dot(dx, dx), dot(dy, dy));
         var level:f32 = max(f32(floor(0.5*log2(d))),0.0);
-        var edge_size:f32 =  pow(2, level) * tileSize;
+        var edge_size:f32 =  pow(2, level) * tileSizeWithoutPadding;
     
-        var x:f32 = (f32(in.tile.x) * tileSize + in.tex.x * tileSize) / edge_size;
-        var y:f32 = (f32(in.tile.y) * tileSize + in.tex.y * tileSize) / edge_size;
+        var x:f32 = (f32(in.tile.x) * tileSizeWithoutPadding + in.tex.x * tileSizeWithoutPadding) / edge_size;
+        var y:f32 = (f32(in.tile.y) * tileSizeWithoutPadding + in.tex.y * tileSizeWithoutPadding) / edge_size;
     
         var base:i32 = 0;
         if (level > 0) {
@@ -150,8 +150,8 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         }
         base += i32(floor(x) + floor(y)*f32(level_tile_count[i32(level)].x));
 
-        return textureSampleLevel(t_diffuse, s_diffuse,hash[base]+ vec2(((x-floor(x))*tileSize + padding) * tileSize/ ((padding*2 + tileSize)*textureSize),
-        ((y-floor(y))*tileSize + padding) * tileSize/ ((padding*2 + tileSize)*textureSize)
+        return textureSampleLevel(t_diffuse, s_diffuse,hash[base]+ vec2(((x-floor(x))*tileSizeWithoutPadding + padding) * tileSizeWithoutPadding/ ((padding*2 + tileSizeWithoutPadding)*textureSizeWithoutPadding),
+        ((y-floor(y))*tileSizeWithoutPadding + padding) * tileSizeWithoutPadding/ ((padding*2 + tileSizeWithoutPadding)*textureSizeWithoutPadding)
         ), 0);
     }    
 </script>
@@ -159,14 +159,14 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 <script>
     const imageWidth = 10752;
     const imageHeight = 9216;
-    const tileSize = 256;
-    const textureSize = 2048;
+    const tileSizeWithoutPadding = 256;
+    const textureSizeWithoutPadding = 2048;
     const padding = 2;
-    const visibleTileCountOnTexture = textureSize * textureSize / (tileSize * tileSize);
-    const levelCount = Math.log2(tileSize) + 1;
+    const visibleTileCountOnTexture = textureSizeWithoutPadding * textureSizeWithoutPadding / (tileSizeWithoutPadding * tileSizeWithoutPadding);
+    const levelCount = Math.log2(tileSizeWithoutPadding) + 1;
 
-    const tileH = Math.ceil(imageWidth / tileSize);
-    const tileV = Math.ceil(imageHeight / tileSize);
+    const tileH = Math.ceil(imageWidth / tileSizeWithoutPadding);
+    const tileV = Math.ceil(imageHeight / tileSizeWithoutPadding);
 
     let levelTileCount = [];
 
@@ -178,12 +178,12 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     let scale = 1.0;
 
     for (let l = 0; l < levelCount; ++l) {
-        const levelTileSize = tileSize * Math.pow(2, l);
+        const leveltileSizeWithoutPadding = tileSizeWithoutPadding * Math.pow(2, l);
 
-        const levelTileH = Math.ceil(imageWidth / levelTileSize);
-        const levelTileV = Math.ceil(imageHeight / levelTileSize);
+        const levelTileH = Math.ceil(imageWidth / leveltileSizeWithoutPadding);
+        const levelTileV = Math.ceil(imageHeight / leveltileSizeWithoutPadding);
 
-        levelTileCount.push(...[levelTileH, levelTileV, levelTileSize, 0]);
+        levelTileCount.push(...[levelTileH, levelTileV, leveltileSizeWithoutPadding, 0]);
     }
 
     let overallTileCount = 0;
@@ -201,7 +201,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             level += 1;
         }
 
-        return { level, tileH: levelTileCount[level * 4], tileV: levelTileCount[level * 4 + 1], tileSize: levelTileCount[level * 4 + 2], keyRemain }
+        return { level, tileH: levelTileCount[level * 4], tileV: levelTileCount[level * 4 + 1], tileSizeWithoutPadding: levelTileCount[level * 4 + 2], keyRemain }
     }
 
     console.log("overalltilecount", overallTileCount);
@@ -269,8 +269,8 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         let tileH = 0;
         let tileV = 0;
         for (let i = 0; i < level; ++i) {
-            tileH = Math.ceil(width / (tileSize * Math.pow(2, level)));
-            tileV = Math.ceil(height / (tileSize * Math.pow(2, level)));
+            tileH = Math.ceil(width / (tileSizeWithoutPadding * Math.pow(2, level)));
+            tileV = Math.ceil(height / (tileSizeWithoutPadding * Math.pow(2, level)));
             base += tileH * tileV;
         }
 
@@ -308,7 +308,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
         setup(device) {
             const textureDesc = {
-                size: [textureSize+textureSize/tileSize * padding*2, textureSize+textureSize/tileSize * padding*2, 1],
+                size: [textureSizeWithoutPadding+textureSizeWithoutPadding/tileSizeWithoutPadding * padding*2, textureSizeWithoutPadding+textureSizeWithoutPadding/tileSizeWithoutPadding * padding*2, 1],
                 dimension: '2d',
                 format: 'rgba8unorm',
                 usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC
@@ -320,20 +320,20 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
         async loadTileIntoTexture(device, bufferUpdate, imageWidth, imageHeight, x, y, level, tileKey, id) {
             const writeArray = new Float32Array(bufferUpdate.getMappedRange(tileKey * 2 * 4, 8));
-            writeArray.set([(tileSize / textureSize) * (id % (textureSize / tileSize)),
-            (tileSize / textureSize) * Math.floor(id / (textureSize / tileSize))]);
+            writeArray.set([(tileSizeWithoutPadding / textureSizeWithoutPadding) * (id % (textureSizeWithoutPadding / tileSizeWithoutPadding)),
+            (tileSizeWithoutPadding / textureSizeWithoutPadding) * Math.floor(id / (textureSizeWithoutPadding / tileSizeWithoutPadding))]);
 
             const url = '../crab_nebula/crab_' + level + '_' + y + '_' + x + '.png';
 
             const response = await fetch(url);
             const blob = await response.blob();
             const imgBitmap = await createImageBitmap(blob);
-            //console.log(url,imgBitmap.width, imgBitmap.height,{ width: tileSize+padding*2, height: tileSize+padding*2 });
+            //console.log(url,imgBitmap.width, imgBitmap.height,{ width: tileSizeWithoutPadding+padding*2, height: tileSizeWithoutPadding+padding*2 });
 
             device.queue.copyExternalImageToTexture({ source: imgBitmap }, {
                 texture: this.texture,
-                origin: { x: (padding*2+tileSize) * (id % (textureSize / tileSize)), y: (padding*2+ tileSize) * Math.floor(id / (textureSize / tileSize)) }
-            }, { width: tileSize+padding*2, height: tileSize+padding*2 });
+                origin: { x: (padding*2+tileSizeWithoutPadding) * (id % (textureSizeWithoutPadding / tileSizeWithoutPadding)), y: (padding*2+ tileSizeWithoutPadding) * Math.floor(id / (textureSizeWithoutPadding / tileSizeWithoutPadding)) }
+            }, { width: tileSizeWithoutPadding+padding*2, height: tileSizeWithoutPadding+padding*2 });
         }
 
         async assembleTexture(device, imageWidth, imageHeight, tiles) {
@@ -384,10 +384,10 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             };
 
             const positions = new Float32Array([
-                tileSize, 0.0, 1.0, 0.0,
-                tileSize, tileSize, 1.0, 1.0,
+                tileSizeWithoutPadding, 0.0, 1.0, 0.0,
+                tileSizeWithoutPadding, tileSizeWithoutPadding, 1.0, 1.0,
                 0.0, 0.0, 0.0, 0.0,
-                0.0, tileSize, 0.0, 1.0
+                0.0, tileSizeWithoutPadding, 0.0, 1.0
             ]);
 
             this.positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
