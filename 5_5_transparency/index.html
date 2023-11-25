@@ -20,31 +20,33 @@
 </body>
 <script src="../utils/gl-matrix.js">
     //base
+    //1. explain artifacts
 </script>
 <script src="../utils/OBJFile.js"> </script>
 <script src="../utils/utils.js"></script>
 <script id="object_shader" type="wgsl">
     // Vertex shader
-    
     @group(0) @binding(0)
-    var<uniform> modelView: mat4x4<f32>;
+    var<uniform> offset: vec3<f32>;
     @group(0) @binding(1)
-    var<uniform> projection: mat4x4<f32>;
+    var<uniform> modelView: mat4x4<f32>;
     @group(0) @binding(2)
+    var<uniform> projection: mat4x4<f32>;
+    @group(0) @binding(3)
     var<uniform> normalMatrix: mat4x4<f32>;
-    @group(0) @binding(3) 
+    @group(0) @binding(4) 
     var<uniform> lightDirection: vec3<f32>;
-    @group(0) @binding(4)
+    @group(0) @binding(5)
     var<uniform> viewDirection: vec3<f32>;
     
-    @group(0) @binding(5)
-    var<uniform> ambientColor:vec4<f32>;// = vec4<f32>(0.15, 0.10, 0.10, 1.0);
     @group(0) @binding(6)
-    var<uniform> diffuseColor:vec4<f32>;// = vec4<f32>(0.55, 0.55, 0.55, 1.0);
+    var<uniform> ambientColor:vec4<f32>;// = vec4<f32>(0.15, 0.10, 0.10, 1.0);
     @group(0) @binding(7)
+    var<uniform> diffuseColor:vec4<f32>;// = vec4<f32>(0.55, 0.55, 0.55, 1.0);
+    @group(0) @binding(8)
     var<uniform> specularColor:vec4<f32>;// = vec4<f32>(1.0, 1.0, 1.0, 1.0);
     
-    @group(0) @binding(8)
+    @group(0) @binding(9)
     var<uniform> shininess:f32;// = 20.0;
         
     const diffuseConstant:f32 = 1.0;
@@ -80,7 +82,7 @@
         out.viewDir = normalize((normalMatrix * vec4<f32>(-viewDirection, 0.0)).xyz);
         out.lightDir = normalize((normalMatrix * vec4<f32>(-lightDirection, 0.0)).xyz);
         out.normal = normalize(normalMatrix * vec4<f32>(inNormal, 0.0)).xyz;  
-        var wldLoc:vec4<f32> = modelView * vec4<f32>(inPos, 1.0);
+        var wldLoc:vec4<f32> = modelView * vec4<f32>(inPos+offset, 1.0);
         out.clip_position = projection * wldLoc;
         out.inPos = inPos;
 
@@ -106,6 +108,224 @@
 
 <script>
     let angle = 0.0;
+
+    class Sphere {
+        constructor() {
+            this.pipeline = null;
+            this.positionBuffer = null;
+            this.normalBuffer = null;
+            this.indexBuffer = null;
+            this.uniformBindGroup = null;
+            this.indexSize = null;
+        }
+
+        async setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer,
+            depthTexture) {
+            let shaderModule = shaderModuleFromCode(device, 'object_shader')
+
+            let { positionBuffer, normalBuffer, indexBuffer, indexSize } = await loadObj(device, '../data/sphere.obj');
+            this.positionBuffer = positionBuffer;
+            this.normalBuffer = normalBuffer;
+            this.indexBuffer = indexBuffer;
+            this.indexSize = indexSize;
+
+            let uniformBindGroupLayout = device.createBindGroupLayout({
+                entries: [
+                    {
+                        binding: 0,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    },
+                    {
+                        binding: 1,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    },
+                    {
+                        binding: 2,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    },
+                    {
+                        binding: 3,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    },
+                    {
+                        binding: 4,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    },
+                    {
+                        binding: 5,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    },
+                    {
+                        binding: 6,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        buffer: {}
+                    },
+                    {
+                        binding: 7,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        buffer: {}
+                    },
+                    {
+                        binding: 8,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        buffer: {}
+                    },
+                    {
+                        binding: 9,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        buffer: {}
+                    }
+                ]
+            });
+
+            const ambientUniformBuffer = createGPUBuffer(device, new Float32Array([0.15, 0.10, 0.10, 1.0]), GPUBufferUsage.UNIFORM);
+            const diffuseUniformBuffer = createGPUBuffer(device, new Float32Array([0.55, 1.0, 0.55, 1.0]), GPUBufferUsage.UNIFORM);
+            const specularUniformBuffer = createGPUBuffer(device, new Float32Array([0.0, 0.0, 0.0, 1.0]), GPUBufferUsage.UNIFORM);
+            const shininessUniformBuffer = createGPUBuffer(device, new Float32Array([0.0]), GPUBufferUsage.UNIFORM);
+
+            const offsetUniformBuffer = createGPUBuffer(device, new Float32Array([-4.0, -4.0, 1.0]), GPUBufferUsage.UNIFORM);
+
+            this.uniformBindGroup = device.createBindGroup({
+                layout: uniformBindGroupLayout,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: {
+                            buffer: offsetUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 1,
+                        resource: {
+                            buffer: modelViewMatrixUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 2,
+                        resource: {
+                            buffer: projectionMatrixUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 3,
+                        resource: {
+                            buffer: normalMatrixUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 4,
+                        resource: {
+                            buffer: lightDirectionUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 5,
+                        resource: {
+                            buffer: viewDirectionUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 6,
+                        resource: {
+                            buffer: ambientUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 7,
+                        resource: {
+                            buffer: diffuseUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 8,
+                        resource: {
+                            buffer: specularUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 9,
+                        resource: {
+                            buffer: shininessUniformBuffer
+                        }
+                    }
+                ]
+            });
+
+            const positionAttribDesc = {
+                shaderLocation: 0, // @location(0)
+                offset: 0,
+                format: 'float32x3'
+            };
+
+            const positionBufferLayoutDesc = {
+                attributes: [positionAttribDesc],
+                arrayStride: 4 * 3, // sizeof(float) * 3
+                stepMode: 'vertex'
+            };
+
+            const normalAttribDesc = {
+                shaderLocation: 1, // @location(1)
+                offset: 0,
+                format: 'float32x3'
+            };
+
+            const normalBufferLayoutDesc = {
+                attributes: [normalAttribDesc],
+                arrayStride: 4 * 3, // sizeof(float) * 3
+                stepMode: 'vertex'
+            };
+
+            const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout] };
+            const layout = device.createPipelineLayout(pipelineLayoutDesc);
+
+            const colorState = {
+                format: 'bgra8unorm'
+            };
+
+            const pipelineDesc = {
+                layout,
+                vertex: {
+                    module: shaderModule,
+                    entryPoint: 'vs_main',
+                    buffers: [positionBufferLayoutDesc, normalBufferLayoutDesc]
+                },
+                fragment: {
+                    module: shaderModule,
+                    entryPoint: 'fs_main',
+                    targets: [colorState]
+                },
+                primitive: {
+                    topology: 'triangle-list',
+                    frontFace: 'ccw',
+                    cullMode: 'none'
+                },
+                depthStencil: {
+                    depthWriteEnabled: true,
+                    depthCompare: 'less',
+                    format: 'depth32float'
+                }
+            };
+
+            this.pipeline = device.createRenderPipeline(pipelineDesc);
+        }
+
+        encode(encoder) {
+            encoder.setPipeline(this.pipeline);
+            encoder.setBindGroup(0, this.uniformBindGroup);
+            encoder.setVertexBuffer(0, this.positionBuffer);
+            encoder.setVertexBuffer(1, this.normalBuffer);
+            encoder.setIndexBuffer(this.indexBuffer, 'uint16');
+            encoder.drawIndexed(this.indexSize);
+        }
+    }
+
+
     class Plane {
         constructor() {
             this.pipeline = null;
@@ -166,7 +386,7 @@
                     },
                     {
                         binding: 5,
-                        visibility: GPUShaderStage.FRAGMENT,
+                        visibility: GPUShaderStage.VERTEX,
                         buffer: {}
                     },
                     {
@@ -181,6 +401,11 @@
                     },
                     {
                         binding: 8,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        buffer: {}
+                    },
+                    {
+                        binding: 9,
                         visibility: GPUShaderStage.FRAGMENT,
                         buffer: {}
                     }
@@ -188,9 +413,10 @@
             });
 
             const ambientUniformBuffer = createGPUBuffer(device, new Float32Array([0.15, 0.10, 0.10, 1.0]), GPUBufferUsage.UNIFORM);
-            const diffuseUniformBuffer = createGPUBuffer(device, new Float32Array([0.55, 0.55, 0.55, 1.0]), GPUBufferUsage.UNIFORM);
+            const diffuseUniformBuffer = createGPUBuffer(device, new Float32Array([0.55, 0.55, 1.0, 1.0]), GPUBufferUsage.UNIFORM);
             const specularUniformBuffer = createGPUBuffer(device, new Float32Array([0.0, 0.0, 0.0, 1.0]), GPUBufferUsage.UNIFORM);
             const shininessUniformBuffer = createGPUBuffer(device, new Float32Array([0.0]), GPUBufferUsage.UNIFORM);
+            const offsetUniformBuffer = createGPUBuffer(device, new Float32Array([0.0, 0.0, 0.0]), GPUBufferUsage.UNIFORM);
 
             this.uniformBindGroup = device.createBindGroup({
                 layout: uniformBindGroupLayout,
@@ -198,53 +424,59 @@
                     {
                         binding: 0,
                         resource: {
-                            buffer: modelViewMatrixUniformBuffer
+                            buffer: offsetUniformBuffer
                         }
                     },
                     {
                         binding: 1,
                         resource: {
-                            buffer: projectionMatrixUniformBuffer
+                            buffer: modelViewMatrixUniformBuffer
                         }
                     },
                     {
                         binding: 2,
                         resource: {
-                            buffer: normalMatrixUniformBuffer
+                            buffer: projectionMatrixUniformBuffer
                         }
                     },
                     {
                         binding: 3,
                         resource: {
-                            buffer: lightDirectionUniformBuffer
+                            buffer: normalMatrixUniformBuffer
                         }
                     },
                     {
                         binding: 4,
                         resource: {
-                            buffer: viewDirectionUniformBuffer
+                            buffer: lightDirectionUniformBuffer
                         }
                     },
                     {
                         binding: 5,
                         resource: {
-                            buffer: ambientUniformBuffer
+                            buffer: viewDirectionUniformBuffer
                         }
                     },
                     {
                         binding: 6,
                         resource: {
-                            buffer: diffuseUniformBuffer
+                            buffer: ambientUniformBuffer
                         }
                     },
                     {
                         binding: 7,
                         resource: {
-                            buffer: specularUniformBuffer
+                            buffer: diffuseUniformBuffer
                         }
                     },
                     {
                         binding: 8,
+                        resource: {
+                            buffer: specularUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 9,
                         resource: {
                             buffer: shininessUniformBuffer
                         }
@@ -280,19 +512,7 @@
             const layout = device.createPipelineLayout(pipelineLayoutDesc);
 
             const colorState = {
-                format: 'bgra8unorm',
-                blend: {
-                    alpha: {
-                        operation: "add",
-                        srcFactor: 'src-alpha',
-                        dstFactor: 'one-minus-src-alpha',
-                    },
-                    color: {
-                        operation: "add",
-                        srcFactor: 'src-alpha',
-                        dstFactor: 'one-minus-src-alpha',
-                    }
-                }
+                format: 'bgra8unorm'
             };
 
             const pipelineDesc = {
@@ -354,7 +574,7 @@
 
             let uniformBindGroupLayout = device.createBindGroupLayout({
                 entries: [
-                    {
+                {
                         binding: 0,
                         visibility: GPUShaderStage.VERTEX,
                         buffer: {}
@@ -381,7 +601,7 @@
                     },
                     {
                         binding: 5,
-                        visibility: GPUShaderStage.FRAGMENT,
+                        visibility: GPUShaderStage.VERTEX,
                         buffer: {}
                     },
                     {
@@ -396,6 +616,11 @@
                     },
                     {
                         binding: 8,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        buffer: {}
+                    },
+                    {
+                        binding: 9,
                         visibility: GPUShaderStage.FRAGMENT,
                         buffer: {}
                     }
@@ -406,60 +631,67 @@
             const diffuseUniformBuffer = createGPUBuffer(device, new Float32Array([0.55, 0.55, 0.55, 0.1]), GPUBufferUsage.UNIFORM);
             const specularUniformBuffer = createGPUBuffer(device, new Float32Array([1.0, 1.0, 1.0, 1.0]), GPUBufferUsage.UNIFORM);
             const shininessUniformBuffer = createGPUBuffer(device, new Float32Array([20.0]), GPUBufferUsage.UNIFORM);
+            const offsetUniformBuffer = createGPUBuffer(device, new Float32Array([0.0, 0.0, 0.0]), GPUBufferUsage.UNIFORM);
 
             this.uniformBindGroup = device.createBindGroup({
                 layout: uniformBindGroupLayout,
                 entries: [
-                    {
+                {
                         binding: 0,
                         resource: {
-                            buffer: modelViewMatrixUniformBuffer
+                            buffer: offsetUniformBuffer
                         }
                     },
                     {
                         binding: 1,
                         resource: {
-                            buffer: projectionMatrixUniformBuffer
+                            buffer: modelViewMatrixUniformBuffer
                         }
                     },
                     {
                         binding: 2,
                         resource: {
-                            buffer: normalMatrixUniformBuffer
+                            buffer: projectionMatrixUniformBuffer
                         }
                     },
                     {
                         binding: 3,
                         resource: {
-                            buffer: lightDirectionUniformBuffer
+                            buffer: normalMatrixUniformBuffer
                         }
                     },
                     {
                         binding: 4,
                         resource: {
-                            buffer: viewDirectionUniformBuffer
+                            buffer: lightDirectionUniformBuffer
                         }
                     },
                     {
                         binding: 5,
                         resource: {
-                            buffer: ambientUniformBuffer
+                            buffer: viewDirectionUniformBuffer
                         }
                     },
                     {
                         binding: 6,
                         resource: {
-                            buffer: diffuseUniformBuffer
+                            buffer: ambientUniformBuffer
                         }
                     },
                     {
                         binding: 7,
                         resource: {
-                            buffer: specularUniformBuffer
+                            buffer: diffuseUniformBuffer
                         }
                     },
                     {
                         binding: 8,
+                        resource: {
+                            buffer: specularUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 9,
                         resource: {
                             buffer: shininessUniformBuffer
                         }
@@ -525,7 +757,7 @@
                 primitive: {
                     topology: 'triangle-list',
                     frontFace: 'ccw',
-                    cullMode: 'back'
+                    cullMode: 'none'
                 },
                 depthStencil: {
                     depthWriteEnabled: true,
@@ -651,6 +883,9 @@
         let plane = new Plane();
         await plane.setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer);
 
+        let sphere = new Sphere();
+        await sphere.setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer);
+
         let depthTexture = null;
 
         async function render() {
@@ -752,6 +987,7 @@
             passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
             teapot.encode(passEncoder);
             plane.encode(passEncoder);
+            sphere.encode(passEncoder);
             passEncoder.end();
 
             device.queue.submit([commandEncoder.finish()]);
@@ -765,7 +1001,7 @@
             normalMatrixUniformBufferUpdate.destroy();
             viewDirectionUniformBufferUpdate.destroy();
             lightDirectionUniformBufferUpdate.destroy();
-        
+
             angle += 0.01;
             requestAnimationFrame(render);
         }
