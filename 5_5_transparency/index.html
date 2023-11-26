@@ -21,6 +21,9 @@
 <script src="../utils/gl-matrix.js">
     //base
     //1. explain artifacts
+    //https://my.eng.utah.edu/~cs5610/handouts/order_independent_transparency.pdf
+    //https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.193.3485&rep=rep1&type=pdf
+    //https://medium.com/@shrekshao_71662/dual-depth-peeling-implementation-in-webgl-11baa061ba4b
 </script>
 <script src="../utils/OBJFile.js"> </script>
 <script src="../utils/utils.js"></script>
@@ -93,16 +96,20 @@
     fn fs_main(in: VertexOutput,   @builtin(front_facing) face: bool) -> @location(0) vec4<f32> {
         var lightDir:vec3<f32> = normalize(in.lightDir);
         var n:vec3<f32> = normalize(in.normal);
+
+        var color:vec3<f32> = diffuseColor.rgb;
+
+        if (!face) {
+            n = normalize(-in.lightDir);
+            color = vec3<f32>(0.0, 1.0, 0.0);
+        }
         var viewDir: vec3<f32> = in.viewDir;
 
-        if (face) {
-            var radiance:vec3<f32>  = ambientColor.rgb * ambientConstant + 
-                        diffuse(-lightDir, n, diffuseColor.rgb)* diffuseConstant +
+        var radiance:vec3<f32>  = ambientColor.rgb * ambientConstant + 
+                        diffuse(-lightDir, n, color)* diffuseConstant +
                         specular(-lightDir, viewDir, n, specularColor.rgb, shininess) * specularConstant;
         
-                    return vec4<f32>(radiance , diffuseColor.w);
-        } 
-            return vec4<f32>( 0.0,0.0,0.0,1.0);
+        return vec4<f32>(radiance , diffuseColor.w);
     }
 </script>
 
