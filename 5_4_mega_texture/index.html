@@ -26,7 +26,7 @@
     //https://webbtelescope.org/contents/media/images/2023/137/01HBBMDH12APPEGB8DXVVEP8XA?news=true
 </script>
 <script src="../utils/utils.js">
-    //talk about debugging
+    //talk about debugging max(level, 0); id out of range *4
 </script>
 <script id="tile_visibility_shader" type="wgsl">
 // Vertex shader
@@ -275,27 +275,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         }
 
         return y * tileH + x + base;
-    }
-
-    async function downloadTexture(device, texture, width, height) {
-        const bufferWidth = Math.ceil(width / 256) * 256; //alignment requirement
-        const copiedBuffer = createGPUBuffer(device, new Uint8Array(bufferWidth * height * 4), GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
-
-        const commandEncoder = device.createCommandEncoder();
-        commandEncoder.copyTextureToBuffer({ texture: texture, origin: { x: 0, y: 0 } }, { buffer: copiedBuffer, bytesPerRow: bufferWidth * 4 }, { width: width, height: height });
-        device.queue.submit([commandEncoder.finish()]);
-
-        await device.queue.onSubmittedWorkDone();
-
-        await copiedBuffer.mapAsync(GPUMapMode.READ, 0, bufferWidth * height * 4);
-
-        const x = new Uint8ClampedArray(copiedBuffer.getMappedRange());
-        const imageData = new ImageData(x, width, height);
-        imagedataToImage(imageData);
-
-        copiedBuffer.unmap();
-
-        copiedBuffer.destroy();
     }
 
     class VisibleTileHashTable {
@@ -717,7 +696,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             await visibleTiles.assembleTexture(device, imageWidth,
                 imageHeight, vt);
             /*if (!hasDumped) {
-                await downloadTexture(device, visibleTiles.texture, 1024, 1024);
+                await downloadTexture(device, visibleTiles.texture);
             }*/
 
             const commandEncoder2 = device.createCommandEncoder();
