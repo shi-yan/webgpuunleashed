@@ -100,7 +100,17 @@
     var s_depth: sampler_comparison;
 
     @fragment
-    fn fs_main(in: VertexOutput,   @builtin(front_facing) face: bool) -> @location(0) vec4<f32> {
+    fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -> @location(0) vec4<f32> {
+        var uv:vec2<f32> = 0.5*(in.clip_position.xy*in.clip_position.w + vec2(1.0,1.0));
+        var visibility:f32 = textureSampleCompare(
+            t_depth, s_depth,
+            uv.xy, in.clip_position.w * in.clip_position.z
+        );
+    
+        if (visibility < 0.5) {
+            discard;
+        }
+
         var lightDir:vec3<f32> = normalize(in.lightDir);
         var n:vec3<f32> = normalize(in.normal);
 
@@ -148,10 +158,10 @@
             this.sampler = device.createSampler({
                 addressModeU: 'clamp-to-edge',
                 addressModeV: 'clamp-to-edge',
-                magFilter: 'linear',
-                minFilter: 'linear',
-                mipmapFilter: 'linear',
-                compare: "less",
+                magFilter: 'nearest',
+                minFilter: 'nearest',
+                mipmapFilter: 'nearest',
+                compare: "greater",
             });
 
             this.uniformBindGroupLayoutGlobal = device.createBindGroupLayout({
@@ -458,11 +468,15 @@
             });
         }
 
-        encode(encoder, pipeline) {
+        encode(encoder, pipeline, peelingTexture) {
             encoder.setPipeline(pipeline.pipelineTriangleList);
             encoder.setBindGroup(0, pipeline.uniformBindGroupGlobal);
             encoder.setBindGroup(1, this.uniformBindGroupObject);
-            encoder.setBindGroup(2, pipeline.uniformBindGroupPeeling0);
+            if (peelingTexture % 2 == 0) {
+                encoder.setBindGroup(2, pipeline.uniformBindGroupPeeling0);
+            } else {
+                encoder.setBindGroup(2, pipeline.uniformBindGroupPeeling1);
+            }
             encoder.setVertexBuffer(0, this.positionBuffer);
             encoder.setVertexBuffer(1, this.normalBuffer);
             encoder.setIndexBuffer(this.indexBuffer, 'uint16');
@@ -543,11 +557,15 @@
 
         }
 
-        encode(encoder, pipeline) {
+        encode(encoder, pipeline, peelingTexture) {
             encoder.setPipeline(pipeline.pipelineTriangleStrip);
             encoder.setBindGroup(0, pipeline.uniformBindGroupGlobal);
             encoder.setBindGroup(1, this.uniformBindGroupObject);
-            encoder.setBindGroup(2, pipeline.uniformBindGroupPeeling0);
+            if (peelingTexture % 2 == 0) {
+                encoder.setBindGroup(2, pipeline.uniformBindGroupPeeling0);
+            } else {
+                encoder.setBindGroup(2, pipeline.uniformBindGroupPeeling1);
+            }
             encoder.setVertexBuffer(0, this.positionBuffer);
             encoder.setVertexBuffer(1, this.normalBuffer);
             encoder.draw(4, 1);
@@ -615,11 +633,15 @@
             });
         }
 
-        encode(encoder, pipeline) {
+        encode(encoder, pipeline, peelingTexture) {
             encoder.setPipeline(pipeline.pipelineTriangleList);
             encoder.setBindGroup(0, pipeline.uniformBindGroupGlobal);
             encoder.setBindGroup(1, this.uniformBindGroupObject);
-            encoder.setBindGroup(2, pipeline.uniformBindGroupPeeling0);
+            if (peelingTexture % 2 == 0) {
+                encoder.setBindGroup(2, pipeline.uniformBindGroupPeeling0);
+            } else {
+                encoder.setBindGroup(2, pipeline.uniformBindGroupPeeling1);
+            }
             encoder.setVertexBuffer(0, this.positionBuffer);
             encoder.setVertexBuffer(1, this.normalBuffer);
             encoder.setIndexBuffer(this.indexBuffer, 'uint16');
@@ -742,14 +764,18 @@
         let depthTexture0 = null;
         let depthTexture1 = null;
 
+        let depthAttachment0 = null;
+        let depthAttachment1 = null;
+
         async function render() {
             const devicePixelRatio = window.devicePixelRatio || 1;
             let currentCanvasWidth = canvas.clientWidth * devicePixelRatio;
             let currentCanvasHeight = canvas.clientHeight * devicePixelRatio;
 
             let projectionMatrixUniformBufferUpdate = null;
+            let colorTextureForDebugging = null;
 
-            if (depthTexture0 === null || depthTexture1 === null || currentCanvasWidth != canvas.width || currentCanvasHeight != canvas.height) {
+            if (depthTexture0 === null || depthTexture1 === null || colorTextureForDebugging == null || currentCanvasWidth != canvas.width || currentCanvasHeight != canvas.height) {
                 canvas.width = currentCanvasWidth;
                 canvas.height = currentCanvasHeight;
 
@@ -770,12 +796,18 @@
 
                 depthTexture0 = device.createTexture(depthTextureDesc);
                 depthTexture1 = device.createTexture(depthTextureDesc);
-                let depthTextureView = depthTexture1.createView();
 
                 pipeline.updateDepthPeelingUniformGroup(device, depthTexture0, depthTexture1);
 
-                depthAttachment = {
-                    view: depthTextureView,
+                depthAttachment0 = {
+                    view: depthTexture1.createView(),
+                    depthClearValue: 1,
+                    depthLoadOp: 'clear',
+                    depthStoreOp: 'store'
+                };
+
+                depthAttachment1 = {
+                    view: depthTexture0.createView(),
                     depthClearValue: 1,
                     depthLoadOp: 'clear',
                     depthStoreOp: 'store'
@@ -785,6 +817,17 @@
                     1.4, canvas.width / canvas.height, 0.1, 1000.0);
 
                 projectionMatrixUniformBufferUpdate = createGPUBuffer(device, projectionMatrix, GPUBufferUsage.COPY_SRC);
+
+                const colorTextureForDebuggingDesc = {
+                    size: [canvas.width, canvas.height, 1],
+                    dimension: '2d',
+                    format: 'bgra8unorm',
+                    usage: GPUTextureUsage.RENDER_ATTACHMENT
+                };
+                if (colorTextureForDebugging !== null) {
+                    colorTextureForDebugging.destroy();
+                }
+                colorTextureForDebugging = device.createTexture(colorTextureForDebuggingDesc);
             }
 
             let modelViewMatrix = arcball.getMatrices();
@@ -806,27 +849,28 @@
             let colorTexture = context.getCurrentTexture();
             let colorTextureView = colorTexture.createView();
 
-            let colorAttachment = {
+            let colorAttachment0 = {
+                view: colorTextureForDebugging.createView(),
+                clearValue: { r: 1, g: 0, b: 0, a: 1 },
+                loadOp: 'clear',
+                storeOp: 'store'
+            };
+
+            let colorAttachment1 = {
                 view: colorTextureView,
                 clearValue: { r: 1, g: 0, b: 0, a: 1 },
                 loadOp: 'clear',
                 storeOp: 'store'
             };
 
-            let colorAttachment2 = {
-                view: colorTextureView,
-                clearValue: { r: 1, g: 0, b: 0, a: 1 },
-                loadOp: "load",
-                storeOp: 'store'
-            }
-
-            const renderPassDesc = {
-                colorAttachments: [colorAttachment],
-                depthStencilAttachment: depthAttachment
+            const renderPassDesc0 = {
+                colorAttachments: [colorAttachment0],
+                depthStencilAttachment: depthAttachment0
             };
 
-            const renderPassDesc2 = {
-                colorAttachments: [colorAttachment2]
+            const renderPassDesc1 = {
+                colorAttachments: [colorAttachment1],
+                depthStencilAttachment: depthAttachment1
             };
 
             commandEncoder = device.createCommandEncoder();
@@ -844,12 +888,19 @@
             commandEncoder.copyBufferToBuffer(lightDirectionUniformBufferUpdate, 0,
                 lightDirectionUniformBuffer, 0, lightDir.byteLength);
 
-            const passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
-            passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
-            teapot.encode(passEncoder, pipeline);
-            plane.encode(passEncoder, pipeline);
-            sphere.encode(passEncoder, pipeline);
-            passEncoder.end();
+            const passEncoder0 = commandEncoder.beginRenderPass(renderPassDesc0);
+            passEncoder0.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+            teapot.encode(passEncoder0, pipeline, 0);
+            plane.encode(passEncoder0, pipeline, 0);
+            sphere.encode(passEncoder0, pipeline, 0);
+            passEncoder0.end();
+
+            const passEncoder1 = commandEncoder.beginRenderPass(renderPassDesc1);
+            passEncoder1.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+            teapot.encode(passEncoder1, pipeline, 1);
+            plane.encode(passEncoder1, pipeline, 1);
+            sphere.encode(passEncoder1, pipeline, 1);
+            passEncoder1.end();
 
             device.queue.submit([commandEncoder.finish()]);
 
