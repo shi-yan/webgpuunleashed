@@ -111,8 +111,6 @@
 
     @fragment
     fn fs_main(in: VertexOutput,   @builtin(front_facing) face: bool) -> @location(0) vec4<f32> {
-
-     
         var lightLoc:vec3<f32> = in.lightLoc;
         var lightDir:vec3<f32> = normalize(in.lightDir);
         var n:vec3<f32> = normalize(in.normal);

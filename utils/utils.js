@@ -228,3 +228,34 @@ async function dumpTextureF32(device, texture) {
     copiedBuffer.destroy();
     return x;
 }
+
+async function dumpTextureF32AsImage(device,texture) {
+    const bufferWidth = Math.ceil(texture.width / 256) * 256; //alignment requirement
+    console.log("texture width", bufferWidth, texture.width, texture.height)
+    const copiedBuffer = createGPUBuffer(device, new Float32Array(bufferWidth * texture.height), GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
+
+    const commandEncoder = device.createCommandEncoder();
+    commandEncoder.copyTextureToBuffer({ texture: texture, origin: { x: 0, y: 0 } }, { buffer: copiedBuffer, bytesPerRow: bufferWidth * 4 }, { width: texture.width, height: texture.height });
+    device.queue.submit([commandEncoder.finish()]);
+
+    await device.queue.onSubmittedWorkDone();
+
+    await copiedBuffer.mapAsync(GPUMapMode.READ, 0, bufferWidth * texture.height * 4);
+
+    const d = new Float32Array(copiedBuffer.getMappedRange()).slice();
+    const y = new Uint8ClampedArray(bufferWidth * texture.height * 4);
+
+    for (let i = 0; i < bufferWidth * texture.height; ++i) {
+        const v = d[i];
+
+        y[i * 4] = v * 255.0;
+        y[i * 4 + 1] = v * 255.0;
+        y[i * 4 + 2] = v * 255.0;
+        y[i * 4 + 3] = v * 255.0;
+    }
+    copiedBuffer.unmap();
+    const imageData = new ImageData(y, bufferWidth, texture.height);
+    imagedataToImage(imageData);
+
+    copiedBuffer.destroy();
+}
