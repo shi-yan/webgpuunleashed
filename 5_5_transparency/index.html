@@ -16,12 +16,14 @@
 </head>
 
 <body>
-    <canvas id="canvas" width="640" height="480" ></canvas>
+    <canvas id="canvas" width="640" height="480"></canvas>
 </body>
 <script src="../utils/gl-matrix.js">
     //base
     //1. explain artifacts
     //2. reorganize code separate pipeline and objects
+    //3. apply some debug techniques to figure out that clip_position in fragment shader is not the same as the clip_position in the vertex shader.
+    // explain fragment coordinates/viewport coordinates, FragmentDestination/RasterizationPoint
     //https://my.eng.utah.edu/~cs5610/handouts/order_independent_transparency.pdf
     //https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.193.3485&rep=rep1&type=pdf
     //https://medium.com/@shrekshao_71662/dual-depth-peeling-implementation-in-webgl-11baa061ba4b
@@ -74,8 +76,7 @@
         @location(0) viewDir: vec3<f32>,
         @location(1) normal: vec3<f32>,
         @location(2) lightDir: vec3<f32>,
-        @location(3) inPos: vec3<f32>,
-        @location(4) inPos2: vec4<f32>
+        @location(3) inPos: vec4<f32>,
     };
     
     @vertex
@@ -90,8 +91,7 @@
         out.normal = normalize(normalMatrix * vec4<f32>(inNormal, 0.0)).xyz;  
         var wldLoc:vec4<f32> = modelView * vec4<f32>(inPos+offset, 1.0);
         out.clip_position = projection * wldLoc;
-        out.clip_position2 = projection * wldLoc;
-        out.inPos = inPos;
+        out.inPos = projection * wldLoc;
 
         return out;
     }
@@ -106,13 +106,13 @@
 
     @fragment
     fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -> @location(0) vec4<f32> {
-        var uv:vec2<f32> = 0.5*(in.clip_position.xy*in.clip_position.w + vec2(1.0,1.0));
+        var uv:vec2<f32> = 0.5*(in.inPos.xy/in.inPos.w + vec2(1.0,1.0));
         var visibility:f32 = textureSampleCompare(
             t_depth, s_depth,
-            uv.xy,  in.clip_position.z*in.clip_position.w 
+            uv.xy,  in.inPos.z/in.inPos.w - 0.0001
         );
-        debug = in.clip_position;
-        //debug = in.inPos2;
+        //debug = in.clip_position;
+        debug = vec4(visibility,visibility,visibility,visibility);
     
         if (visibility < 0.5) {
             discard;
@@ -132,8 +132,8 @@
         var radiance:vec3<f32>  = ambientColor.rgb * ambientConstant + 
                         diffuse(-lightDir, n, color)* diffuseConstant +
                         specular(-lightDir, viewDir, n, specularColor.rgb, shininess) * specularConstant;
-        return vec4<f32>(uv.xy,0.0,1.0);
-        //return vec4<f32>(radiance , diffuseColor.w);
+        //return vec4<f32>(uv.xy,0.0,1.0);
+        return vec4<f32>(radiance , diffuseColor.w);
     }
 </script>
 
@@ -458,7 +458,7 @@
             const specularUniformBuffer = createGPUBuffer(device, new Float32Array([0.0, 0.0, 0.0, 1.0]), GPUBufferUsage.UNIFORM);
             const shininessUniformBuffer = createGPUBuffer(device, new Float32Array([0.0]), GPUBufferUsage.UNIFORM);
             //const offsetUniformBuffer = createGPUBuffer(device, new Float32Array([-180.0, -150.0, -150.0]), GPUBufferUsage.UNIFORM);
-            const offsetUniformBuffer = createGPUBuffer(device, new Float32Array([-180.0, 0.0, 0.0]), GPUBufferUsage.UNIFORM);
+            const offsetUniformBuffer = createGPUBuffer(device, new Float32Array([-0.0, -0.0, 0.0]), GPUBufferUsage.UNIFORM);
 
             this.uniformBindGroupObject = device.createBindGroup({
                 layout: pipeline.uniformBindGroupLayoutObject,
@@ -620,7 +620,7 @@
             this.indexSize = indexSize;
 
             const ambientUniformBuffer = createGPUBuffer(device, new Float32Array([0.15, 0.10, 0.10, 1.0]), GPUBufferUsage.UNIFORM);
-            const diffuseUniformBuffer = createGPUBuffer(device, new Float32Array([0.55, 0.55, 0.55, 0.1]), GPUBufferUsage.UNIFORM);
+            const diffuseUniformBuffer = createGPUBuffer(device, new Float32Array([0.55, 0.55, 0.55, 1.0]), GPUBufferUsage.UNIFORM);
             const specularUniformBuffer = createGPUBuffer(device, new Float32Array([1.0, 1.0, 1.0, 1.0]), GPUBufferUsage.UNIFORM);
             const shininessUniformBuffer = createGPUBuffer(device, new Float32Array([20.0]), GPUBufferUsage.UNIFORM);
             const offsetUniformBuffer = createGPUBuffer(device, new Float32Array([0.0, 0.0, 0.0]), GPUBufferUsage.UNIFORM);
@@ -837,7 +837,7 @@
 
                 depthAttachment1 = {
                     view: depthTexture0.createView(),
-                    depthClearValue: 0,
+                    depthClearValue: 1,
                     depthLoadOp: 'clear',
                     depthStoreOp: 'store'
                 };
@@ -893,7 +893,7 @@
             };
 
             const renderPassDesc0 = {
-                colorAttachments: [colorAttachment1],
+                colorAttachments: [colorAttachment0],
                 depthStencilAttachment: depthAttachment0
             };
 
@@ -923,14 +923,14 @@
             //plane.encode(passEncoder0, pipeline, 0);
             sphere.encode(passEncoder0, pipeline, 0);
             passEncoder0.end();
-            /*
-                        const passEncoder1 = commandEncoder.beginRenderPass(renderPassDesc1);
-                        passEncoder1.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
-                        teapot.encode(passEncoder1, pipeline, 1);
-                        plane.encode(passEncoder1, pipeline, 1);
-                        sphere.encode(passEncoder1, pipeline, 1);
-                        passEncoder1.end();
-            */
+
+            const passEncoder1 = commandEncoder.beginRenderPass(renderPassDesc1);
+            passEncoder1.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+            //teapot.encode(passEncoder1, pipeline, 1);
+            //plane.encode(passEncoder1, pipeline, 1);
+            sphere.encode(passEncoder1, pipeline, 1);
+            passEncoder1.end();
+
             commandEncoder.copyBufferToBuffer(pipeline.debugBuffer, 0,
                 pipeline.debugBufferRead, 0, 4 * 4);
             device.queue.submit([commandEncoder.finish()]);
@@ -976,7 +976,7 @@
 
             vb = new Float32Array(vb);
             console.log("debug buffer ", vb);
-            
+
             pipeline.debugBufferRead.unmap();
 
         }
