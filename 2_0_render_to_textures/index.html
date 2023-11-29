@@ -449,9 +449,6 @@
         let teapot = new Teapot();
         await teapot.setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer);
 
-
-
-
         const teapotTextureSize = 512;
 
         const depthTextureForTeapotDesc = {
@@ -547,13 +544,13 @@
             };
 
 
-            commandEncoder = device.createCommandEncoder();
+            const commandEncoder = device.createCommandEncoder();
             commandEncoder.copyBufferToBuffer(modelViewMatrixUniformBufferUpdate, 0,
                 modelViewMatrixUniformBuffer, 0, modelViewMatrix.byteLength);
             commandEncoder.copyBufferToBuffer(normalMatrixUniformBufferUpdate, 0,
                 normalMatrixUniformBuffer, 0, normalMatrix.byteLength);
 
-            passEncoder = commandEncoder.beginRenderPass(renderPassForTeapotDesc);
+            const passEncoder = commandEncoder.beginRenderPass(renderPassForTeapotDesc);
             passEncoder.setViewport(0, 0, teapotTextureSize, teapotTextureSize, 0, 1);
             teapot.encode(passEncoder);
             passEncoder.end();

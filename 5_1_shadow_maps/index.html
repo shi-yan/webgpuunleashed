@@ -111,8 +111,6 @@
 
     @fragment
     fn fs_main(in: VertexOutput,   @builtin(front_facing) face: bool) -> @location(0) vec4<f32> {
-
-     
         var lightLoc:vec3<f32> = in.lightLoc;
         var lightDir:vec3<f32> = normalize(in.lightDir);
         var n:vec3<f32> = normalize(in.normal);
@@ -160,8 +158,7 @@
             //}
           
         } 
-            return vec4<f32>( 0.0,0.0,0.0,1.0);
-        
+        return vec4<f32>( 0.0,0.0,0.0,1.0);
     }
 </script>
 
@@ -877,7 +874,6 @@
             compare: "less",
         });
 
-
         const lightDepthTextureDesc = {
             size: [1024, 1024, 1],
             dimension: '2d',
@@ -981,7 +977,7 @@
         };
 
         let copiedBuffer = createGPUBuffer(device, new Float32Array(1024 * 1024), GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
-        let hasDumped = false;
+        let hasDumped = true;
         async function render() {
             const devicePixelRatio = window.devicePixelRatio || 1;
             let currentCanvasWidth = canvas.clientWidth * devicePixelRatio;
@@ -1045,16 +1041,6 @@
                 glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(0.0, 0.0, 1.0));
 
             let lightModelViewMatrixUniformBufferUpdate = createGPUBuffer(device, lightModelViewMatrix, GPUBufferUsage.COPY_SRC);
-
-            {//debug
-                let loc = glMatrix.vec4.fromValues(0.0, 0.0, 0.0, 1.0);
-                let loc2 = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), loc, lightModelViewMatrix);
-                //console.log("loc2", loc2);
-                let loc3 = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), loc2, lightProjectionMatrix);
-                console.log("debug ", loc3[2] / loc3[3]);
-                //lightProjectionMatrix *   lightModelViewMatrix *
-            }
-
 
 
             let colorTexture = context.getCurrentTexture();
