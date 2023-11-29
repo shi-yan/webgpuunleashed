@@ -10,7 +10,8 @@
   "utilities": [
     "utils",
     "data",
-    "shader"
+    "shader",
+    "crab_nebula"
   ],
   "content": [
     {
@@ -483,6 +484,26 @@
         {
           "folder": "5_3_equalrectangle_rendering",
           "title": "5.3 Equalrectangle Rendering",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "5_4_mega_texture",
+          "title": "5.4 Mega Texture",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "5_5_transparency",
+          "title": "5.5 Transparency",
           "files": [
             {
               "filename": "index.html",
