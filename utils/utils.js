@@ -173,7 +173,7 @@ function getMousePos(canvas, evt) {
     };
 }
 
-function imagedataToImage(imagedata) {
+function imagedataToImage(imagedata, filename = "image.png") {
     var canvas = document.createElement('canvas');
     var ctx = canvas.getContext('2d');
     canvas.width = imagedata.width;
@@ -182,12 +182,12 @@ function imagedataToImage(imagedata) {
 
 
     const link = document.createElement("a");
-    link.download = "image.png";
+    link.download = filename;
     link.href = canvas.toDataURL();
     link.click();
 }
 
-async function downloadTexture(device, texture) {
+async function downloadTexture(device, texture, filename = "image.png") {
     const bufferWidth = Math.ceil(texture.width / 256) * 256; //alignment requirement
     const copiedBuffer = createGPUBuffer(device, new Uint8Array(bufferWidth * texture.height * 4), GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
 
@@ -200,8 +200,8 @@ async function downloadTexture(device, texture) {
     await copiedBuffer.mapAsync(GPUMapMode.READ, 0, bufferWidth * texture.height * 4);
 
     const x = new Uint8ClampedArray(copiedBuffer.getMappedRange());
-    const imageData = new ImageData(x, texture.width, texture.height);
-    imagedataToImage(imageData);
+    const imageData = new ImageData(x, bufferWidth, texture.height);
+    imagedataToImage(imageData, filename);
 
     copiedBuffer.unmap();
 

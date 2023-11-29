@@ -16,7 +16,7 @@
 </head>
 
 <body>
-    <canvas id="canvas" width="640" height="480"  style="width:100%;height:100%"></canvas>
+    <canvas id="canvas" width="640" height="480" style="width:100%;height:100%"></canvas>
 </body>
 <script src="../utils/gl-matrix.js">
     //base
@@ -24,12 +24,99 @@
     //2. reorganize code separate pipeline and objects
     //3. apply some debug techniques to figure out that clip_position in fragment shader is not the same as the clip_position in the vertex shader.
     // explain fragment coordinates/viewport coordinates, FragmentDestination/RasterizationPoint
+    //4. blending talk about front to back blending and what are src and dst
     //https://my.eng.utah.edu/~cs5610/handouts/order_independent_transparency.pdf
     //https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.193.3485&rep=rep1&type=pdf
     //https://medium.com/@shrekshao_71662/dual-depth-peeling-implementation-in-webgl-11baa061ba4b
+    //https://community.khronos.org/t/front-to-back-blending/65155/2
+    //https://learnopengl.com/Advanced-OpenGL/Blending
 </script>
 <script src="../utils/OBJFile.js"> </script>
 <script src="../utils/utils.js"></script>
+
+<script id="blend" type="wgsl">
+// Vertex shader
+
+struct VertexOutput {
+    @builtin(position) clip_position: vec4<f32>,
+    @location(0) tex_coords: vec2<f32>
+};
+
+@vertex
+fn vs_main(
+    @location(0) inPos: vec4<f32>
+) -> VertexOutput {
+    var out: VertexOutput;
+    out.clip_position = vec4<f32>(inPos.xy, 0.0, 1.0);
+    out.tex_coords = inPos.zw;
+    return out;
+}
+
+// Fragment shader
+@group(0) @binding(0)
+var t_src: texture_2d<f32>;
+@group(0) @binding(1)
+var s: sampler;
+
+@fragment
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+    return textureSample(t_src, s, in.tex_coords);
+}
+</script>
+
+<script id="cleanup" type="wgsl">
+    // Vertex shader
+    
+    struct VertexOutput {
+        @builtin(position) clip_position: vec4<f32>,
+    };
+    
+    @vertex
+    fn vs_main(
+        @location(0) inPos: vec2<f32>
+    ) -> VertexOutput {
+        var out: VertexOutput;
+        out.clip_position = vec4<f32>(inPos.xy, 0.0, 1.0);
+        return out;
+    }
+    
+    @fragment
+    fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+        return vec4(0.0,0.0,0.0,1.0);
+    }
+</script>
+
+<script id="final" type="wgsl">
+    // Vertex shader
+    
+    struct VertexOutput {
+        @builtin(position) clip_position: vec4<f32>,
+        @location(0) tex_coords: vec2<f32>
+    };
+    
+    @vertex
+    fn vs_main(
+        @location(0) inPos: vec4<f32>
+    ) -> VertexOutput {
+        var out: VertexOutput;
+        out.clip_position = vec4<f32>(inPos.xy, 0.0, 1.0);
+        out.tex_coords = inPos.zw;
+        return out;
+    }
+    
+    // Fragment shader
+    @group(0) @binding(0)
+    var t_composed: texture_2d<f32>;
+    @group(0) @binding(1 )
+    var s_composed: sampler;
+    
+    
+    @fragment
+    fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+        return textureSample(t_composed, s_composed, in.tex_coords);
+    }
+</script>
+
 <script id="object_shader" type="wgsl">
     // Vertex shader
 
@@ -125,7 +212,7 @@
 
         if (!face) {
             n = normalize(-in.lightDir);
-            color = vec3<f32>(0.0, 1.0, 0.0);
+          //  color = vec3<f32>(0.0, 1.0, 0.0);
         }
         var viewDir: vec3<f32> = in.viewDir;
 
@@ -139,6 +226,335 @@
 
 <script>
     let angle = 0.0;
+
+    class Cleanup {
+        constructor() {
+            this.positionBuffer = null;
+            this.pipeline = null;
+        }
+
+        async setup(device) {
+            let shaderModule = shaderModuleFromCode(device, 'cleanup');
+
+            let positions = new Float32Array([
+                -1, -1,
+                1, -1,
+                -1, 1,
+                1, 1
+            ]);
+
+            this.positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
+
+            const positionAttribDesc = {
+                shaderLocation: 0, // @location(0)
+                offset: 0,
+                format: 'float32x2'
+            };
+
+            const positionBufferLayoutDesc = {
+                attributes: [positionAttribDesc],
+                arrayStride: 4 * 2, // sizeof(float) * 3
+                stepMode: 'vertex'
+            };
+
+            const pipelineLayoutDesc = { bindGroupLayouts: [] };
+            const layout = device.createPipelineLayout(pipelineLayoutDesc);
+
+            const colorState = {
+                format: 'bgra8unorm',
+                /*blend: {
+                    alpha: {
+                        operation: "add",
+                        srcFactor: 'src-alpha',
+                        dstFactor: 'one-minus-src-alpha',
+                    },
+                    color: {
+                        operation: "add",
+                        srcFactor: 'src-alpha',
+                        dstFactor: 'one-minus-src-alpha',
+                    }
+                }*/
+            };
+
+            const pipelineDesc = {
+                layout,
+                vertex: {
+                    module: shaderModule,
+                    entryPoint: 'vs_main',
+                    buffers: [positionBufferLayoutDesc]
+                },
+                fragment: {
+                    module: shaderModule,
+                    entryPoint: 'fs_main',
+                    targets: [colorState]
+                },
+                primitive: {
+                    topology: 'triangle-strip',
+                    frontFace: 'ccw',
+                    cullMode: 'none'
+                }
+            };
+
+            this.pipeline = device.createRenderPipeline(pipelineDesc);
+
+        }
+
+        encode(encoder) {
+            encoder.setPipeline(this.pipeline);
+            encoder.setVertexBuffer(0, this.positionBuffer);
+            encoder.draw(4, 1);
+        }
+    }
+
+    class Final {
+        constructor() {
+            this.positionBuffer = null;
+            this.uniformBindGroup = null;
+            this.uniformBindGroupLayout = null;
+            this.pipeline = null;
+        }
+
+        async setup(device, dstTexture) {
+            let shaderModule = shaderModuleFromCode(device, 'final');
+
+            this.sampler = device.createSampler({
+                addressModeU: 'clamp-to-edge',
+                addressModeV: 'clamp-to-edge',
+                magFilter: 'linear',
+                minFilter: 'linear',
+                mipmapFilter: 'linear'
+            });
+
+            this.uniformBindGroupLayout = device.createBindGroupLayout({
+                entries: [
+                    {
+                        binding: 0,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        texture: {
+                        }
+                    },
+                    {
+                        binding: 1,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        sampler: {
+                        },
+                    }
+                ]
+            });
+
+            let positions = new Float32Array([
+                -1, -1, 0, 1,
+                1, -1, 1, 1,
+                -1, 1, 0, 0,
+                1, 1, 1, 0
+            ]);
+
+            this.positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
+
+            const positionAttribDesc = {
+                shaderLocation: 0, // @location(0)
+                offset: 0,
+                format: 'float32x4'
+            };
+
+            const positionBufferLayoutDesc = {
+                attributes: [positionAttribDesc],
+                arrayStride: 4 * 4, // sizeof(float) * 3
+                stepMode: 'vertex'
+            };
+
+            const pipelineLayoutDesc = { bindGroupLayouts: [this.uniformBindGroupLayout] };
+            const layout = device.createPipelineLayout(pipelineLayoutDesc);
+
+            const colorState = {
+                format: 'bgra8unorm',
+                /*blend: {
+                    alpha: {
+                        operation: "add",
+                        srcFactor: 'src-alpha',
+                        dstFactor: 'one-minus-src-alpha',
+                    },
+                    color: {
+                        operation: "add",
+                        srcFactor: 'src-alpha',
+                        dstFactor: 'one-minus-src-alpha',
+                    }
+                }*/
+            };
+
+            const pipelineDesc = {
+                layout,
+                vertex: {
+                    module: shaderModule,
+                    entryPoint: 'vs_main',
+                    buffers: [positionBufferLayoutDesc]
+                },
+                fragment: {
+                    module: shaderModule,
+                    entryPoint: 'fs_main',
+                    targets: [colorState]
+                },
+                primitive: {
+                    topology: 'triangle-strip',
+                    frontFace: 'ccw',
+                    cullMode: 'none'
+                }
+            };
+
+            this.pipeline = device.createRenderPipeline(pipelineDesc);
+        }
+
+
+        updateTexture(device, dstTexture) {
+            this.uniformBindGroup = device.createBindGroup({
+                layout: this.uniformBindGroupLayout,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: dstTexture.createView()
+                    },
+                    {
+                        binding: 1,
+                        resource:
+                            this.sampler
+                    }
+                ]
+            });
+        }
+
+        encode(encoder) {
+            encoder.setPipeline(this.pipeline);
+            encoder.setBindGroup(0, this.uniformBindGroup);
+            encoder.setVertexBuffer(0, this.positionBuffer);
+            encoder.draw(4, 1);
+        }
+    }
+
+    class Blender {
+        constructor() {
+            this.positionBuffer = null;
+            this.uniformBindGroup = null;
+            this.uniformBindGroupLayout = null;
+            this.pipeline = null;
+            this.sampler = null;
+        }
+
+        async setup(device) {
+            let shaderModule = shaderModuleFromCode(device, 'blend');
+
+            this.sampler = device.createSampler({
+                addressModeU: 'clamp-to-edge',
+                addressModeV: 'clamp-to-edge',
+                magFilter: 'linear',
+                minFilter: 'linear',
+                mipmapFilter: 'linear'
+            });
+
+            this.uniformBindGroupLayout = device.createBindGroupLayout({
+                entries: [
+                    {
+                        binding: 0,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        texture: {
+                        }
+                    },
+                    {
+                        binding: 1,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        sampler: {
+                        }
+                    }
+                ]
+            });
+
+            let positions = new Float32Array([
+                -1, -1, 0, 1,
+                1, -1, 1, 1,
+                -1, 1, 0, 0,
+                1, 1, 1, 0
+            ]);
+
+            this.positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
+
+            const positionAttribDesc = {
+                shaderLocation: 0, // @location(0)
+                offset: 0,
+                format: 'float32x4'
+            };
+
+            const positionBufferLayoutDesc = {
+                attributes: [positionAttribDesc],
+                arrayStride: 4 * 4, // sizeof(float) * 3
+                stepMode: 'vertex'
+            };
+
+            const pipelineLayoutDesc = { bindGroupLayouts: [this.uniformBindGroupLayout] };
+            const layout = device.createPipelineLayout(pipelineLayoutDesc);
+            //return vec4<f32>(dst.a * (src.a * src.rgb) + dst.rgb, (1.0 - src.a) * dst.a);
+
+            const colorState = {
+                format: 'bgra8unorm',
+                blend: {
+                    color: {
+                        operation: "add",
+                        srcFactor: 'dst-alpha',
+                        dstFactor: 'one',
+                    },
+                    alpha: {
+                        operation: "add",
+                        srcFactor: 'zero',
+                        dstFactor: 'one-minus-src-alpha',
+                    }
+                }
+            };
+
+            const pipelineDesc = {
+                layout,
+                vertex: {
+                    module: shaderModule,
+                    entryPoint: 'vs_main',
+                    buffers: [positionBufferLayoutDesc]
+                },
+                fragment: {
+                    module: shaderModule,
+                    entryPoint: 'fs_main',
+                    targets: [colorState]
+                },
+                primitive: {
+                    topology: 'triangle-strip',
+                    frontFace: 'ccw',
+                    cullMode: 'none'
+                }
+            };
+
+            this.pipeline = device.createRenderPipeline(pipelineDesc);
+
+        }
+
+        updateTexture(device, srcTexture) {
+            this.uniformBindGroup = device.createBindGroup({
+                layout: this.uniformBindGroupLayout,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: srcTexture.createView()
+                    },
+                    {
+                        binding: 1,
+                        resource:
+                            this.sampler
+                    }
+                ]
+            });
+        }
+
+        encode(encoder) {
+            encoder.setPipeline(this.pipeline);
+            encoder.setBindGroup(0, this.uniformBindGroup);
+            encoder.setVertexBuffer(0, this.positionBuffer);
+            encoder.draw(4, 1);
+        }
+    }
 
     class Pipeline {
         constructor() {
@@ -320,7 +736,7 @@
 
             const colorState = {
                 format: 'bgra8unorm',
-                blend: {
+                /*blend: {
                     alpha: {
                         operation: "add",
                         srcFactor: 'src-alpha',
@@ -331,7 +747,7 @@
                         srcFactor: 'src-alpha',
                         dstFactor: 'one-minus-src-alpha',
                     }
-                }
+                }*/
             };
 
             const pipelineDescTriangleList = {
@@ -619,10 +1035,10 @@
             this.indexBuffer = indexBuffer;
             this.indexSize = indexSize;
 
-            const ambientUniformBuffer = createGPUBuffer(device, new Float32Array([0.15, 0.10, 0.10, 1.0]), GPUBufferUsage.UNIFORM);
-            const diffuseUniformBuffer = createGPUBuffer(device, new Float32Array([0.55, 0.55, 0.55, 0.1]), GPUBufferUsage.UNIFORM);
+            const ambientUniformBuffer = createGPUBuffer(device, new Float32Array([0.05, 0.01, 0.01, 1.0]), GPUBufferUsage.UNIFORM);
+            const diffuseUniformBuffer = createGPUBuffer(device, new Float32Array([0.05, 0.05, 0.05, 0.05]), GPUBufferUsage.UNIFORM);
             const specularUniformBuffer = createGPUBuffer(device, new Float32Array([1.0, 1.0, 1.0, 1.0]), GPUBufferUsage.UNIFORM);
-            const shininessUniformBuffer = createGPUBuffer(device, new Float32Array([20.0]), GPUBufferUsage.UNIFORM);
+            const shininessUniformBuffer = createGPUBuffer(device, new Float32Array([80.0]), GPUBufferUsage.UNIFORM);
             const offsetUniformBuffer = createGPUBuffer(device, new Float32Array([0.0, 0.0, 0.0]), GPUBufferUsage.UNIFORM);
 
             this.uniformBindGroupObject = device.createBindGroup({
@@ -790,8 +1206,19 @@
         let sphere = new Sphere();
         await sphere.setup(device, pipeline);
 
+        let blender = new Blender();
+        await blender.setup(device);
+
+        let final = new Final();
+        await final.setup(device);
+
+        let cleanup = new Cleanup();
+        await cleanup.setup(device);
+
         let depthTexture0 = null;
         let depthTexture1 = null;
+
+        let dstTexture = null;
 
         let depthAttachment0 = null;
         let depthAttachment1 = null;
@@ -804,7 +1231,7 @@
             let projectionMatrixUniformBufferUpdate = null;
             let colorTextureForDebugging = null;
 
-            if (depthTexture0 === null || depthTexture1 === null || colorTextureForDebugging == null || currentCanvasWidth != canvas.width || currentCanvasHeight != canvas.height) {
+            if (depthTexture0 === null || depthTexture1 === null || dstTexture === null || colorTextureForDebugging == null || currentCanvasWidth != canvas.width || currentCanvasHeight != canvas.height) {
                 canvas.width = currentCanvasWidth;
                 canvas.height = currentCanvasHeight;
 
@@ -851,12 +1278,21 @@
                     size: [canvas.width, canvas.height, 1],
                     dimension: '2d',
                     format: 'bgra8unorm',
-                    usage: GPUTextureUsage.RENDER_ATTACHMENT
+                    usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC
                 };
                 if (colorTextureForDebugging !== null) {
                     colorTextureForDebugging.destroy();
                 }
                 colorTextureForDebugging = device.createTexture(colorTextureForDebuggingDesc);
+
+                if (dstTexture !== null) {
+                    dstTexture.destroy();
+                }
+
+                dstTexture = device.createTexture(colorTextureForDebuggingDesc);
+
+                blender.updateTexture(device, colorTextureForDebugging);
+                final.updateTexture(device,dstTexture);
             }
 
             let modelViewMatrix = arcball.getMatrices();
@@ -880,17 +1316,26 @@
 
             let colorAttachment0 = {
                 view: colorTextureForDebugging.createView(),
-                clearValue: { r: 1, g: 0, b: 0, a: 1 },
+                clearValue: { r: 0, g: 0, b: 0, a: 0 },
                 loadOp: 'clear',
                 storeOp: 'store'
             };
 
             let colorAttachment1 = {
-                view: colorTextureView,
-                clearValue: { r: 1, g: 0, b: 0, a: 1 },
+                view: colorTextureForDebugging.createView(),
+                clearValue: { r: 0, g: 0, b: 0, a: 0 },
                 loadOp: 'clear',
                 storeOp: 'store'
             };
+
+            const renderPassCleanup = {
+                colorAttachments: [{
+                    view: dstTexture.createView(),
+                    clearValue: { r: 0, g: 0, b: 0, a: 1 },
+                    loadOp: 'clear',
+                    storeOp: 'store'
+                }]
+            }
 
             const renderPassDesc0 = {
                 colorAttachments: [colorAttachment0],
@@ -901,6 +1346,24 @@
                 colorAttachments: [colorAttachment1],
                 depthStencilAttachment: depthAttachment1
             };
+
+            const renderPassBlend = {
+                colorAttachments: [{
+                    view: dstTexture.createView(),
+                    clearValue: { r: 0, g: 0, b: 0, a: 0 },
+                    loadOp: 'load',
+                    storeOp: 'store'
+                }]
+            }
+
+            const renderPassFinal = {
+                colorAttachments: [{
+                    view: colorTextureView,
+                    clearValue: { r: 0, g: 0, b: 0, a: 1 },
+                    loadOp: 'load',
+                    storeOp: 'store'
+                }]
+            }
 
             commandEncoder = device.createCommandEncoder();
             if (projectionMatrixUniformBufferUpdate) {
@@ -917,25 +1380,42 @@
             commandEncoder.copyBufferToBuffer(lightDirectionUniformBufferUpdate, 0,
                 lightDirectionUniformBuffer, 0, lightDir.byteLength);
 
-            const passEncoder0 = commandEncoder.beginRenderPass(renderPassDesc0);
-            passEncoder0.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
-            teapot.encode(passEncoder0, pipeline, 0);
-            //plane.encode(passEncoder0, pipeline, 0);
-            sphere.encode(passEncoder0, pipeline, 0);
-            passEncoder0.end();
+            let passEncoderCleanup = commandEncoder.beginRenderPass(renderPassCleanup);
+            passEncoderCleanup.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+            passEncoderCleanup.end();
 
-            const passEncoder1 = commandEncoder.beginRenderPass(renderPassDesc1);
-            passEncoder1.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
-            teapot.encode(passEncoder1, pipeline, 1);
-            //plane.encode(passEncoder1, pipeline, 1);
-            sphere.encode(passEncoder1, pipeline, 1);
-            passEncoder1.end();
+            for (let p = 0; p < 6; ++p) {
 
-           // commandEncoder.copyBufferToBuffer(pipeline.debugBuffer, 0,
-             //   pipeline.debugBufferRead, 0, 4 * 4);
+                let passEncoder0 = null;
+                if (p % 2 == 0) {
+                    passEncoder0 = commandEncoder.beginRenderPass(renderPassDesc0);
+                }
+                else {
+                    passEncoder0 = commandEncoder.beginRenderPass(renderPassDesc1);
+                }
+                passEncoder0.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+                teapot.encode(passEncoder0, pipeline, p);
+                plane.encode(passEncoder0, pipeline, p);
+                sphere.encode(passEncoder0, pipeline, p);
+                passEncoder0.end();
+
+                let passEncoder1 = commandEncoder.beginRenderPass(renderPassBlend);
+                passEncoder1.setViewport(0,0,canvas.width,canvas.height,0,1);
+                blender.encode(passEncoder1);
+                passEncoder1.end();
+            }
+
+            let finalEncoder = commandEncoder.beginRenderPass(renderPassFinal);
+            final.encode(finalEncoder);
+            finalEncoder.end();
+
             device.queue.submit([commandEncoder.finish()]);
-
             await device.queue.onSubmittedWorkDone();
+            //await downloadTexture(device, dstTexture, "pp"+".png");
+
+
+            // commandEncoder.copyBufferToBuffer(pipeline.debugBuffer, 0,
+            //   pipeline.debugBufferRead, 0, 4 * 4);
 
             if (projectionMatrixUniformBufferUpdate) {
                 projectionMatrixUniformBufferUpdate.destroy();
@@ -966,18 +1446,18 @@
                 hasDumped = true;
             }*/
             // await dumpTextureF32AsImage(device, depthTexture1);
-             requestAnimationFrame(render);
+              requestAnimationFrame(render);
 
 
-/*
-            await pipeline.debugBufferRead.mapAsync(GPUMapMode.READ, 0, 4 * 4);
-
-            let vb = pipeline.debugBufferRead.getMappedRange(0, 4 * 4);
-
-            vb = new Float32Array(vb);
-            console.log("debug buffer ", vb);
-
-            pipeline.debugBufferRead.unmap();*/
+            /*
+                        await pipeline.debugBufferRead.mapAsync(GPUMapMode.READ, 0, 4 * 4);
+            
+                        let vb = pipeline.debugBufferRead.getMappedRange(0, 4 * 4);
+            
+                        vb = new Float32Array(vb);
+                        console.log("debug buffer ", vb);
+            
+                        pipeline.debugBufferRead.unmap();*/
 
         }
 
