@@ -1,0 +1,186 @@
+<html>
+
+<body>
+    <canvas id="canvas" width="640" height="480"></canvas>
+</body>
+<script src="../utils/utils.js"></script>
+<script id="shader" type="wgsl">
+
+      @binding(0) @group(0) var<storage, read> input : array<f32>;
+      @binding(1) @group(0) var<storage, read_write> output : array<f32>;
+      @binding(2) @group(0) var<uniform> n:u32;
+    
+      var<workgroup> temp: array<f32,512>; //workgroup array must have a fixed size;
+
+      @compute @workgroup_size(256)
+      fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>) {
+            var thid:u32 = GlobalInvocationID.x;
+            if (thid < (n>>1)){
+                temp[2*thid] = input[2*thid]; // load input into shared memory 
+                temp[2*thid+1] = input[2*thid+1];
+            }
+            var offset:u32 = 1;
+            var d:u32 = n>>1;
+
+            for (var d:u32 = n>>1; d > 0; d >>= 1)
+            { 
+                if (thid < d)    
+                {
+                    var ai:u32 = offset*(2*thid+1)-1;     
+                    var bi:u32 = offset*(2*thid+2)-1;  
+                    temp[bi] += temp[ai];    
+                }    
+                offset *= 2; 
+
+                workgroupBarrier();   
+            }
+            /*if (thid < (n>>1)){
+                output[2*thid] = temp[2*thid]; 
+                output[2*thid+1] = temp[2*thid+1]; 
+            }*/
+            //output[thid] = 1;
+
+            if (thid == 0) 
+            { 
+                temp[n - 1] = 0; 
+            } // clear the last element  
+            for (var d:u32 = 1; d < n; d *= 2) // traverse down tree & build scan 
+            {      
+                offset >>= 1;      
+                if (thid < d)      
+                { 
+                    var ai:u32 = offset*(2*thid+1)-1;     
+                    var bi:u32 = offset*(2*thid+2)-1; 
+                    var t:f32 = temp[ai]; 
+                    temp[ai] = temp[bi]; 
+                    temp[bi] += t;       
+                } 
+                workgroupBarrier();      
+            }
+            
+            if (thid < (n>>1)){
+                output[2*thid] = temp[2*thid]; 
+                output[2*thid+1] = temp[2*thid+1]; 
+            }
+      }
+
+</script>
+
+<script>
+    // createGPUBuffer helper
+    async function webgpu() {
+        const adapter = await navigator.gpu.requestAdapter();
+        console.log(adapter);
+
+        let device = await adapter.requestDevice();
+        console.log(device);
+
+        const context = configContext(device, canvas)
+
+        // create shaders
+        let shaderModule = shaderModuleFromCode(device, 'shader');
+
+        let uniformBindGroupLayout = device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: 'read-only-storage' }
+
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: "storage" }
+                },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: {}
+                }
+            ]
+        });
+
+        const arraySize = 512;
+        const testArray = [];
+        for (let i = 0; i < arraySize; ++i) {
+            testArray.push(Math.floor(Math.random() * 100) + 1);
+        }
+
+        let inputArrayBuffer = createGPUBuffer(device, new Float32Array(testArray), GPUBufferUsage.STORAGE);
+        let outputArrayBuffer = createGPUBuffer(device, new Float32Array(arraySize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
+        let readArrayBuffer = createGPUBuffer(device, new Float32Array(arraySize), GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
+
+        let arraySizeBuffer = createGPUBuffer(device, new Uint32Array([arraySize]), GPUBufferUsage.UNIFORM);
+
+        let uniformBindGroup = device.createBindGroup({
+            layout: uniformBindGroupLayout,
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: inputArrayBuffer
+                    }
+                },
+                {
+                    binding: 1,
+                    resource: {
+                        buffer: outputArrayBuffer
+                    }
+                },
+                {
+                    binding: 2,
+                    resource: {
+                        buffer: arraySizeBuffer
+                    }
+                }
+            ]
+        });
+        const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout] };
+        const layout = device.createPipelineLayout(pipelineLayoutDesc);
+        const computePipeline = device.createComputePipeline({
+            layout,
+            compute: {
+                module: shaderModule,
+                entryPoint: 'main',
+            },
+        });
+
+        const computePassDescriptor = {};
+
+        const commandEncoder = device.createCommandEncoder();
+
+        const passEncoder = commandEncoder.beginComputePass(
+            computePassDescriptor
+        );
+        passEncoder.setPipeline(computePipeline);
+        passEncoder.setBindGroup(0, uniformBindGroup);
+        passEncoder.dispatchWorkgroups(1);
+        passEncoder.end();
+        
+
+        commandEncoder.copyBufferToBuffer(outputArrayBuffer, 0,
+        readArrayBuffer, 0, arraySize*4);
+        device.queue.submit([commandEncoder.finish()]);
+        await device.queue.onSubmittedWorkDone();
+        await readArrayBuffer.mapAsync(GPUMapMode.READ, 0,arraySize*4);
+
+        const d = new Float32Array(readArrayBuffer.getMappedRange());
+
+        
+        let sum = 0;
+        for(let i =0;i<arraySize;++i){
+            sum += testArray[i];
+        }
+        console.log('result sum', d[arraySize-1], sum);
+
+        console.log('test array', new Float32Array(testArray));
+        console.log('result array', d);
+
+        readArrayBuffer.unmap();
+    }
+
+    webgpu();
+</script>
+
+</html>

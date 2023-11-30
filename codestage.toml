@@ -7,7 +7,7 @@ url = "https://shi-yan.github.io/"
 meta_image = "meta.png"
 description = """
 WebGPU example code."""
-utilities = [ "utils" , "data", "shader"]
+utilities = [ "utils" , "data", "shader", "crab_nebula"]
 readme_folder = "readme"
 
 [[content]]
@@ -337,6 +337,20 @@ is_readonly = false
 [[content.sub_chapters]]
 title = "5.3 Equalrectangle Rendering"
 folder = "5_3_equalrectangle_rendering"
+[[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
+
+[[content.sub_chapters]]
+title = "5.4 Mega Texture"
+folder = "5_4_mega_texture"
+[[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
+
+[[content.sub_chapters]]
+title = "5.5 Transparency"
+folder = "5_5_transparency"
 [[content.sub_chapters.files]]
 filename = "index.html"
 is_readonly = false
