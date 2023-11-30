@@ -3,21 +3,30 @@
 <body>
     <canvas id="canvas" width="640" height="480"></canvas>
 </body>
-<script src="../utils/utils.js"></script>
+<script src="../utils/utils.js">
+    //mention out of range array access
+    //https://github.com/gpuweb/gpuweb/issues/35
+</script>
 <script id="shader" type="wgsl">
 
       @binding(0) @group(0) var<storage, read> input : array<f32>;
       @binding(1) @group(0) var<storage, read_write> output : array<f32>;
       @binding(2) @group(0) var<uniform> n:u32;
-    
+      const bank_size:u32 = 32;
       var<workgroup> temp: array<f32,512>; //workgroup array must have a fixed size;
+
+      fn bank_conflict_free_idx( idx:u32) -> u32 {
+        var chunk:u32 = idx / bank_size;
+        var offset_in_chunk = idx % bank_size;
+        return offset_in_chunk + chunk * bank_size;
+      }
 
       @compute @workgroup_size(256)
       fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>) {
             var thid:u32 = GlobalInvocationID.x;
             if (thid < (n>>1)){
-                temp[2*thid] = input[2*thid]; // load input into shared memory 
-                temp[2*thid+1] = input[2*thid+1];
+                temp[bank_conflict_free_idx(2*thid)] = input[2*thid]; // load input into shared memory 
+                temp[bank_conflict_free_idx(2*thid+1)] = input[2*thid+1];
             }
             var offset:u32 = 1;
             var d:u32 = n>>1;
@@ -28,7 +37,7 @@
                 {
                     var ai:u32 = offset*(2*thid+1)-1;     
                     var bi:u32 = offset*(2*thid+2)-1;  
-                    temp[bi] += temp[ai];    
+                    temp[bank_conflict_free_idx(bi)] += temp[bank_conflict_free_idx(ai)];    
                 }    
                 offset *= 2; 
 
@@ -42,7 +51,7 @@
 
             if (thid == 0) 
             { 
-                temp[n - 1] = 0; 
+                temp[bank_conflict_free_idx(n - 1)] = 0; 
             } // clear the last element  
             for (var d:u32 = 1; d < n; d *= 2) // traverse down tree & build scan 
             {      
@@ -51,16 +60,16 @@
                 { 
                     var ai:u32 = offset*(2*thid+1)-1;     
                     var bi:u32 = offset*(2*thid+2)-1; 
-                    var t:f32 = temp[ai]; 
-                    temp[ai] = temp[bi]; 
-                    temp[bi] += t;       
+                    var t:f32 = temp[bank_conflict_free_idx(ai)]; 
+                    temp[bank_conflict_free_idx(ai)] = temp[bank_conflict_free_idx(bi)]; 
+                    temp[bank_conflict_free_idx(bi)] += t;       
                 } 
                 workgroupBarrier();      
             }
             
             if (thid < (n>>1)){
-                output[2*thid] = temp[2*thid]; 
-                output[2*thid+1] = temp[2*thid+1]; 
+                output[2*thid] = temp[bank_conflict_free_idx(2*thid)]; 
+                output[2*thid+1] = temp[bank_conflict_free_idx(2*thid+1)]; 
             }
       }
 
