@@ -6,6 +6,8 @@
 <script src="../utils/utils.js">
     //mention out of range array access
     //https://github.com/gpuweb/gpuweb/issues/35
+    // talk about benchmark,
+    // /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --enable-dawn-features=allow_unsafe_apis
 </script>
 <script id="shader" type="wgsl">
 
@@ -20,6 +22,10 @@
         var offset_in_chunk = idx % bank_size;
         return offset_in_chunk + chunk * bank_size;
       }
+
+      /*fn bank_conflict_free_idx( idx:u32) -> u32 { // fake
+        return idx;
+      }*/
 
       @compute @workgroup_size(256)
       fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>) {
@@ -81,8 +87,24 @@
         const adapter = await navigator.gpu.requestAdapter();
         console.log(adapter);
 
-        let device = await adapter.requestDevice();
+        let device = await adapter.requestDevice({
+            requiredFeatures: ["timestamp-query"],
+        });
         console.log(device);
+
+        const capacity = 3;//Max number of timestamps we can store
+        const querySet = device.createQuerySet({
+            type: "timestamp",
+            count: capacity,
+        });
+
+        const queryBuffer = device.createBuffer({
+            size: 8 * capacity,
+            usage: GPUBufferUsage.QUERY_RESOLVE
+                | GPUBufferUsage.STORAGE
+                | GPUBufferUsage.COPY_SRC
+                | GPUBufferUsage.COPY_DST,
+        });
 
         const context = configContext(device, canvas)
 
@@ -158,6 +180,7 @@
         const computePassDescriptor = {};
 
         const commandEncoder = device.createCommandEncoder();
+        commandEncoder.writeTimestamp(querySet, 0);// Initial timestamp
 
         const passEncoder = commandEncoder.beginComputePass(
             computePassDescriptor
@@ -166,27 +189,47 @@
         passEncoder.setBindGroup(0, uniformBindGroup);
         passEncoder.dispatchWorkgroups(1);
         passEncoder.end();
-        
+        commandEncoder.writeTimestamp(querySet, 1);// Initial timestamp
+
 
         commandEncoder.copyBufferToBuffer(outputArrayBuffer, 0,
-        readArrayBuffer, 0, arraySize*4);
+            readArrayBuffer, 0, arraySize * 4);
+        commandEncoder.resolveQuerySet(
+            querySet,
+            0,// index of first query to resolve 
+            capacity,//number of queries to resolve
+            queryBuffer,
+            0);// destination offset
+            
         device.queue.submit([commandEncoder.finish()]);
         await device.queue.onSubmittedWorkDone();
-        await readArrayBuffer.mapAsync(GPUMapMode.READ, 0,arraySize*4);
+
+        await readArrayBuffer.mapAsync(GPUMapMode.READ, 0, arraySize * 4);
 
         const d = new Float32Array(readArrayBuffer.getMappedRange());
 
-        
+
         let sum = 0;
-        for(let i =0;i<arraySize;++i){
+        for (let i = 0; i < arraySize; ++i) {
             sum += testArray[i];
         }
-        console.log('result sum', d[arraySize-1], sum);
+        console.log('result sum', d[arraySize - 1], sum);
 
         console.log('test array', new Float32Array(testArray));
         console.log('result array', d);
 
         readArrayBuffer.unmap();
+
+        const gpuReadBuffer = device.createBuffer({ size: queryBuffer.size, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
+        const copyEncoder = device.createCommandEncoder();
+        copyEncoder.copyBufferToBuffer(queryBuffer, 0, gpuReadBuffer, 0, queryBuffer.size);
+        const copyCommands = copyEncoder.finish();
+        device.queue.submit([copyCommands]);
+        await gpuReadBuffer.mapAsync(GPUMapMode.READ);
+        let result = new BigInt64Array(gpuReadBuffer.getMappedRange());
+        console.log("run time: ", (result[1] - result[0]));
+        gpuReadBuffer.unmap();
+        gpuReadBuffer.destroy();
     }
 
     webgpu();
