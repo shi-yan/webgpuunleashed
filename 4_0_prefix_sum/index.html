@@ -8,6 +8,8 @@
     //https://github.com/gpuweb/gpuweb/issues/35
     // talk about benchmark,
     // /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --enable-dawn-features=allow_unsafe_apis
+    // https://omar-shehata.medium.com/how-to-use-webgpu-timestamp-query-9bf81fb5344a
+    // https://betterprogramming.pub/efficient-parallel-prefix-sum-in-metal-for-apple-m1-9e60b974d62
 </script>
 <script id="shader" type="wgsl">
 
@@ -82,29 +84,30 @@
 </script>
 
 <script>
+    const hasTimestampQuery = adapter.features.has('timestamp-query');
     // createGPUBuffer helper
     async function webgpu() {
         const adapter = await navigator.gpu.requestAdapter();
         console.log(adapter);
 
         let device = await adapter.requestDevice({
-            requiredFeatures: ["timestamp-query"],
+            requiredFeatures: hasTimestampQuery ? ["timestamp-query"] : [],
         });
         console.log(device);
 
         const capacity = 3;//Max number of timestamps we can store
-        const querySet = device.createQuerySet({
+        const querySet = hasTimestampQuery ? device.createQuerySet({
             type: "timestamp",
             count: capacity,
-        });
+        }) : null;
 
-        const queryBuffer = device.createBuffer({
+        const queryBuffer = hasTimestampQuery ? device.createBuffer({
             size: 8 * capacity,
             usage: GPUBufferUsage.QUERY_RESOLVE
                 | GPUBufferUsage.STORAGE
                 | GPUBufferUsage.COPY_SRC
                 | GPUBufferUsage.COPY_DST,
-        });
+        }) : null;
 
         const context = configContext(device, canvas)
 
@@ -180,8 +183,9 @@
         const computePassDescriptor = {};
 
         const commandEncoder = device.createCommandEncoder();
-        commandEncoder.writeTimestamp(querySet, 0);// Initial timestamp
-
+        if (hasTimestampQuery) {
+            commandEncoder.writeTimestamp(querySet, 0);// Initial timestamp
+        }
         const passEncoder = commandEncoder.beginComputePass(
             computePassDescriptor
         );
@@ -189,18 +193,17 @@
         passEncoder.setBindGroup(0, uniformBindGroup);
         passEncoder.dispatchWorkgroups(1);
         passEncoder.end();
-        commandEncoder.writeTimestamp(querySet, 1);// Initial timestamp
-
-
-        commandEncoder.copyBufferToBuffer(outputArrayBuffer, 0,
-            readArrayBuffer, 0, arraySize * 4);
-        commandEncoder.resolveQuerySet(
-            querySet,
-            0,// index of first query to resolve 
-            capacity,//number of queries to resolve
-            queryBuffer,
-            0);// destination offset
-            
+        if (hasTimestampQuery) {
+            commandEncoder.writeTimestamp(querySet, 1);// Initial timestamp
+            commandEncoder.copyBufferToBuffer(outputArrayBuffer, 0,
+                readArrayBuffer, 0, arraySize * 4);
+            commandEncoder.resolveQuerySet(
+                querySet,
+                0,// index of first query to resolve 
+                capacity,//number of queries to resolve
+                queryBuffer,
+                0);// destination offset
+        }
         device.queue.submit([commandEncoder.finish()]);
         await device.queue.onSubmittedWorkDone();
 
@@ -219,17 +222,18 @@
         console.log('result array', d);
 
         readArrayBuffer.unmap();
-
-        const gpuReadBuffer = device.createBuffer({ size: queryBuffer.size, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
-        const copyEncoder = device.createCommandEncoder();
-        copyEncoder.copyBufferToBuffer(queryBuffer, 0, gpuReadBuffer, 0, queryBuffer.size);
-        const copyCommands = copyEncoder.finish();
-        device.queue.submit([copyCommands]);
-        await gpuReadBuffer.mapAsync(GPUMapMode.READ);
-        let result = new BigInt64Array(gpuReadBuffer.getMappedRange());
-        console.log("run time: ", (result[1] - result[0]));
-        gpuReadBuffer.unmap();
-        gpuReadBuffer.destroy();
+        if (hasTimestampQuery) {
+            const gpuReadBuffer = device.createBuffer({ size: queryBuffer.size, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
+            const copyEncoder = device.createCommandEncoder();
+            copyEncoder.copyBufferToBuffer(queryBuffer, 0, gpuReadBuffer, 0, queryBuffer.size);
+            const copyCommands = copyEncoder.finish();
+            device.queue.submit([copyCommands]);
+            await gpuReadBuffer.mapAsync(GPUMapMode.READ);
+            let result = new BigInt64Array(gpuReadBuffer.getMappedRange());
+            console.log("run time: ", (result[1] - result[0]));
+            gpuReadBuffer.unmap();
+            gpuReadBuffer.destroy();
+        }
     }
 
     webgpu();
