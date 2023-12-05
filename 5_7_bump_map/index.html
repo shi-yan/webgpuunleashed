@@ -1,5 +1,20 @@
 <html>
 
+<head>
+    <style>
+        html {
+            position: relative;
+            height: 100%;
+        }
+
+        body {
+            margin: 0px;
+            position: relative;
+            height: 100%;
+        }
+    </style>
+</head>
+
 <body>
     <canvas id="canvas" width="640" height="480" style="width:100%;height:100%"></canvas>
 </body>
@@ -95,8 +110,8 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 <script>
     class Arcball {
         constructor() {
-            this.radius = 15.0;
-            this.forwardVector = glMatrix.vec4.fromValues(this.radius, this.radius, this.radius, 0.0);
+            this.radius = 12.0;
+            this.forwardVector = glMatrix.vec4.fromValues(this.radius, 0.0, 0.0, 0.0);
             this.upVector = glMatrix.vec4.fromValues(0.0, 0.0, 1.0, 0.0);
             this.currentRotation = glMatrix.mat4.create();
         }
@@ -189,7 +204,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
 
         let projectionMatrix = glMatrix.mat4.perspective(glMatrix.mat4.create(),
-            1.4, 640.0 / 480.0, 0.1, 1000.0);
+            1.4, 640.0 / 480.0, 1, 1000.0);
 
         let modelViewMatrixUniformBuffer = createGPUBuffer(device, modelViewMatrix, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
         let normalMatrixUniformBuffer = createGPUBuffer(device, normalMatrix, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
@@ -457,8 +472,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 viewDirectionUniformBuffer, 0, viewDir.byteLength);
             commandEncoder.copyBufferToBuffer(viewDirectionUniformBufferUpdate, 0,
                 lightDirectionUniformBuffer, 0, viewDir.byteLength);
-
-            commandEncoder = device.createCommandEncoder();
 
             passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
             passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
