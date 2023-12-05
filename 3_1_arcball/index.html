@@ -135,7 +135,6 @@
         async setup(device, scaleUniformBuffer) {
             let shaderModule = shaderModuleFromCode(device, 'ring_shader')
 
-
             let positions = [];
 
             const radius = 1.0;
@@ -154,7 +153,6 @@
             positions = new Float32Array(positions);
 
             this.positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
-
 
             const positionAttribDesc = {
                 shaderLocation: 0, // @location(0)
@@ -177,8 +175,6 @@
                     }
                 ]
             });
-
-
 
             this.uniformBindGroup = device.createBindGroup({
                 layout: uniformBindGroupLayout,
@@ -250,8 +246,6 @@
             this.normalBuffer = normalBuffer;
             this.indexBuffer = indexBuffer;
             this.indexSize = indexSize;
-
-
 
             let uniformBindGroupLayout = device.createBindGroupLayout({
                 entries: [
@@ -657,8 +651,6 @@
         let isDragging = false;
         const yawPitch = 1;
         const roll = 2;
-
-
 
         canvas.onmousedown = (event) => {
             var rect = canvas.getBoundingClientRect();

@@ -22,7 +22,7 @@
       fn bank_conflict_free_idx( idx:u32) -> u32 {
         var chunk:u32 = idx / bank_size;
         var offset_in_chunk = idx % bank_size;
-        return offset_in_chunk + chunk * bank_size;
+        return offset_in_chunk + chunk;
       }
 
       /*fn bank_conflict_free_idx( idx:u32) -> u32 { // fake
@@ -82,13 +82,44 @@
       }
 
 </script>
-
 <script>
-    const hasTimestampQuery = adapter.features.has('timestamp-query');
+    const bank_size = 32;
+    function bank_conflict_free_idx(idx) {
+        let chunk = Math.floor(idx  / bank_size);
+        let offset_in_chunk = idx % bank_size;
+        return offset_in_chunk + chunk;
+    }
+
+    let n = 512;
+    const print_level = n >> 1;
+    console.log("debug for level ", print_level);
+    let result = '';
+    for (let thid = 0; thid < 32; ++thid) {
+        let offset = 1;
+
+        for (let level = n >> 1; level > 0; level >>= 1) {
+            if (thid < level) {
+                let ai = offset * (2 * thid + 1) - 1;
+                let bi = offset * (2 * thid + 2) - 1;
+                //temp[bank_conflict_free_idx(bi)] += temp[bank_conflict_free_idx(ai)];
+
+                if (print_level == level) {
+                    result += `t: ${thid} (${ai} ${bank_conflict_free_idx(ai)} ${bank_conflict_free_idx(ai) % 32}) `
+                }
+            }
+            offset *= 2;
+
+        }
+    }
+    console.log(result);
+
+</script>
+<script>
     // createGPUBuffer helper
     async function webgpu() {
         const adapter = await navigator.gpu.requestAdapter();
         console.log(adapter);
+        const hasTimestampQuery = adapter.features.has('timestamp-query');
 
         let device = await adapter.requestDevice({
             requiredFeatures: hasTimestampQuery ? ["timestamp-query"] : [],
