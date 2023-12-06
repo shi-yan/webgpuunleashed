@@ -41,11 +41,11 @@ var<uniform> lightDirection: vec3<f32>;
 @group(0) @binding(4)
 var<uniform> viewDirection: vec3<f32>;
     
-const ambientColor:vec4<f32> = vec4<f32>(0.15, 0.0, 0.0, 1.0);
+const ambientColor:vec4<f32> = vec4<f32>(0.0, 0.0, 0.0, 1.0);
 const diffuseColor:vec4<f32> = vec4<f32>(0.25, 0.25, 0.25, 1.0);
 const specularColor:vec4<f32> = vec4<f32>(1.0, 1.0, 1.0, 1.0);
     
-const shininess:f32 = 20.0;
+const shininess:f32 = 10.0;
     
 const diffuseConstant:f32 = 1.0;
 const specularConstant:f32 = 1.0;
@@ -66,19 +66,22 @@ struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
     @location(0) viewDir: vec3<f32>,
     @location(1) normal: vec3<f32>,
-    @location(2) lightDir: vec3<f32>
+    @location(2) lightDir: vec3<f32>,
+    @location(3) texCoords: vec2<f32>
 };
 
 @vertex
 fn vs_main(
     @location(0) inPos: vec4<f32>,
-    @location(1) inNormal: vec3<f32>
+    @location(1) inNormal: vec3<f32>,
+    @location(2) inTangent: vec3<f32>
 ) -> VertexOutput {
     var out: VertexOutput;
 
     out.viewDir = normalize((normalMatrix * vec4<f32>(-viewDirection, 0.0)).xyz);
     out.lightDir = normalize((normalMatrix * vec4<f32>(-lightDirection, 0.0)).xyz);
-    out.normal = normalize(normalMatrix * vec4<f32>(inNormal, 0.0)).xyz;  
+    out.normal = normalize(normalMatrix * vec4<f32>(inNormal, 0.0)).xyz;
+    out.texCoords = inPos.wz;
   
     out.clip_position = projection * modelView * vec4(inPos.xyz, 1.0);
     return out;
@@ -93,17 +96,16 @@ var s_diffuse: sampler;
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-
-   /* var lightDir:vec3<f32> = in.lightDir;
+    var dc:vec4<f32> = textureSample(t_diffuse, s_diffuse, in.texCoords);
+    var lightDir:vec3<f32> = in.lightDir;
     var n:vec3<f32> = normalize(in.normal);
     var viewDir: vec3<f32> = in.viewDir;
 
     var radiance:vec3<f32>  = ambientColor.rgb * ambientConstant + 
-        diffuse(lightDir, n, diffuseColor.rgb)* diffuseConstant +
+        diffuse(lightDir, n, dc.rgb)* diffuseConstant +
         specular(lightDir, viewDir, n, specularColor.rgb, shininess) * specularConstant;
-     */ 
-
-    return vec4<f32>(1.0,1.0,1.0 ,1.0);
+     
+    return vec4<f32>(radiance, 1.0);
 }
 </script>
 
@@ -131,7 +133,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
     class Arcball {
         constructor() {
-            this.radius = 12.0;
+            this.radius = 15.0;
             this.forwardVector = glMatrix.vec4.fromValues(this.radius, 0.0, 0.0, 0.0);
             this.upVector = glMatrix.vec4.fromValues(0.0, 0.0, 1.0, 0.0);
             this.currentRotation = glMatrix.mat4.create();
@@ -348,8 +350,14 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             format: 'float32x3'
         };
 
-        const normalBufferLayoutDesc = {
-            attributes: [normalAttribDesc],
+        const tangentAttribDesc = {
+            shaderLocation: 2,
+            offset: 4*3,
+            format: 'float32x3'
+        }
+
+        const normalAndTangentBufferLayoutDesc = {
+            attributes: [normalAttribDesc, tangentAttribDesc],
             arrayStride: 4 * 6, // sizeof(float) * 6
             stepMode: 'vertex'
         };
@@ -397,7 +405,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             vertex: {
                 module: shaderModule,
                 entryPoint: 'vs_main',
-                buffers: [positionBufferLayoutDesc, normalBufferLayoutDesc]
+                buffers: [positionBufferLayoutDesc, normalAndTangentBufferLayoutDesc]
             },
             fragment: {
                 module: shaderModule,
