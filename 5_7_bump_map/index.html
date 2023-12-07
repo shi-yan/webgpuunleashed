@@ -43,13 +43,13 @@ var<uniform> viewDirection: vec3<f32>;
     
 const ambientColor:vec4<f32> = vec4<f32>(0.0, 0.0, 0.0, 1.0);
 const diffuseColor:vec4<f32> = vec4<f32>(0.25, 0.25, 0.25, 1.0);
-const specularColor:vec4<f32> = vec4<f32>(1.0, 1.0, 1.0, 1.0);
+const specularColor:vec4<f32> = vec4<f32>(0.55, 0.55, 0.55, 1.0);
     
-const shininess:f32 = 10.0;
+const shininess:f32 = 5.0;
     
 const diffuseConstant:f32 = 1.0;
-const specularConstant:f32 = 1.0;
-const ambientConstant: f32 = 1.0;
+const specularConstant:f32 = 0.5;
+const ambientConstant: f32 = 0.5;
 
 fn specular(lightDir:vec3<f32>, viewDir:vec3<f32>, normal:vec3<f32>,  specularColor:vec3<f32>, 
      shininess:f32) -> vec3<f32> {
@@ -67,7 +67,8 @@ struct VertexOutput {
     @location(0) viewDir: vec3<f32>,
     @location(1) normal: vec3<f32>,
     @location(2) lightDir: vec3<f32>,
-    @location(3) texCoords: vec2<f32>
+    @location(3) texCoords: vec2<f32>,
+    @location(4) tangent: vec3<f32>
 };
 
 @vertex
@@ -80,7 +81,8 @@ fn vs_main(
 
     out.viewDir = normalize((normalMatrix * vec4<f32>(-viewDirection, 0.0)).xyz);
     out.lightDir = normalize((normalMatrix * vec4<f32>(-lightDirection, 0.0)).xyz);
-    out.normal = normalize(normalMatrix * vec4<f32>(inNormal, 0.0)).xyz;
+    out.normal = normalize(normalMatrix* vec4<f32>(inNormal, 0.0)).xyz;
+    out.tangent = normalize(normalMatrix*vec4<f32>(inTangent, 0.0)).xyz;
     out.texCoords = inPos.wz;
   
     out.clip_position = projection * modelView * vec4(inPos.xyz, 1.0);
@@ -92,6 +94,8 @@ fn vs_main(
 @group(0) @binding(5)
 var t_diffuse: texture_2d<f32>;
 @group(0) @binding(6)
+var t_normal: texture_2d<f32>;
+@group(0) @binding(7)
 var s_diffuse: sampler;
 
 @fragment
@@ -99,11 +103,23 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     var dc:vec4<f32> = textureSample(t_diffuse, s_diffuse, in.texCoords);
     var lightDir:vec3<f32> = in.lightDir;
     var n:vec3<f32> = normalize(in.normal);
+    var t:vec3<f32> = normalize(in.tangent);
+    var T:vec3<f32> = normalize(t - dot(t, n) * n);
+    var B:vec3<f32> = cross(n, T);
+    
+    var TBN:mat3x3<f32> =  mat3x3<f32>(T, B, n);  
+    
+    var normal:vec3<f32> = textureSample(t_normal, s_diffuse, in.texCoords).rgb;
+
+    normal = normal * 2.0 - 1.0;   
+
+    normal = normalize( TBN * normal);
+
     var viewDir: vec3<f32> = in.viewDir;
 
     var radiance:vec3<f32>  = ambientColor.rgb * ambientConstant + 
-        diffuse(lightDir, n, dc.rgb)* diffuseConstant +
-        specular(lightDir, viewDir, n, specularColor.rgb, shininess) * specularConstant;
+        diffuse(lightDir, normal, dc.rgb)* diffuseConstant +
+        specular(lightDir, viewDir, normal, specularColor.rgb, shininess) * specularConstant;
      
     return vec4<f32>(radiance, 1.0);
 }
@@ -122,11 +138,11 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         const uv1 = glMatrix.vec2.fromValues(vertex2.u - vertex1.u,
             vertex2.v - vertex1.v);
 
-        const f = 1.0 / (uv0.x * uv1.y - uv1.x * uv0.y);
+        const f = 1.0 / (uv0[0] * uv1[1] - uv1[0] * uv0[1]);
 
-        const tangent = glMatrix.vec3.fromValues(f * (uv1.y * edge0.x - uv0.y * edge1.x),
-            f * (uv1.y * edge0.y - uv0.y * edge1.y),
-            f * (uv1.y * edge0.z - uv0.y * edge1.z));
+        const tangent = glMatrix.vec3.fromValues(f * (uv1[1] * edge0[0] - uv0[1] * edge1[0]),
+            f * (uv1[1] * edge0[1] - uv0[1] * edge1[1]),
+            f * (uv1[1] * edge0[2] - uv0[1] * edge1[2]));
 
         return tangent;
     }
@@ -212,7 +228,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
         let diffuseTexture = await img2texture(device, '../data/Rock_Mosaic_DIFF.png');
         let specTexture = await img2texture(device, '../data/Rock_Mosaic_SPEC.png');
-        let normTexture = await img2texture(device, '../data/Rock_Mosaic_NORM.png');
+        let normalTexture = await img2texture(device, '../data/Rock_Mosaic_NORM.png');
 
         const shaderDesc = { code: code };
         let shaderModule = device.createShaderModule(shaderDesc);
@@ -274,6 +290,11 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 {
                     binding: 6,
                     visibility: GPUShaderStage.FRAGMENT,
+                    texture: {}
+                },
+                {
+                    binding: 7,
+                    visibility: GPUShaderStage.FRAGMENT,
                     sampler: {}
                 }
             ]
@@ -326,6 +347,10 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 },
                 {
                     binding: 6,
+                    resource: normalTexture.createView()
+                },
+                {
+                    binding: 7,
                     resource:
                         sampler
                 }
@@ -388,6 +413,8 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             normalAndTangent.push(...[0.0,0.0,1.0]);
             normalAndTangent.push(...[currTangent[0], currTangent[1], currTangent[2]]);
         }
+
+        console.log(normalAndTangent);
         
 
         let positionBuffer = createGPUBuffer(device, new Float32Array( positions), GPUBufferUsage.VERTEX);
