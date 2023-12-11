@@ -225,11 +225,31 @@
         @location(5) boneWeight3: vec4<f32>
     ) -> VertexOutput {
         var out: VertexOutput;
+        var totalTransform:mat4x4<f32> = mat4x4<f32>(0.0,0.0,0.0,0.0,
+            0.0,0.0,0.0,0.0,
+            0.0,0.0,0.0,0.0,
+            0.0,0.0,0.0,0.0);
+        var totalPos :vec4<f32>= vec4<f32>(0.0,0.0,0.0,0.0);
+        
+            totalPos += boneTransforms[0] * vec4<f32>(inPos, 1.0) * boneWeight0[0];
+            totalPos += boneTransforms[1] * vec4<f32>(inPos, 1.0)* boneWeight0[1];
+            totalPos += boneTransforms[2] * vec4<f32>(inPos, 1.0)* boneWeight0[2];
+            totalPos += boneTransforms[3] * vec4<f32>(inPos, 1.0)* boneWeight0[3];
+            totalPos += boneTransforms[4] * vec4<f32>(inPos, 1.0)* boneWeight1[0];
+            totalPos += boneTransforms[5] * vec4<f32>(inPos, 1.0)* boneWeight1[1];
+            totalPos += boneTransforms[6] * vec4<f32>(inPos, 1.0)* boneWeight1[2];
+            totalPos += boneTransforms[7] * vec4<f32>(inPos, 1.0)* boneWeight1[3];
+            totalPos += boneTransforms[8] * vec4<f32>(inPos, 1.0)* boneWeight2[0];
+            totalPos += boneTransforms[9] * vec4<f32>(inPos, 1.0)* boneWeight2[1];
+            totalPos += boneTransforms[10] * vec4<f32>(inPos, 1.0)* boneWeight2[2];
+            totalPos += boneTransforms[11] * vec4<f32>(inPos, 1.0)* boneWeight2[3];
+            totalPos += boneTransforms[12] * vec4<f32>(inPos, 1.0)* boneWeight3[0];
+
     
         out.viewDir = normalize((normalMatrix * vec4<f32>(-viewDirection, 0.0)).xyz);
         out.lightDir = normalize((normalMatrix * vec4<f32>(-lightDirection, 0.0)).xyz);
         out.normal = normalize(normalMatrix * vec4<f32>(inNormal, 0.0)).xyz;  
-        var wldLoc:vec4<f32> = modelView * vec4<f32>(inPos, 1.0);
+        var wldLoc:vec4<f32> = modelView  * vec4<f32>(totalPos.xyz, 1.0);
         out.clip_position = projection * wldLoc;
         out.wldLoc = wldLoc.xyz / wldLoc.w;
         out.inPos = inPos;
@@ -724,7 +744,7 @@
 
             console.log("bone transformation", boneTransforms);
 
-            let boneTransformUniformBuffer =  createGPUBuffer(device, boneTransforms, GPUBufferUsage.UNIFORM);
+            let boneTransformUniformBuffer = createGPUBuffer(device, boneTransforms, GPUBufferUsage.UNIFORM);
 
             /*let max = 0;
             for(let i =0;i<objBody.vert.length/3;++i){
