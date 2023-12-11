@@ -30,6 +30,7 @@
 <script src="../utils/OBJFile.js"> </script>
 <script src="../utils/utils.js"></script>
 <script src="../utils/helper.js"></script>
+
 <script id="object_with_shadow_shader" type="wgsl">
     // Vertex shader
     
@@ -162,6 +163,142 @@
     }
 </script>
 
+<script id="object_with_shadow_ani_shader" type="wgsl">
+    // Vertex shader
+    
+    @group(0) @binding(0)
+    var<uniform> modelView: mat4x4<f32>;
+    @group(0) @binding(1)
+    var<uniform> projection: mat4x4<f32>;
+    @group(0) @binding(2)
+    var<uniform> normalMatrix: mat4x4<f32>;
+    @group(0) @binding(3) 
+    var<uniform> lightDirection: vec3<f32>;
+    @group(0) @binding(4)
+    var<uniform> viewDirection: vec3<f32>;
+    
+    @group(0) @binding(5)
+    var<uniform> ambientColor:vec4<f32>;// = vec4<f32>(0.15, 0.10, 0.10, 1.0);
+    @group(0) @binding(6)
+    var<uniform> diffuseColor:vec4<f32>;// = vec4<f32>(0.55, 0.55, 0.55, 1.0);
+    @group(0) @binding(7)
+    var<uniform> specularColor:vec4<f32>;// = vec4<f32>(1.0, 1.0, 1.0, 1.0);
+    
+    @group(0) @binding(8)
+    var<uniform> shininess:f32;// = 20.0;
+        
+    const diffuseConstant:f32 = 1.0;
+    const specularConstant:f32 = 1.0;
+    const ambientConstant: f32 = 1.0;
+    
+    fn specular(lightDir:vec3<f32>, viewDir:vec3<f32>, normal:vec3<f32>,  specularColor:vec3<f32>, 
+         shininess:f32) -> vec3<f32> {
+        let reflectDir:vec3<f32> = reflect(-lightDir, normal);
+        let specDot:f32 = max(dot(reflectDir, viewDir), 0.0);
+        return pow(specDot, shininess) * specularColor;
+    }
+    
+    fn diffuse(lightDir:vec3<f32>, normal:vec3<f32>,  diffuseColor:vec3<f32>) -> vec3<f32>{
+        return max(dot(lightDir, normal), 0.0) * diffuseColor;
+    }
+    
+    struct VertexOutput {
+        @builtin(position) clip_position: vec4<f32>,
+        @location(0) viewDir: vec3<f32>,
+        @location(1) normal: vec3<f32>,
+        @location(2) lightDir: vec3<f32>,
+        @location(3) wldLoc: vec3<f32>,
+        @location(4) lightLoc: vec3<f32>,
+        @location(5) inPos: vec3<f32>
+    };
+    
+    @vertex
+    fn vs_main(
+        @location(0) inPos: vec3<f32>,
+        @location(1) inNormal: vec3<f32>,
+        @location(2) boneWeight0: vec4<f32>,
+        @location(3) boneWeight1: vec4<f32>,
+        @location(4) boneWeight2: vec4<f32>,
+        @location(5) boneWeight3: vec4<f32>
+    ) -> VertexOutput {
+        var out: VertexOutput;
+    
+        out.viewDir = normalize((normalMatrix * vec4<f32>(-viewDirection, 0.0)).xyz);
+        out.lightDir = normalize((normalMatrix * vec4<f32>(-lightDirection, 0.0)).xyz);
+        out.normal = normalize(normalMatrix * vec4<f32>(inNormal, 0.0)).xyz;  
+        var wldLoc:vec4<f32> = modelView * vec4<f32>(inPos, 1.0);
+        out.clip_position = projection * wldLoc;
+        out.wldLoc = wldLoc.xyz / wldLoc.w;
+        out.inPos = inPos;
+        var lightLoc:vec4<f32> = modelView * vec4<f32>(lightDirection, 1.0);
+        out.lightLoc = lightLoc.xyz / lightLoc.w;
+
+        return out;
+    }
+    
+    // Fragment shader
+    @group(0) @binding(9)
+    var t_depth: texture_depth_2d;
+    @group(0) @binding(10)
+    var s_depth: sampler_comparison;
+    @group(0) @binding(11)
+    var<uniform> lightModelViewMatrix: mat4x4<f32>;
+    @group(0) @binding(12)
+    var<uniform> lightProjectionMatrix: mat4x4<f32>;
+
+    @fragment
+    fn fs_main(in: VertexOutput,   @builtin(front_facing) face: bool) -> @location(0) vec4<f32> {
+        var lightLoc:vec3<f32> = in.lightLoc;
+        var lightDir:vec3<f32> = normalize(in.lightDir);
+        var n:vec3<f32> = normalize(in.normal);
+        var viewDir: vec3<f32> = in.viewDir;
+
+        var fragmentPosInScreenSpace: vec4<f32> = lightProjectionMatrix * lightModelViewMatrix * vec4(in.inPos, 1.0);
+        fragmentPosInScreenSpace = fragmentPosInScreenSpace / fragmentPosInScreenSpace.w;
+        var depth: f32 = fragmentPosInScreenSpace.z;
+        var uv:vec2<f32> = 0.5*(fragmentPosInScreenSpace.xy + vec2(1.0,1.0));
+
+        var visibility = 0.0;
+            let oneOverShadowDepthTextureSize = 1.0 / 1024.0;
+            for (var y = -2; y <= 2; y++) {
+              for (var x = -2; x <= 2; x++) {
+                let offset = vec2<f32>(vec2(x, y)) * oneOverShadowDepthTextureSize;
+          
+                visibility += textureSampleCompare(
+                    t_depth, s_depth,
+                    vec2(uv.x, 1.0-uv.y) + offset,depth  - 0.0003
+                );
+              }
+            }
+            visibility /= 25.0;
+
+
+        //var light2ClosestSurfaceDist = textureSample(t_depth, s_depth, vec2(uv.x, 1.0-uv.y));
+        if (face) {
+            //if (depth < light2ClosestSurfaceDist+0.0001) {
+
+                var wldLoc2light:vec3<f32> =   in.wldLoc-lightLoc;
+
+                //var lightDir:vec3<f32> =  
+                var align:f32 = dot( normalize(wldLoc2light),lightDir);
+
+                if (align > 0.9) {
+                    var radiance:vec3<f32>  = ambientColor.rgb * ambientConstant + 
+                        diffuse(-lightDir, n, diffuseColor.rgb)* diffuseConstant +
+                        specular(-lightDir, viewDir, n, specularColor.rgb, shininess) * specularConstant;
+        
+                    return vec4<f32>(radiance * visibility ,1.0);
+                   // return vec4<f32>(0.0,0.0,light2ClosestSurfaceDist,1.0);
+                }
+
+                //return vec4<f32>(1.0,1.0,0.0,1.0);
+            //}
+          
+        } 
+        return vec4<f32>( 0.0,0.0,0.0,1.0);
+    }
+</script>
+
 <script id="light_view_shader" type="wgsl">
     // Vertex shader
     
@@ -177,7 +314,11 @@
     
     @vertex
     fn vs_main(
-        @location(0) inPos: vec3<f32>
+        @location(0) inPos: vec3<f32>,
+        @location(1) boneWeight0: vec4<f32>,
+        @location(2) boneWeight1: vec4<f32>,
+        @location(3) boneWeight2: vec4<f32>,
+        @location(4) boneWeight3: vec4<f32>
     ) -> VertexOutput {
         var out: VertexOutput;
 
@@ -473,6 +614,7 @@
             this.pipeline = null;
             this.lightPipeline = null;
             this.positionBuffer = null;
+            this.boneWeightBuffer = null;
             this.indexBuffer = null;
             this.uniformBindGroup = null;
             this.indexSize = null;
@@ -481,7 +623,7 @@
 
         async setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer,
             depthTexture, sampler, lightModelViewMatrixUniformBuffer, lightProjectionMatrixUniformBuffer) {
-            let shaderModule = shaderModuleFromCode(device, 'object_with_shadow_shader');
+            let shaderModule = shaderModuleFromCode(device, 'object_with_shadow_ani_shader');
             let shaderModuleLight = shaderModuleFromCode(device, 'light_view_shader');
 
             const objResponse = await fetch('../data/cuberun.json');
@@ -489,7 +631,45 @@
 
             console.log(objBody);
 
+            let boneWeights = new Float32Array(objBody.vert.length * 16 / 3);
+
+            function assignBoneWeightsToVerticesHelper(bone, boneWeights) {
+                for (let i = 0; i < bone.weights.length; ++i) {
+                    const { id, w } = bone.weights[i];
+                    boneWeights[id * 16 + bone.id] = w;
+                }
+
+                if (bone.children.length > 0) {
+                    for (let i = 0; i < bone.children.length; ++i) {
+                        assignBoneWeightsToVerticesHelper(bone.children[i], boneWeights);
+                    }
+                }
+            }
+
+            for (let i = 0; i < objBody.skeleton.length; ++i) {
+                assignBoneWeightsToVerticesHelper(objBody.skeleton[i], boneWeights);
+            }
+
+            console.log("assigned bone weights", boneWeights);
+            /*let max = 0;
+            for(let i =0;i<objBody.vert.length/3;++i){
+                let count = 0;
+                for(let e =0;e<16;++e){
+                    if (boneWeights[i*16 + e] > 0){
+                        count++;
+                    }
+                }
+
+                if (count > max) {
+                    max = count;
+                }
+            }
+
+            console.log("max bone", max);*/
+
+            this.boneWeightBuffer = createGPUBuffer(device, boneWeights, GPUBufferUsage.VERTEX);
             this.positionBuffer = createGPUBuffer(device, new Float32Array(objBody.vert), GPUBufferUsage.VERTEX);
+
             this.indexSize = objBody.indices.length;
             this.indexBuffer = createGPUBuffer(device, new Uint16Array(objBody.indices), GPUBufferUsage.INDEX);
 
@@ -525,7 +705,6 @@
                     }
                 ]
             });
-
 
             let uniformBindGroupLayout = device.createBindGroupLayout({
                 entries: [
@@ -689,26 +868,56 @@
             });
 
             const positionAttribDesc = {
-                shaderLocation: 0, // @location(0)
+                shaderLocation: 0,
                 offset: 0,
                 format: 'float32x3'
             };
 
             const positionBufferLayoutDesc = {
                 attributes: [positionAttribDesc],
-                arrayStride: 4 * 6, // sizeof(float) * 3
+                arrayStride: 4 * 6,
                 stepMode: 'vertex'
             };
 
             const normalAttribDesc = {
-                shaderLocation: 1, // @location(1)
+                shaderLocation: 1,
                 offset: 4 * 3,
                 format: 'float32x3'
             };
 
             const normalBufferLayoutDesc = {
                 attributes: [normalAttribDesc],
-                arrayStride: 4 * 6, // sizeof(float) * 3
+                arrayStride: 4 * 6,
+                stepMode: 'vertex'
+            };
+
+            const boneWeight0AttribDesc = {
+                shaderLocation: 2,
+                offset: 0,
+                format: 'float32x4'
+            };
+
+            const boneWeight1AttribDesc = {
+                shaderLocation: 3,
+                offset: 4 * 4,
+                format: 'float32x4'
+            };
+
+            const boneWeight2AttribDesc = {
+                shaderLocation: 4,
+                offset: 4 * 8,
+                format: 'float32x4'
+            };
+
+            const boneWeight3AttribDesc = {
+                shaderLocation: 5,
+                offset: 4 * 12,
+                format: 'float32x4'
+            };
+
+            const boneWeightBufferLayoutDesc = {
+                attributes: [boneWeight0AttribDesc, boneWeight1AttribDesc, boneWeight2AttribDesc, boneWeight3AttribDesc],
+                arrayStride: 4 * 16,
                 stepMode: 'vertex'
             };
 
@@ -724,7 +933,9 @@
                 vertex: {
                     module: shaderModule,
                     entryPoint: 'vs_main',
-                    buffers: [positionBufferLayoutDesc, normalBufferLayoutDesc]
+                    buffers: [positionBufferLayoutDesc,
+                        normalBufferLayoutDesc,
+                        boneWeightBufferLayoutDesc]
                 },
                 fragment: {
                     module: shaderModule,
@@ -747,12 +958,44 @@
 
             const lightPipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayoutLight] };
 
+            const lightBoneWeight0AttribDesc = {
+                shaderLocation: 1,
+                offset: 0,
+                format: 'float32x4'
+            };
+
+            const lightBoneWeight1AttribDesc = {
+                shaderLocation: 2,
+                offset: 4 * 4,
+                format: 'float32x4'
+            };
+
+            const lightBoneWeight2AttribDesc = {
+                shaderLocation: 3,
+                offset: 4 * 8,
+                format: 'float32x4'
+            };
+
+            const lightBoneWeight3AttribDesc = {
+                shaderLocation: 4,
+                offset: 4 * 12,
+                format: 'float32x4'
+            };
+
+            const lightBoneWeightBufferLayoutDesc = {
+                attributes: [lightBoneWeight0AttribDesc, lightBoneWeight1AttribDesc, lightBoneWeight2AttribDesc, lightBoneWeight3AttribDesc],
+                arrayStride: 4 * 16,
+                stepMode: 'vertex'
+            };
+
             const lightPipelineDesc = {
                 layout: device.createPipelineLayout(lightPipelineLayoutDesc),
                 vertex: {
                     module: shaderModuleLight,
                     entryPoint: 'vs_main',
-                    buffers: [positionBufferLayoutDesc]
+                    buffers: [positionBufferLayoutDesc,
+                        lightBoneWeightBufferLayoutDesc
+                    ]
                 },
                 fragment: {
                     module: shaderModuleLight,
@@ -778,6 +1021,7 @@
             encoder.setPipeline(this.lightPipeline);
             encoder.setBindGroup(0, this.uniformBindGroupLight);
             encoder.setVertexBuffer(0, this.positionBuffer);
+            encoder.setVertexBuffer(1, this.boneWeightBuffer);
             encoder.setIndexBuffer(this.indexBuffer, 'uint16');
             encoder.drawIndexed(this.indexSize);
         }
@@ -787,6 +1031,7 @@
             encoder.setBindGroup(0, this.uniformBindGroup);
             encoder.setVertexBuffer(0, this.positionBuffer);
             encoder.setVertexBuffer(1, this.positionBuffer);
+            encoder.setVertexBuffer(2, this.boneWeightBuffer);
             encoder.setIndexBuffer(this.indexBuffer, 'uint16');
             encoder.drawIndexed(this.indexSize);
         }
