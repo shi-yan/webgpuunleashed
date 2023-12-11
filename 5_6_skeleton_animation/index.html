@@ -231,25 +231,25 @@
             0.0,0.0,0.0,0.0);
         var totalPos :vec4<f32>= vec4<f32>(0.0,0.0,0.0,0.0);
         
-            totalPos += boneTransforms[0] * vec4<f32>(inPos, 1.0) * boneWeight0[0];
-            totalPos += boneTransforms[1] * vec4<f32>(inPos, 1.0)* boneWeight0[1];
-            totalPos += boneTransforms[2] * vec4<f32>(inPos, 1.0)* boneWeight0[2];
-            totalPos += boneTransforms[3] * vec4<f32>(inPos, 1.0)* boneWeight0[3];
-            totalPos += boneTransforms[4] * vec4<f32>(inPos, 1.0)* boneWeight1[0];
-            totalPos += boneTransforms[5] * vec4<f32>(inPos, 1.0)* boneWeight1[1];
-            totalPos += boneTransforms[6] * vec4<f32>(inPos, 1.0)* boneWeight1[2];
-            totalPos += boneTransforms[7] * vec4<f32>(inPos, 1.0)* boneWeight1[3];
-            totalPos += boneTransforms[8] * vec4<f32>(inPos, 1.0)* boneWeight2[0];
-            totalPos += boneTransforms[9] * vec4<f32>(inPos, 1.0)* boneWeight2[1];
-            totalPos += boneTransforms[10] * vec4<f32>(inPos, 1.0)* boneWeight2[2];
-            totalPos += boneTransforms[11] * vec4<f32>(inPos, 1.0)* boneWeight2[3];
-            totalPos += boneTransforms[12] * vec4<f32>(inPos, 1.0)* boneWeight3[0];
+            totalTransform += boneTransforms[0] * boneWeight0[0];
+            totalTransform += boneTransforms[1] * boneWeight0[1];
+            totalTransform += boneTransforms[2] * boneWeight0[2];
+            totalTransform += boneTransforms[3] * boneWeight0[3];
+            totalTransform += boneTransforms[4] * boneWeight1[0];
+            totalTransform += boneTransforms[5] * boneWeight1[1];
+            totalTransform += boneTransforms[6] * boneWeight1[2];
+            totalTransform += boneTransforms[7] * boneWeight1[3];
+            totalTransform += boneTransforms[8] * boneWeight2[0];
+            totalTransform += boneTransforms[9] * boneWeight2[1];
+            totalTransform += boneTransforms[10]* boneWeight2[2];
+            totalTransform += boneTransforms[11] * boneWeight2[3];
+            totalTransform += boneTransforms[12] * boneWeight3[0];
 
     
         out.viewDir = normalize((normalMatrix * vec4<f32>(-viewDirection, 0.0)).xyz);
         out.lightDir = normalize((normalMatrix * vec4<f32>(-lightDirection, 0.0)).xyz);
         out.normal = normalize(normalMatrix * vec4<f32>(inNormal, 0.0)).xyz;  
-        var wldLoc:vec4<f32> = modelView  * vec4<f32>(totalPos.xyz, 1.0);
+        var wldLoc:vec4<f32> = modelView * totalTransform * vec4<f32>(inPos, 1.0);
         out.clip_position = projection * wldLoc;
         out.wldLoc = wldLoc.xyz / wldLoc.w;
         out.inPos = inPos;
@@ -698,6 +698,23 @@
                     bone.offsetMatrix[11],
                     bone.offsetMatrix[15]);
 
+                  /*  const offsetMatrix = glMatrix.mat4.fromValues(bone.offsetMatrix[0], 
+                    bone.offsetMatrix[1], bone.offsetMatrix[2],
+                    bone.offsetMatrix[3],
+                    bone.offsetMatrix[4],
+                    bone.offsetMatrix[5],
+                    bone.offsetMatrix[6],
+                    bone.offsetMatrix[7],
+                    bone.offsetMatrix[8],
+                    bone.offsetMatrix[9],
+                    bone.offsetMatrix[10],
+                    bone.offsetMatrix[11],
+                    bone.offsetMatrix[12],
+                    bone.offsetMatrix[13],
+                    bone.offsetMatrix[14],
+                    bone.offsetMatrix[15]);*/
+
+
                 if (bone.ani) {
                     const translationMatrix = glMatrix.mat4.fromTranslation(glMatrix.mat4.create(),
                         glMatrix.vec3.fromValues(bone.ani.pos[frameId].pos[0], bone.ani.pos[frameId].pos[1], bone.ani.pos[frameId].pos[2]));
@@ -728,7 +745,7 @@
 
                     if (bone.children.length > 0) {
                         for (let i = 0; i < bone.children.length; ++i) {
-                            deriveBoneTransformHelper(bone.children[i], parentTransform);
+                            deriveBoneTransformHelper(bone.children[i], globalTransformation);
                         }
                     }
                 }
