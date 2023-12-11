@@ -12,126 +12,127 @@ struct Bone
 };
 
 void printHierarchy(std::ofstream &outputFile, aiNode *node, int indentation, bool shouldDump,
-                    std::unordered_map<std::string, Bone> &bones)
+                    std::unordered_map<std::string, Bone> &bones, int &boneId)
 {
     std::cout << std::string(indentation, '-') << node->mName.C_Str() << std::endl;
-    if (strcmp("Armature_spine", node->mName.C_Str()) == 0)
+    if (strcmp("Armature", node->mName.C_Str()) == 0)
     {
         shouldDump = true;
     }
+    const std::string boneName = std::string(node->mName.C_Str());
 
-    if (shouldDump)
+    if (shouldDump && bones.find(boneName) != bones.end())
     {
-        outputFile << "{\"name\":\"" << node->mName.C_Str() << "\",\"children\":[" << std::endl;
+        std::cout << "bone = = " << boneName << std::endl;
+        outputFile << "{\"id\":"<<(boneId++)<<",\"name\":\"" << node->mName.C_Str() << "\",\"children\":[" << std::endl;
 
         for (int i = 0; i < node->mNumChildren; ++i)
         {
-            printHierarchy(outputFile, node->mChildren[i], indentation + 1, shouldDump, bones);
+            printHierarchy(outputFile, node->mChildren[i], indentation + 1, shouldDump, bones, boneId);
 
             if (i < node->mNumChildren - 1)
             {
-                outputFile << ",";
+                outputFile << "," << std::endl;
             }
         }
 
         outputFile << "]" << std::endl;
 
-        const std::string boneName = std::string(node->mName.C_Str());
-
-        if (bones.find(boneName) != bones.end())
+        aiBone *b = bones[boneName].bone;
+        outputFile << ", \"offsetMatrix\":[";
+        for (int i = 0; i < 4; ++i)
         {
-            aiBone *b = bones[boneName].bone;
-            outputFile << ", \"offsetMatrix\":[";
-            for (int i = 0; i < 4; ++i)
+            auto w = b->mOffsetMatrix[i];
+            outputFile << w[0] << "," << w[1] << "," << w[2] << "," << w[3];
+            if (i < 3)
             {
-                auto w = b->mOffsetMatrix[i];
-                outputFile << w[0] << "," << w[1] << "," << w[2] << "," << w[3];
-                if (i < 3)
-                {
-                    outputFile << ",";
-                }
-            }
-            outputFile << "],\n \"weights\":[" << std::endl;
-
-            for (int i = 0; i < b->mNumWeights; ++i)
-            {
-                outputFile << "{\"id\":" << b->mWeights[i].mVertexId << ",\"w\":" << b->mWeights[i].mWeight << "}";
-                if (i < b->mNumWeights - 1)
-                {
-                    outputFile << "," << std::endl;
-                }
-            }
-            outputFile << "]";
-
-            aiNodeAnim *ani = bones[boneName].ani;
-
-            if (ani)
-            {
-
-                outputFile << ",\"ani\":{" << std::endl;
-
-                if (ani->mNumPositionKeys > 0)
-                {
-                    outputFile << "\"pos\":[";
-
-                    for (int e = 0; e < ani->mNumPositionKeys; ++e)
-                    {
-                        auto pk = ani->mPositionKeys[e];
-                        outputFile << "{\"time\":" << pk.mTime << ",\"pos\":[" << pk.mValue[0] << "," << pk.mValue[1] << "," << pk.mValue[2] << "]}" << std::endl;
-                        if (e < ani->mNumPositionKeys - 1)
-                        {
-                            outputFile << ",";
-                        }
-                    }
-
-                    outputFile << "]" << std::endl;
-                }
-
-                if (ani->mNumRotationKeys > 0)
-                {
-                    outputFile << ",\"rot\":[";
-
-                    for (int e = 0; e < ani->mNumRotationKeys; ++e)
-                    {
-                        auto rk = ani->mRotationKeys[e];
-                        outputFile << "{\"time\":" << rk.mTime << ",\"q\":[" << rk.mValue.w << "," << rk.mValue.x << "," << rk.mValue.y << "," << rk.mValue.z << "]}" << std::endl;
-                        if (e < ani->mNumRotationKeys - 1)
-                        {
-                            outputFile << ",";
-                        }
-                    }
-
-                    outputFile << "]" << std::endl;
-                }
-
-                if (ani->mNumScalingKeys > 0)
-                {
-                    outputFile << ",\"scal\":[";
-
-                    for (int e = 0; e < ani->mNumScalingKeys; ++e)
-                    {
-                        auto sk = ani->mScalingKeys[e];
-                        outputFile << "{\"time\":" << sk.mTime << ",\"pos\":[" << sk.mValue[0] << "," << sk.mValue[1] << "," << sk.mValue[2] << "]}" << std::endl;
-                        if (e < ani->mNumScalingKeys - 1)
-                        {
-                            outputFile << ",";
-                        }
-                    }
-
-                    outputFile << "]" << std::endl;
-                }
-
-                outputFile << "}" << std::endl;
+                outputFile << ",";
             }
         }
+        outputFile << "],\n \"weights\":[" << std::endl;
 
+         for (int i = 0; i < b->mNumWeights; ++i)
+         {
+             outputFile << "{\"id\":" << b->mWeights[i].mVertexId << ",\"w\":" << b->mWeights[i].mWeight << "}";
+             if (i < b->mNumWeights - 1)
+             {
+                 outputFile << "," << std::endl;
+             }
+         }
+        outputFile << "]";
+
+        aiNodeAnim *ani = bones[boneName].ani;
+
+        if (ani)
+        {
+
+            outputFile << ",\"ani\":{" << std::endl;
+
+            if (ani->mNumPositionKeys > 0)
+            {
+                outputFile << "\"pos\":[";
+
+                for (int e = 0; e < ani->mNumPositionKeys; ++e)
+                {
+                    auto pk = ani->mPositionKeys[e];
+                    outputFile << "{\"time\":" << pk.mTime << ",\"pos\":[" << pk.mValue[0] << "," << pk.mValue[1] << "," << pk.mValue[2] << "]}" << std::endl;
+                    if (e < ani->mNumPositionKeys - 1)
+                    {
+                        outputFile << ",";
+                    }
+                }
+
+                outputFile << "]" << std::endl;
+            }
+
+            if (ani->mNumRotationKeys > 0)
+            {
+                outputFile << ",\"rot\":[";
+
+                for (int e = 0; e < ani->mNumRotationKeys; ++e)
+                {
+                    auto rk = ani->mRotationKeys[e];
+                    outputFile << "{\"time\":" << rk.mTime << ",\"q\":[" << rk.mValue.w << "," << rk.mValue.x << "," << rk.mValue.y << "," << rk.mValue.z << "]}" << std::endl;
+                    if (e < ani->mNumRotationKeys - 1)
+                    {
+                        outputFile << ",";
+                    }
+                }
+
+                outputFile << "]" << std::endl;
+            }
+
+            if (ani->mNumScalingKeys > 0)
+            {
+                outputFile << ",\"scal\":[";
+
+                for (int e = 0; e < ani->mNumScalingKeys; ++e)
+                {
+                    auto sk = ani->mScalingKeys[e];
+                    outputFile << "{\"time\":" << sk.mTime << ",\"pos\":[" << sk.mValue[0] << "," << sk.mValue[1] << "," << sk.mValue[2] << "]}" << std::endl;
+                    if (e < ani->mNumScalingKeys - 1)
+                    {
+                        outputFile << ",";
+                    }
+                }
+
+                outputFile << "]" << std::endl;
+            }
+
+            outputFile << "}" << std::endl;
+        }
         outputFile << "}";
     }
-    else
+    else 
     {
         for (int i = 0; i < node->mNumChildren; ++i)
         {
-            printHierarchy(outputFile, node->mChildren[i], indentation + 1, false, bones);
+            printHierarchy(outputFile, node->mChildren[i], indentation + 1, shouldDump, bones, boneId);
+
+            if (i < node->mNumChildren - 1)
+            {
+                outputFile << "," << std::endl;
+            }
         }
     }
 }
@@ -186,7 +187,7 @@ int main()
         }
         outputFile << std::endl;
     }
-    outputFile << "],\"skeleton\":\n";
+    outputFile << "],\"skeleton\":[\n";
 
     std::unordered_map<std::string, Bone> bones;
 
@@ -213,10 +214,10 @@ int main()
             }
         }
     }
+    int boneId = 0;
+    printHierarchy(outputFile, scene->mRootNode, 0, false, bones, boneId );
 
-    printHierarchy(outputFile, scene->mRootNode, 0, false, bones);
-
-    outputFile << "}";
+    outputFile << "]}";
 
     outputFile.close();
 
