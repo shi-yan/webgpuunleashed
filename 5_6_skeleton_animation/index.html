@@ -186,6 +186,9 @@
     
     @group(0) @binding(8)
     var<uniform> shininess:f32;// = 20.0;
+
+    @group(1) @binding(0)
+    var<uniform> boneTransforms: array<mat4x4<f32>, 16>;
         
     const diffuseConstant:f32 = 1.0;
     const specularConstant:f32 = 1.0;
@@ -306,6 +309,9 @@
     var<uniform> modelView: mat4x4<f32>;
     @group(0) @binding(1)
     var<uniform> projection: mat4x4<f32>;
+
+    @group(1) @binding(0)
+    var<uniform> boneTransforms: array<mat4x4<f32>, 16>;
     
     struct VertexOutput {
         @builtin(position) clip_position: vec4<f32>,
@@ -651,6 +657,75 @@
             }
 
             console.log("assigned bone weights", boneWeights);
+
+            let boneTransforms = new Float32Array(16 * 16);
+            const frameId = 0;
+
+            function deriveBoneTransformHelper(bone, parentTransform) {
+
+                const offsetMatrix = glMatrix.mat4.fromValues(bone.offsetMatrix[0], bone.offsetMatrix[4], bone.offsetMatrix[8],
+                    bone.offsetMatrix[12],
+                    bone.offsetMatrix[1],
+                    bone.offsetMatrix[5],
+                    bone.offsetMatrix[9],
+                    bone.offsetMatrix[13],
+                    bone.offsetMatrix[2],
+                    bone.offsetMatrix[6],
+                    bone.offsetMatrix[10],
+                    bone.offsetMatrix[14],
+                    bone.offsetMatrix[3],
+                    bone.offsetMatrix[7],
+                    bone.offsetMatrix[11],
+                    bone.offsetMatrix[15]);
+
+                if (bone.ani) {
+                    const translationMatrix = glMatrix.mat4.fromTranslation(glMatrix.mat4.create(),
+                        glMatrix.vec3.fromValues(bone.ani.pos[frameId].pos[0], bone.ani.pos[frameId].pos[1], bone.ani.pos[frameId].pos[2]));
+
+                    const quat = glMatrix.quat.fromValues(bone.ani.rot[frameId].q[1], bone.ani.rot[frameId].q[2], bone.ani.rot[frameId].q[3], bone.ani.rot[frameId].q[0]);
+
+                    const rotationMatrix = glMatrix.mat4.fromQuat(glMatrix.mat4.create(), quat);
+
+                    const scalingMatrix = glMatrix.mat4.fromScaling(glMatrix.mat4.create(),
+                        glMatrix.vec3.fromValues(
+                            bone.ani.scal[frameId].pos[0], bone.ani.scal[frameId].pos[1], bone.ani.scal[frameId].pos[2]));
+
+
+                    const rotation_x_scale = glMatrix.mat4.multiply(glMatrix.mat4.create(),
+                        rotationMatrix, scalingMatrix);
+
+                    const locationTransformation = glMatrix.mat4.multiply(glMatrix.mat4.create(),
+                        translationMatrix, rotation_x_scale);
+
+                    const globalTransformation = glMatrix.mat4.multiply(glMatrix.mat4.create(),
+                        parentTransform, locationTransformation);
+
+                    const finalBoneTransformation = glMatrix.mat4.multiply(glMatrix.mat4.create(),
+                        globalTransformation, offsetMatrix);
+
+                    boneTransforms.set(glMatrix.mat4.multiply(glMatrix.mat4.create(), parentTransform, offsetMatrix), bone.id * 16);
+
+
+                    if (bone.children.length > 0) {
+                        for (let i = 0; i < bone.children.length; ++i) {
+                            deriveBoneTransformHelper(bone.children[i], parentTransform);
+                        }
+                    }
+                }
+                else {
+
+                    boneTransforms.set(glMatrix.mat4.multiply(glMatrix.mat4.create(), parentTransform, offsetMatrix), bone.id * 16);
+                }
+            }
+
+            for (let i = 0; i < objBody.skeleton.length; ++i) {
+                deriveBoneTransformHelper(objBody.skeleton[i], glMatrix.mat4.identity(glMatrix.mat4.create()));
+            }
+
+            console.log("bone transformation", boneTransforms);
+
+            let boneTransformUniformBuffer =  createGPUBuffer(device, boneTransforms, GPUBufferUsage.UNIFORM);
+
             /*let max = 0;
             for(let i =0;i<objBody.vert.length/3;++i){
                 let count = 0;
@@ -701,6 +776,28 @@
                         binding: 1,
                         resource: {
                             buffer: lightProjectionMatrixUniformBuffer
+                        }
+                    }
+                ]
+            });
+
+            let uniformBindGroupLayoutBone = device.createBindGroupLayout({
+                entries: [
+                    {
+                        binding: 0,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    }
+                ]
+            });
+
+            this.uniformBindGroupBone = device.createBindGroup({
+                layout: uniformBindGroupLayoutBone,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: {
+                            buffer: boneTransformUniformBuffer
                         }
                     }
                 ]
@@ -921,7 +1018,7 @@
                 stepMode: 'vertex'
             };
 
-            const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout] };
+            const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout, uniformBindGroupLayoutBone] };
             const layout = device.createPipelineLayout(pipelineLayoutDesc);
 
             const colorState = {
@@ -956,7 +1053,7 @@
 
             this.pipeline = device.createRenderPipeline(pipelineDesc);
 
-            const lightPipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayoutLight] };
+            const lightPipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayoutLight, uniformBindGroupLayoutBone] };
 
             const lightBoneWeight0AttribDesc = {
                 shaderLocation: 1,
@@ -1020,6 +1117,7 @@
         encodeForLight(encoder) {
             encoder.setPipeline(this.lightPipeline);
             encoder.setBindGroup(0, this.uniformBindGroupLight);
+            encoder.setBindGroup(1, this.uniformBindGroupBone);
             encoder.setVertexBuffer(0, this.positionBuffer);
             encoder.setVertexBuffer(1, this.boneWeightBuffer);
             encoder.setIndexBuffer(this.indexBuffer, 'uint16');
@@ -1029,6 +1127,7 @@
         encode(encoder) {
             encoder.setPipeline(this.pipeline);
             encoder.setBindGroup(0, this.uniformBindGroup);
+            encoder.setBindGroup(1, this.uniformBindGroupBone);
             encoder.setVertexBuffer(0, this.positionBuffer);
             encoder.setVertexBuffer(1, this.positionBuffer);
             encoder.setVertexBuffer(2, this.boneWeightBuffer);
