@@ -11,24 +11,25 @@ struct Bone
     aiNodeAnim *ani;
 };
 
-void printHierarchy(std::ofstream &outputFile, aiNode *node, int indentation, bool shouldDump,
+void printHierarchy(std::ofstream &outputFile, aiNode *node, int indentation,
                     std::unordered_map<std::string, Bone> &bones, int &boneId)
 {
     std::cout << std::string(indentation, '-') << node->mName.C_Str() << std::endl;
-    if (strcmp("Armature", node->mName.C_Str()) == 0)
-    {
-        shouldDump = true;
-    }
+
     const std::string boneName = std::string(node->mName.C_Str());
 
-    if (shouldDump && bones.find(boneName) != bones.end())
+    if (bones.find(boneName) != bones.end())
     {
         std::cout << "bone = = " << boneName << std::endl;
-        outputFile << "{\"id\":"<<(boneId++)<<",\"name\":\"" << node->mName.C_Str() << "\",\"children\":[" << std::endl;
+        outputFile << "{\"id\":" << (boneId++) << ",\"nodeTransform\":[" << std::endl;
+
+        outputFile << node->mTransformation[0][0] << "," << node->mTransformation[0][1] << "," << node->mTransformation[0][2] << "," << node->mTransformation[0][3] << ","<< node->mTransformation[1][0] << "," << node->mTransformation[1][1] << "," << node->mTransformation[1][2] << "," << node->mTransformation[1][3] << ","<< node->mTransformation[2][0] << "," << node->mTransformation[2][1] << "," << node->mTransformation[2][2] << "," << node->mTransformation[2][3] << ","<< node->mTransformation[3][0] << "," << node->mTransformation[3][1] << "," << node->mTransformation[3][2] << "," << node->mTransformation[3][3] << std::endl;
+
+        outputFile << "],\"name\":\"" << node->mName.C_Str() << "\",\"children\":[" << std::endl;
 
         for (int i = 0; i < node->mNumChildren; ++i)
         {
-            printHierarchy(outputFile, node->mChildren[i], indentation + 1, shouldDump, bones, boneId);
+            printHierarchy(outputFile, node->mChildren[i], indentation + 1, bones, boneId);
 
             if (i < node->mNumChildren - 1)
             {
@@ -51,14 +52,14 @@ void printHierarchy(std::ofstream &outputFile, aiNode *node, int indentation, bo
         }
         outputFile << "],\n \"weights\":[" << std::endl;
 
-         for (int i = 0; i < b->mNumWeights; ++i)
-         {
-             outputFile << "{\"id\":" << b->mWeights[i].mVertexId << ",\"w\":" << b->mWeights[i].mWeight << "}";
-             if (i < b->mNumWeights - 1)
-             {
-                 outputFile << "," << std::endl;
-             }
-         }
+        for (int i = 0; i < b->mNumWeights; ++i)
+        {
+            outputFile << "{\"id\":" << b->mWeights[i].mVertexId << ",\"w\":" << b->mWeights[i].mWeight << "}";
+            if (i < b->mNumWeights - 1)
+            {
+                outputFile << "," << std::endl;
+            }
+        }
         outputFile << "]";
 
         aiNodeAnim *ani = bones[boneName].ani;
@@ -123,17 +124,22 @@ void printHierarchy(std::ofstream &outputFile, aiNode *node, int indentation, bo
         }
         outputFile << "}";
     }
-    else 
+    else
     {
+        outputFile << "{\"name\":\"" << node->mName.C_Str() << "\",\"nodeTransform\":[" << node->mTransformation[0][0] << "," << node->mTransformation[0][1] << "," << node->mTransformation[0][2] << "," << node->mTransformation[0][3] << "," <<node->mTransformation[1][0] << "," << node->mTransformation[1][1] << "," << node->mTransformation[1][2] << "," << node->mTransformation[1][3] << ","<< node->mTransformation[2][0] << "," << node->mTransformation[2][1] << "," << node->mTransformation[2][2] << "," << node->mTransformation[2][3] << "," <<node->mTransformation[3][0] << "," << node->mTransformation[3][1] << "," << node->mTransformation[3][2] << "," << node->mTransformation[3][3] << std::endl;
+
+        outputFile << "],\"children\":[" << std::endl;
         for (int i = 0; i < node->mNumChildren; ++i)
         {
-            printHierarchy(outputFile, node->mChildren[i], indentation + 1, shouldDump, bones, boneId);
+            printHierarchy(outputFile, node->mChildren[i], indentation + 1, bones, boneId);
 
             if (i < node->mNumChildren - 1)
             {
                 outputFile << "," << std::endl;
             }
         }
+
+        outputFile << "]}";
     }
 }
 
@@ -215,7 +221,7 @@ int main()
         }
     }
     int boneId = 0;
-    printHierarchy(outputFile, scene->mRootNode, 0, false, bones, boneId );
+    printHierarchy(outputFile, scene->mRootNode, 0, bones, boneId);
 
     outputFile << "]}";
 

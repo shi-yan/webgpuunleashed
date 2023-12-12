@@ -660,14 +660,19 @@
             let boneWeights = new Float32Array(objBody.vert.length * 16 / 3);
 
             function assignBoneWeightsToVerticesHelper(bone, boneWeights) {
-                for (let i = 0; i < bone.weights.length; ++i) {
-                    const { id, w } = bone.weights[i];
-                    boneWeights[id * 16 + bone.id] = w;
+
+                if (bone.weights) {
+                    for (let i = 0; i < bone.weights.length; ++i) {
+                        const { id, w } = bone.weights[i];
+                        boneWeights[id * 16 + bone.id] = w;
+                    }
                 }
 
-                if (bone.children.length > 0) {
-                    for (let i = 0; i < bone.children.length; ++i) {
-                        assignBoneWeightsToVerticesHelper(bone.children[i], boneWeights);
+                if (bone.children) {
+                    if (bone.children.length > 0) {
+                        for (let i = 0; i < bone.children.length; ++i) {
+                            assignBoneWeightsToVerticesHelper(bone.children[i], boneWeights);
+                        }
                     }
                 }
             }
@@ -683,75 +688,125 @@
 
             function deriveBoneTransformHelper(bone, parentTransform) {
 
-                const offsetMatrix = glMatrix.mat4.fromValues(bone.offsetMatrix[0], bone.offsetMatrix[4], bone.offsetMatrix[8],
-                    bone.offsetMatrix[12],
-                    bone.offsetMatrix[1],
-                    bone.offsetMatrix[5],
-                    bone.offsetMatrix[9],
-                    bone.offsetMatrix[13],
-                    bone.offsetMatrix[2],
-                    bone.offsetMatrix[6],
-                    bone.offsetMatrix[10],
-                    bone.offsetMatrix[14],
-                    bone.offsetMatrix[3],
-                    bone.offsetMatrix[7],
-                    bone.offsetMatrix[11],
-                    bone.offsetMatrix[15]);
 
-                  /*  const offsetMatrix = glMatrix.mat4.fromValues(bone.offsetMatrix[0], 
-                    bone.offsetMatrix[1], bone.offsetMatrix[2],
-                    bone.offsetMatrix[3],
-                    bone.offsetMatrix[4],
-                    bone.offsetMatrix[5],
-                    bone.offsetMatrix[6],
-                    bone.offsetMatrix[7],
-                    bone.offsetMatrix[8],
-                    bone.offsetMatrix[9],
-                    bone.offsetMatrix[10],
-                    bone.offsetMatrix[11],
-                    bone.offsetMatrix[12],
-                    bone.offsetMatrix[13],
-                    bone.offsetMatrix[14],
-                    bone.offsetMatrix[15]);*/
+                if (bone.id !== undefined) {
 
+                    const offsetMatrix = glMatrix.mat4.fromValues(
+                        bone.offsetMatrix[0],
+                        bone.offsetMatrix[4],
+                        bone.offsetMatrix[8],
+                        bone.offsetMatrix[12],
+                        bone.offsetMatrix[1],
+                        bone.offsetMatrix[5],
+                        bone.offsetMatrix[9],
+                        bone.offsetMatrix[13],
+                        bone.offsetMatrix[2],
+                        bone.offsetMatrix[6],
+                        bone.offsetMatrix[10],
+                        bone.offsetMatrix[14],
+                        bone.offsetMatrix[3],
+                        bone.offsetMatrix[7],
+                        bone.offsetMatrix[11],
+                        bone.offsetMatrix[15]);
+                    if (bone.ani) {
+                        const translationMatrix = glMatrix.mat4.fromTranslation(glMatrix.mat4.create(),
+                            glMatrix.vec3.fromValues(bone.ani.pos[frameId].pos[0], bone.ani.pos[frameId].pos[1], bone.ani.pos[frameId].pos[2]));
 
-                if (bone.ani) {
-                    const translationMatrix = glMatrix.mat4.fromTranslation(glMatrix.mat4.create(),
-                        glMatrix.vec3.fromValues(bone.ani.pos[frameId].pos[0], bone.ani.pos[frameId].pos[1], bone.ani.pos[frameId].pos[2]));
+                        const quat = glMatrix.quat.fromValues(bone.ani.rot[frameId].q[1], bone.ani.rot[frameId].q[2], bone.ani.rot[frameId].q[3], bone.ani.rot[frameId].q[0]);
 
-                    const quat = glMatrix.quat.fromValues(bone.ani.rot[frameId].q[1], bone.ani.rot[frameId].q[2], bone.ani.rot[frameId].q[3], bone.ani.rot[frameId].q[0]);
+                        const rotationMatrix = glMatrix.mat4.fromQuat(glMatrix.mat4.create(), quat);
 
-                    const rotationMatrix = glMatrix.mat4.fromQuat(glMatrix.mat4.create(), quat);
-
-                    const scalingMatrix = glMatrix.mat4.fromScaling(glMatrix.mat4.create(),
-                        glMatrix.vec3.fromValues(
-                            bone.ani.scal[frameId].pos[0], bone.ani.scal[frameId].pos[1], bone.ani.scal[frameId].pos[2]));
+                        const scalingMatrix = glMatrix.mat4.fromScaling(glMatrix.mat4.create(),
+                            glMatrix.vec3.fromValues(
+                                bone.ani.scal[frameId].pos[0], bone.ani.scal[frameId].pos[1], bone.ani.scal[frameId].pos[2]));
 
 
-                    const rotation_x_scale = glMatrix.mat4.multiply(glMatrix.mat4.create(),
-                        rotationMatrix, scalingMatrix);
+                        const rotation_x_scale = glMatrix.mat4.multiply(glMatrix.mat4.create(),
+                            rotationMatrix, scalingMatrix);
 
-                    const locationTransformation = glMatrix.mat4.multiply(glMatrix.mat4.create(),
-                        translationMatrix, rotation_x_scale);
+                        const locationTransformation = glMatrix.mat4.multiply(glMatrix.mat4.create(),
+                            translationMatrix, rotation_x_scale);
+
+                        const globalTransformation = glMatrix.mat4.multiply(glMatrix.mat4.create(),
+                            parentTransform, locationTransformation);
+
+                        const finalBoneTransformation = glMatrix.mat4.multiply(glMatrix.mat4.create(),
+                            globalTransformation, offsetMatrix);
+
+                        const bt = glMatrix.mat4.multiply(glMatrix.mat4.create(), parentTransform, offsetMatrix);
+                        boneTransforms.set(bt, bone.id * 16);
+
+                        console.log("bone transform ", bone.name, bt);
+
+                        if (bone.children.length > 0) {
+                            for (let i = 0; i < bone.children.length; ++i) {
+                                deriveBoneTransformHelper(bone.children[i], globalTransformation);
+                            }
+                        }
+                    }
+                    else {
+                        console.log("bone no ani");
+                        const nodeTransform = glMatrix.mat4.fromValues(bone.nodeTransform[0],
+                            bone.nodeTransform[4],
+                            bone.nodeTransform[8],
+                            bone.nodeTransform[12],
+                            bone.nodeTransform[1],
+                            bone.nodeTransform[5],
+                            bone.nodeTransform[9],
+                            bone.nodeTransform[13],
+                            bone.nodeTransform[2],
+                            bone.nodeTransform[6],
+                            bone.nodeTransform[10],
+                            bone.nodeTransform[14],
+                            bone.nodeTransform[3],
+                            bone.nodeTransform[7],
+                            bone.nodeTransform[11],
+                            bone.nodeTransform[15]);
+
+                        const bt = glMatrix.mat4.multiply(glMatrix.mat4.create(), parentTransform, nodeTransform);
+                        const bt2 = glMatrix.mat4.multiply(glMatrix.mat4.create(), bt, offsetMatrix);
+                        boneTransforms.set(bt, bone.id * 16);
+                        console.log("= bone transform ", bone.name, bt2);
+                        console.log("= bone nodeTransform", nodeTransform);
+                        console.log("global ", bt);
+
+                        if (bone.children.length > 0) {
+                            for (let i = 0; i < bone.children.length; ++i) {
+                                deriveBoneTransformHelper(bone.children[i], bt);
+                            }
+                        }
+                    }
+                }
+
+                else {
+
+                    const nodeTransform = glMatrix.mat4.fromValues(bone.nodeTransform[0],
+                        bone.nodeTransform[4],
+                        bone.nodeTransform[8],
+                        bone.nodeTransform[12],
+                        bone.nodeTransform[1],
+                        bone.nodeTransform[5],
+                        bone.nodeTransform[9],
+                        bone.nodeTransform[13],
+                        bone.nodeTransform[2],
+                        bone.nodeTransform[6],
+                        bone.nodeTransform[10],
+                        bone.nodeTransform[14],
+                        bone.nodeTransform[3],
+                        bone.nodeTransform[7],
+                        bone.nodeTransform[11],
+                        bone.nodeTransform[15]);
 
                     const globalTransformation = glMatrix.mat4.multiply(glMatrix.mat4.create(),
-                        parentTransform, locationTransformation);
+                        parentTransform, nodeTransform);
 
-                    const finalBoneTransformation = glMatrix.mat4.multiply(glMatrix.mat4.create(),
-                        globalTransformation, offsetMatrix);
-
-                    boneTransforms.set(glMatrix.mat4.multiply(glMatrix.mat4.create(), parentTransform, offsetMatrix), bone.id * 16);
-
+                    console.log("* bone transform ", bone.name, globalTransformation);
 
                     if (bone.children.length > 0) {
                         for (let i = 0; i < bone.children.length; ++i) {
                             deriveBoneTransformHelper(bone.children[i], globalTransformation);
                         }
                     }
-                }
-                else {
-
-                    boneTransforms.set(glMatrix.mat4.multiply(glMatrix.mat4.create(), parentTransform, offsetMatrix), bone.id * 16);
                 }
             }
 
