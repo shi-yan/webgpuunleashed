@@ -19,13 +19,7 @@
     <canvas id="canvas" width="640" height="480" style="width:100%;height:100%"></canvas>
 </body>
 <script src="../utils/gl-matrix.js">
-    //shadow, explain vec4 vec3 (1.0) (0.0)
-    // should split into 3 sections
-    // 1. visualization/spotlight
-    // 2. dump depth map
-    // 3. shadow
-    // 4. remove artifact
-    // 5. use comparison sampler?
+    //https://paroj.github.io/gltut/Illumination/Tut09%20Normal%20Transformation.html
 </script>
 <script src="../utils/OBJFile.js"> </script>
 <script src="../utils/utils.js"></script>
@@ -229,11 +223,10 @@
             0.0,0.0,0.0,0.0,
             0.0,0.0,0.0,0.0,
             0.0,0.0,0.0,0.0);
-        var totalPos :vec4<f32>= vec4<f32>(0.0,0.0,0.0,0.0);
         
-            totalTransform += boneTransforms[0] * boneWeight0[0];
+            totalTransform += boneTransforms[0]  * boneWeight0[0];
             totalTransform += boneTransforms[1] * boneWeight0[1];
-            totalTransform += boneTransforms[2] * boneWeight0[2];
+            totalTransform += boneTransforms[2]* boneWeight0[2];
             totalTransform += boneTransforms[3] * boneWeight0[3];
             totalTransform += boneTransforms[4] * boneWeight1[0];
             totalTransform += boneTransforms[5] * boneWeight1[1];
@@ -248,11 +241,11 @@
     
         out.viewDir = normalize((normalMatrix * vec4<f32>(-viewDirection, 0.0)).xyz);
         out.lightDir = normalize((normalMatrix * vec4<f32>(-lightDirection, 0.0)).xyz);
-        out.normal = normalize(normalMatrix * vec4<f32>(inNormal, 0.0)).xyz;  
-        var wldLoc:vec4<f32> = modelView * totalTransform * vec4<f32>(inPos, 1.0);
+        out.normal = normalize(normalMatrix * totalTransform * vec4<f32>(inNormal, 0.0)).xyz;  
+        var wldLoc:vec4<f32> = modelView *totalTransform *vec4(inPos,1.0);
         out.clip_position = projection * wldLoc;
         out.wldLoc = wldLoc.xyz / wldLoc.w;
-        out.inPos = inPos;
+        out.inPos = (totalTransform *vec4(inPos,1.0)).xyz;
         var lightLoc:vec4<f32> = modelView * vec4<f32>(lightDirection, 1.0);
         out.lightLoc = lightLoc.xyz / lightLoc.w;
 
@@ -348,7 +341,27 @@
     ) -> VertexOutput {
         var out: VertexOutput;
 
-        var wldLoc:vec4<f32> = modelView * vec4<f32>(inPos, 1.0);
+
+        var totalTransform:mat4x4<f32> = mat4x4<f32>(0.0,0.0,0.0,0.0,
+            0.0,0.0,0.0,0.0,
+            0.0,0.0,0.0,0.0,
+            0.0,0.0,0.0,0.0);
+        
+            totalTransform += boneTransforms[0]  * boneWeight0[0];
+            totalTransform += boneTransforms[1] * boneWeight0[1];
+            totalTransform += boneTransforms[2]* boneWeight0[2];
+            totalTransform += boneTransforms[3] * boneWeight0[3];
+            totalTransform += boneTransforms[4] * boneWeight1[0];
+            totalTransform += boneTransforms[5] * boneWeight1[1];
+            totalTransform += boneTransforms[6] * boneWeight1[2];
+            totalTransform += boneTransforms[7] * boneWeight1[3];
+            totalTransform += boneTransforms[8] * boneWeight2[0];
+            totalTransform += boneTransforms[9] * boneWeight2[1];
+            totalTransform += boneTransforms[10]* boneWeight2[2];
+            totalTransform += boneTransforms[11] * boneWeight2[3];
+            totalTransform += boneTransforms[12] * boneWeight3[0];
+
+        var wldLoc:vec4<f32> = modelView * totalTransform *vec4<f32>(inPos, 1.0);
         out.clip_position = projection * wldLoc;
         out.depth = out.clip_position.z / out.clip_position.w;
         return out;
@@ -659,7 +672,7 @@
 
             let boneWeights = new Float32Array(objBody.vert.length * 16 / 3);
 
-            function assignBoneWeightsToVerticesHelper(bone, boneWeights) {
+            function assignBoneWeightsToVerticesHelper(bone) {
 
                 if (bone.weights) {
                     for (let i = 0; i < bone.weights.length; ++i) {
@@ -671,14 +684,14 @@
                 if (bone.children) {
                     if (bone.children.length > 0) {
                         for (let i = 0; i < bone.children.length; ++i) {
-                            assignBoneWeightsToVerticesHelper(bone.children[i], boneWeights);
+                            assignBoneWeightsToVerticesHelper(bone.children[i]);
                         }
                     }
                 }
             }
 
             for (let i = 0; i < objBody.skeleton.length; ++i) {
-                assignBoneWeightsToVerticesHelper(objBody.skeleton[i], boneWeights);
+                assignBoneWeightsToVerticesHelper(objBody.skeleton[i]);
             }
 
             console.log("assigned bone weights", boneWeights);
@@ -733,10 +746,11 @@
                         const finalBoneTransformation = glMatrix.mat4.multiply(glMatrix.mat4.create(),
                             globalTransformation, offsetMatrix);
 
-                        const bt = glMatrix.mat4.multiply(glMatrix.mat4.create(), parentTransform, offsetMatrix);
-                        boneTransforms.set(bt, bone.id * 16);
+                        boneTransforms.set(finalBoneTransformation, bone.id * 16);
 
-                        console.log("bone transform ", bone.name, bt);
+                        console.log("bone transform ", bone.name, finalBoneTransformation);
+                        console.log("node trans", locationTransformation);
+                        console.log("parent", parentTransform);
 
                         if (bone.children.length > 0) {
                             for (let i = 0; i < bone.children.length; ++i) {
@@ -765,7 +779,7 @@
 
                         const bt = glMatrix.mat4.multiply(glMatrix.mat4.create(), parentTransform, nodeTransform);
                         const bt2 = glMatrix.mat4.multiply(glMatrix.mat4.create(), bt, offsetMatrix);
-                        boneTransforms.set(bt, bone.id * 16);
+                        boneTransforms.set(bt2, bone.id * 16);
                         console.log("= bone transform ", bone.name, bt2);
                         console.log("= bone nodeTransform", nodeTransform);
                         console.log("global ", bt);
@@ -816,6 +830,19 @@
 
             console.log("bone transformation", boneTransforms);
 
+            const boneTransforms2 = new Float32Array([1, 0, 0, 0, 0, 0, -1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0.942636, 0.00210096, -0.333817, 0, -0.333512, 0.0491462, -0.941464, 0, 0.014428, 0.998789, 0.0470277, 0, -0.0444142, 0.00372648, -0.144768, 1, 0.536565, -0.595081, -0.598311, 0, -0.302397, 0.526337, -0.794686, 0, 0.787815, 0.607328, 0.102463, 0, -1.8164, 1.72655, -0.0295944, 1, 0.641395, -0.722939, -0.256847, 0, -0.234282, 0.134229, -0.962857, 0, 0.730564, 0.677747, -0.0832782, 0, -1.84197, 1.75606, -0.114993, 1, 0.97483, -0.000544891, -0.222948, 0, -0.222816, 0.0321035, -0.974332, 0, 0.00768822, 0.999485, 0.031174, 0, -0.0236671, 0.00158644, -0.0959644, 1, 0.323825, 0.255588, -0.91094, 0, -0.376605, -0.848434, -0.371927, 0, -0.867933, 0.463504, -0.178488, 0, 1.78577, 1.7827, -0.210189, 1, 0.100375, -0.672275, -0.733466, 0, 0.017869, -0.735852, 0.676907, 0, -0.994789, -0.081051, -0.0618486, 0, 1.74492, 1.66345, -0.222718, 1, 0.999528, -0.00985342, -0.0290841, 0, -0.0301836, -0.48953, -0.871464, 0, -0.00565049, 0.871931, -0.489597, 0, 0.0117429, 0.266173, 1.01755, 1, 0.998068, -0.0353641, -0.0510849, 0, -0.0556917, -0.873719, -0.483233, 0, -0.0275445, 0.485144, -0.874, 0, 0.0476512, 0.900375, 1.64609, 1, 0.999245, -0.0083952, 0.0379225, 0, 0.0357843, 0.578625, -0.814808, 0, -0.0151023, 0.81555, 0.578489, 0, 0.0373162, 0.628138, 0.464521, 1, 0.999355, -0.00813079, 0.0349785, 0, 0.0334857, 0.562881, -0.825859, 0, -0.0129739, 0.826498, 0.56279, 0, 0.0269651, 0.360597, -1.16967, 1, 0.999355, -0.00813067, 0.0349786, 0, 0.0334856, 0.562881, -0.825859, 0, -0.0129742, 0.826498, 0.56279, 0, 0.0269648, 0.360598, -1.16967, 1, 0.995705, -0.0649608, 0.0659733, 0, 0.0570563, 0.991686, 0.115342, 0, -0.0729176, -0.111083, 0.991132, 0, 0.0719598, 1.06451, -1.48867, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+
+            console.log("bone transformation", boneTransforms2);
+
+            let a = [];
+
+            for (let i = 0; i < boneTransforms.length; ++i) {
+                a.push(Math.abs(boneTransforms[i] - boneTransforms2[i]));
+            }
+
+            console.log(a);
+
+
             let boneTransformUniformBuffer = createGPUBuffer(device, boneTransforms, GPUBufferUsage.UNIFORM);
 
             /*let max = 0;
@@ -833,6 +860,7 @@
             }
 
             console.log("max bone", max);*/
+
 
             this.boneWeightBuffer = createGPUBuffer(device, boneWeights, GPUBufferUsage.VERTEX);
             this.positionBuffer = createGPUBuffer(device, new Float32Array(objBody.vert), GPUBufferUsage.VERTEX);
@@ -969,8 +997,8 @@
                 ]
             });
 
-            const ambientUniformBuffer = createGPUBuffer(device, new Float32Array([0.15, 0.10, 0.10, 1.0]), GPUBufferUsage.UNIFORM);
-            const diffuseUniformBuffer = createGPUBuffer(device, new Float32Array([0.55, 0.55, 0.55, 1.0]), GPUBufferUsage.UNIFORM);
+            const ambientUniformBuffer = createGPUBuffer(device, new Float32Array([0.25, 0.25, 0.25, 1.0]), GPUBufferUsage.UNIFORM);
+            const diffuseUniformBuffer = createGPUBuffer(device, new Float32Array([0.75, 0.75, 0.95, 1.0]), GPUBufferUsage.UNIFORM);
             const specularUniformBuffer = createGPUBuffer(device, new Float32Array([1.0, 1.0, 1.0, 1.0]), GPUBufferUsage.UNIFORM);
             const shininessUniformBuffer = createGPUBuffer(device, new Float32Array([20.0]), GPUBufferUsage.UNIFORM);
 

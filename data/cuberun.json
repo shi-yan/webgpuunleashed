@@ -16383,7 +16383,9 @@
 12282, 12283, 12284, 
 12285, 12286, 12287
 ],"skeleton":[
-{"name":"Scene","nodeTransform":[1,0,0,0,0,0,1,0,0,-1,0,0,0,0,0,1
+{"name":"Scene","nodeTransform":[1,0,0,0,
+0,1,0,0,
+0,0,1,0,0,0,0,1
 ],"children":[
 {"name":"Armature","nodeTransform":[1,0,0,0,0,1,0,0,0,0,1,2.07835,0,0,0,1
 ],"children":[

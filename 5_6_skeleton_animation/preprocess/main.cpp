@@ -12,7 +12,7 @@ struct Bone
 };
 
 void printHierarchy(std::ofstream &outputFile, aiNode *node, int indentation,
-                    std::unordered_map<std::string, Bone> &bones, int &boneId)
+                    std::unordered_map<std::string, Bone> &bones, int &boneId, bool isRoot)
 {
     std::cout << std::string(indentation, '-') << node->mName.C_Str() << std::endl;
 
@@ -23,13 +23,13 @@ void printHierarchy(std::ofstream &outputFile, aiNode *node, int indentation,
         std::cout << "bone = = " << boneName << std::endl;
         outputFile << "{\"id\":" << (boneId++) << ",\"nodeTransform\":[" << std::endl;
 
-        outputFile << node->mTransformation[0][0] << "," << node->mTransformation[0][1] << "," << node->mTransformation[0][2] << "," << node->mTransformation[0][3] << ","<< node->mTransformation[1][0] << "," << node->mTransformation[1][1] << "," << node->mTransformation[1][2] << "," << node->mTransformation[1][3] << ","<< node->mTransformation[2][0] << "," << node->mTransformation[2][1] << "," << node->mTransformation[2][2] << "," << node->mTransformation[2][3] << ","<< node->mTransformation[3][0] << "," << node->mTransformation[3][1] << "," << node->mTransformation[3][2] << "," << node->mTransformation[3][3] << std::endl;
+        outputFile << node->mTransformation[0][0] << "," << node->mTransformation[0][1] << "," << node->mTransformation[0][2] << "," << node->mTransformation[0][3] << "," << node->mTransformation[1][0] << "," << node->mTransformation[1][1] << "," << node->mTransformation[1][2] << "," << node->mTransformation[1][3] << "," << node->mTransformation[2][0] << "," << node->mTransformation[2][1] << "," << node->mTransformation[2][2] << "," << node->mTransformation[2][3] << "," << node->mTransformation[3][0] << "," << node->mTransformation[3][1] << "," << node->mTransformation[3][2] << "," << node->mTransformation[3][3] << std::endl;
 
         outputFile << "],\"name\":\"" << node->mName.C_Str() << "\",\"children\":[" << std::endl;
 
         for (int i = 0; i < node->mNumChildren; ++i)
         {
-            printHierarchy(outputFile, node->mChildren[i], indentation + 1, bones, boneId);
+            printHierarchy(outputFile, node->mChildren[i], indentation + 1, bones, boneId, false);
 
             if (i < node->mNumChildren - 1)
             {
@@ -126,12 +126,18 @@ void printHierarchy(std::ofstream &outputFile, aiNode *node, int indentation,
     }
     else
     {
-        outputFile << "{\"name\":\"" << node->mName.C_Str() << "\",\"nodeTransform\":[" << node->mTransformation[0][0] << "," << node->mTransformation[0][1] << "," << node->mTransformation[0][2] << "," << node->mTransformation[0][3] << "," <<node->mTransformation[1][0] << "," << node->mTransformation[1][1] << "," << node->mTransformation[1][2] << "," << node->mTransformation[1][3] << ","<< node->mTransformation[2][0] << "," << node->mTransformation[2][1] << "," << node->mTransformation[2][2] << "," << node->mTransformation[2][3] << "," <<node->mTransformation[3][0] << "," << node->mTransformation[3][1] << "," << node->mTransformation[3][2] << "," << node->mTransformation[3][3] << std::endl;
-
+        if (isRoot)
+        {
+            outputFile << "{\"name\":\"" << node->mName.C_Str() << "\",\"nodeTransform\":[" << 1 << "," << 0 << "," << 0 << "," << 0 << "," << 0 << "," << 1 << "," << 0 << "," << 0 << "," << 0 << "," << 0 << "," << 1 << "," << 0 << "," << 0 << "," << 0 << "," << 0 << "," << 1 << std::endl;
+        }
+        else
+        {
+            outputFile << "{\"name\":\"" << node->mName.C_Str() << "\",\"nodeTransform\":[" << node->mTransformation[0][0] << "," << node->mTransformation[0][1] << "," << node->mTransformation[0][2] << "," << node->mTransformation[0][3] << "," << node->mTransformation[1][0] << "," << node->mTransformation[1][1] << "," << node->mTransformation[1][2] << "," << node->mTransformation[1][3] << "," << node->mTransformation[2][0] << "," << node->mTransformation[2][1] << "," << node->mTransformation[2][2] << "," << node->mTransformation[2][3] << "," << node->mTransformation[3][0] << "," << node->mTransformation[3][1] << "," << node->mTransformation[3][2] << "," << node->mTransformation[3][3] << std::endl;
+        }
         outputFile << "],\"children\":[" << std::endl;
         for (int i = 0; i < node->mNumChildren; ++i)
         {
-            printHierarchy(outputFile, node->mChildren[i], indentation + 1, bones, boneId);
+            printHierarchy(outputFile, node->mChildren[i], indentation + 1, bones, boneId, false);
 
             if (i < node->mNumChildren - 1)
             {
@@ -221,7 +227,7 @@ int main()
         }
     }
     int boneId = 0;
-    printHierarchy(outputFile, scene->mRootNode, 0, bones, boneId);
+    printHierarchy(outputFile, scene->mRootNode, 0, bones, boneId, true);
 
     outputFile << "]}";
 
