@@ -654,56 +654,18 @@
             this.lightPipeline = null;
             this.positionBuffer = null;
             this.boneWeightBuffer = null;
+            this.boneTransformUniformBuffer = null;
             this.indexBuffer = null;
             this.uniformBindGroup = null;
             this.indexSize = null;
             this.uniformBindGroupLight = null;
+            this.objBody = null;
         }
 
-        async setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer,
-            depthTexture, sampler, lightModelViewMatrixUniformBuffer, lightProjectionMatrixUniformBuffer) {
-            let shaderModule = shaderModuleFromCode(device, 'object_with_shadow_ani_shader');
-            let shaderModuleLight = shaderModuleFromCode(device, 'light_view_shader');
-
-            const objResponse = await fetch('../data/cuberun.json');
-            const objBody = await objResponse.json();
-
-            console.log(objBody);
-
-            let boneWeights = new Float32Array(objBody.vert.length * 16 / 3);
-
-            function assignBoneWeightsToVerticesHelper(bone) {
-
-                if (bone.weights) {
-                    for (let i = 0; i < bone.weights.length; ++i) {
-                        const { id, w } = bone.weights[i];
-                        boneWeights[id * 16 + bone.id] = w;
-                    }
-                }
-
-                if (bone.children) {
-                    if (bone.children.length > 0) {
-                        for (let i = 0; i < bone.children.length; ++i) {
-                            assignBoneWeightsToVerticesHelper(bone.children[i]);
-                        }
-                    }
-                }
-            }
-
-            for (let i = 0; i < objBody.skeleton.length; ++i) {
-                assignBoneWeightsToVerticesHelper(objBody.skeleton[i]);
-            }
-
-            console.log("assigned bone weights", boneWeights);
-
+        updateAnimation(frameId) {
             let boneTransforms = new Float32Array(16 * 16);
-            const frameId = 0;
-
             function deriveBoneTransformHelper(bone, parentTransform) {
-
-
                 if (bone.id !== undefined) {
-
                     const offsetMatrix = glMatrix.mat4.fromValues(
                         bone.offsetMatrix[0],
                         bone.offsetMatrix[4],
@@ -747,10 +709,10 @@
                             globalTransformation, offsetMatrix);
 
                         boneTransforms.set(finalBoneTransformation, bone.id * 16);
-
-                        console.log("bone transform ", bone.name, finalBoneTransformation);
-                        console.log("node trans", locationTransformation);
-                        console.log("parent", parentTransform);
+                        /*
+                                                console.log("bone transform ", bone.name, finalBoneTransformation);
+                                                console.log("node trans", locationTransformation);
+                                                console.log("parent", parentTransform);*/
 
                         if (bone.children.length > 0) {
                             for (let i = 0; i < bone.children.length; ++i) {
@@ -759,7 +721,6 @@
                         }
                     }
                     else {
-                        console.log("bone no ani");
                         const nodeTransform = glMatrix.mat4.fromValues(bone.nodeTransform[0],
                             bone.nodeTransform[4],
                             bone.nodeTransform[8],
@@ -780,9 +741,9 @@
                         const bt = glMatrix.mat4.multiply(glMatrix.mat4.create(), parentTransform, nodeTransform);
                         const bt2 = glMatrix.mat4.multiply(glMatrix.mat4.create(), bt, offsetMatrix);
                         boneTransforms.set(bt2, bone.id * 16);
-                        console.log("= bone transform ", bone.name, bt2);
-                        console.log("= bone nodeTransform", nodeTransform);
-                        console.log("global ", bt);
+                        /* console.log("= bone transform ", bone.name, bt2);
+                         console.log("= bone nodeTransform", nodeTransform);
+                         console.log("global ", bt);*/
 
                         if (bone.children.length > 0) {
                             for (let i = 0; i < bone.children.length; ++i) {
@@ -814,7 +775,7 @@
                     const globalTransformation = glMatrix.mat4.multiply(glMatrix.mat4.create(),
                         parentTransform, nodeTransform);
 
-                    console.log("* bone transform ", bone.name, globalTransformation);
+                    // console.log("* bone transform ", bone.name, globalTransformation);
 
                     if (bone.children.length > 0) {
                         for (let i = 0; i < bone.children.length; ++i) {
@@ -824,49 +785,60 @@
                 }
             }
 
-            for (let i = 0; i < objBody.skeleton.length; ++i) {
-                deriveBoneTransformHelper(objBody.skeleton[i], glMatrix.mat4.identity(glMatrix.mat4.create()));
+            for (let i = 0; i < this.objBody.skeleton.length; ++i) {
+                deriveBoneTransformHelper(this.objBody.skeleton[i], glMatrix.mat4.identity(glMatrix.mat4.create()));
             }
 
-            console.log("bone transformation", boneTransforms);
+            //console.log("bone transformation", boneTransforms);
+            return boneTransforms ;
 
-            const boneTransforms2 = new Float32Array([1, 0, 0, 0, 0, 0, -1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0.942636, 0.00210096, -0.333817, 0, -0.333512, 0.0491462, -0.941464, 0, 0.014428, 0.998789, 0.0470277, 0, -0.0444142, 0.00372648, -0.144768, 1, 0.536565, -0.595081, -0.598311, 0, -0.302397, 0.526337, -0.794686, 0, 0.787815, 0.607328, 0.102463, 0, -1.8164, 1.72655, -0.0295944, 1, 0.641395, -0.722939, -0.256847, 0, -0.234282, 0.134229, -0.962857, 0, 0.730564, 0.677747, -0.0832782, 0, -1.84197, 1.75606, -0.114993, 1, 0.97483, -0.000544891, -0.222948, 0, -0.222816, 0.0321035, -0.974332, 0, 0.00768822, 0.999485, 0.031174, 0, -0.0236671, 0.00158644, -0.0959644, 1, 0.323825, 0.255588, -0.91094, 0, -0.376605, -0.848434, -0.371927, 0, -0.867933, 0.463504, -0.178488, 0, 1.78577, 1.7827, -0.210189, 1, 0.100375, -0.672275, -0.733466, 0, 0.017869, -0.735852, 0.676907, 0, -0.994789, -0.081051, -0.0618486, 0, 1.74492, 1.66345, -0.222718, 1, 0.999528, -0.00985342, -0.0290841, 0, -0.0301836, -0.48953, -0.871464, 0, -0.00565049, 0.871931, -0.489597, 0, 0.0117429, 0.266173, 1.01755, 1, 0.998068, -0.0353641, -0.0510849, 0, -0.0556917, -0.873719, -0.483233, 0, -0.0275445, 0.485144, -0.874, 0, 0.0476512, 0.900375, 1.64609, 1, 0.999245, -0.0083952, 0.0379225, 0, 0.0357843, 0.578625, -0.814808, 0, -0.0151023, 0.81555, 0.578489, 0, 0.0373162, 0.628138, 0.464521, 1, 0.999355, -0.00813079, 0.0349785, 0, 0.0334857, 0.562881, -0.825859, 0, -0.0129739, 0.826498, 0.56279, 0, 0.0269651, 0.360597, -1.16967, 1, 0.999355, -0.00813067, 0.0349786, 0, 0.0334856, 0.562881, -0.825859, 0, -0.0129742, 0.826498, 0.56279, 0, 0.0269648, 0.360598, -1.16967, 1, 0.995705, -0.0649608, 0.0659733, 0, 0.0570563, 0.991686, 0.115342, 0, -0.0729176, -0.111083, 0.991132, 0, 0.0719598, 1.06451, -1.48867, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+        }
 
-            console.log("bone transformation", boneTransforms2);
+        async setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer,
+            depthTexture, sampler, lightModelViewMatrixUniformBuffer, lightProjectionMatrixUniformBuffer) {
+            let shaderModule = shaderModuleFromCode(device, 'object_with_shadow_ani_shader');
+            let shaderModuleLight = shaderModuleFromCode(device, 'light_view_shader');
 
-            let a = [];
+            const objResponse = await fetch('../data/cuberun.json');
+            this.objBody = await objResponse.json();
 
-            for (let i = 0; i < boneTransforms.length; ++i) {
-                a.push(Math.abs(boneTransforms[i] - boneTransforms2[i]));
-            }
+            console.log(this.objBody);
 
-            console.log(a);
+            let boneWeights = new Float32Array(this.objBody.vert.length * 16 / 3);
 
+            function assignBoneWeightsToVerticesHelper(bone) {
 
-            let boneTransformUniformBuffer = createGPUBuffer(device, boneTransforms, GPUBufferUsage.UNIFORM);
-
-            /*let max = 0;
-            for(let i =0;i<objBody.vert.length/3;++i){
-                let count = 0;
-                for(let e =0;e<16;++e){
-                    if (boneWeights[i*16 + e] > 0){
-                        count++;
+                if (bone.weights) {
+                    for (let i = 0; i < bone.weights.length; ++i) {
+                        const { id, w } = bone.weights[i];
+                        boneWeights[id * 16 + bone.id] = w;
                     }
                 }
 
-                if (count > max) {
-                    max = count;
+                if (bone.children) {
+                    if (bone.children.length > 0) {
+                        for (let i = 0; i < bone.children.length; ++i) {
+                            assignBoneWeightsToVerticesHelper(bone.children[i]);
+                        }
+                    }
                 }
             }
 
-            console.log("max bone", max);*/
+            for (let i = 0; i < this.objBody.skeleton.length; ++i) {
+                assignBoneWeightsToVerticesHelper(this.objBody.skeleton[i]);
+            }
 
+            console.log("assigned bone weights", boneWeights);
+
+            const boneTransforms = this.updateAnimation(0);
+
+            this. boneTransformUniformBuffer = createGPUBuffer(device, boneTransforms, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
             this.boneWeightBuffer = createGPUBuffer(device, boneWeights, GPUBufferUsage.VERTEX);
-            this.positionBuffer = createGPUBuffer(device, new Float32Array(objBody.vert), GPUBufferUsage.VERTEX);
+            this.positionBuffer = createGPUBuffer(device, new Float32Array(this.objBody.vert), GPUBufferUsage.VERTEX);
 
-            this.indexSize = objBody.indices.length;
-            this.indexBuffer = createGPUBuffer(device, new Uint16Array(objBody.indices), GPUBufferUsage.INDEX);
+            this.indexSize = this.objBody.indices.length;
+            this.indexBuffer = createGPUBuffer(device, new Uint16Array(this.objBody.indices), GPUBufferUsage.INDEX);
 
             let uniformBindGroupLayoutLight = device.createBindGroupLayout({
                 entries: [
@@ -917,7 +889,7 @@
                     {
                         binding: 0,
                         resource: {
-                            buffer: boneTransformUniformBuffer
+                            buffer: this.boneTransformUniformBuffer
                         }
                     }
                 ]
@@ -1442,13 +1414,19 @@
         };
 
         let copiedBuffer = createGPUBuffer(device, new Float32Array(1024 * 1024), GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
-        let hasDumped = true;
+        let frameId = 0;
         async function render() {
             const devicePixelRatio = window.devicePixelRatio || 1;
             let currentCanvasWidth = canvas.clientWidth * devicePixelRatio;
             let currentCanvasHeight = canvas.clientHeight * devicePixelRatio;
 
             let projectionMatrixUniformBufferUpdate = null;
+
+            frameId = (frameId + 1) % 41;
+
+            const boneTransforms = runCube.updateAnimation(frameId);
+            let boneTransformBufferUpdate = createGPUBuffer(device, boneTransforms, GPUBufferUsage.COPY_SRC);
+
 
             if (depthTexture === null || currentCanvasWidth != canvas.width || currentCanvasHeight != canvas.height) {
                 canvas.width = currentCanvasWidth;
@@ -1539,6 +1517,8 @@
                 commandEncoder.copyBufferToBuffer(projectionMatrixUniformBufferUpdate, 0,
                     projectionMatrixUniformBuffer, 0, projectionMatrix.byteLength);
             }
+            commandEncoder.copyBufferToBuffer(boneTransformBufferUpdate, 0, 
+            runCube.boneTransformUniformBuffer, 0, boneTransforms.byteLength);
             commandEncoder.copyBufferToBuffer(lightModelViewMatrixUniformBufferUpdate, 0,
                 lightModelViewMatrixUniformBuffer, 0, lightModelViewMatrix.byteLength);
             commandEncoder.copyBufferToBuffer(modelViewMatrixUniformBufferUpdate, 0,
@@ -1573,33 +1553,7 @@
 
             await device.queue.onSubmittedWorkDone();
 
-            if (!hasDumped) {
-                hasDumped = true;
-                await copiedBuffer.mapAsync(GPUMapMode.READ, 0, 1024 * 1024 * 4);
-
-                const d = new Float32Array(copiedBuffer.getMappedRange());
-                const x = new Uint8ClampedArray(1024 * 1024 * 4);
-                let maxv = -900;
-                let minv = 900;
-                for (let i = 0; i < 1024 * 1024; ++i) {
-                    const v = d[i];
-
-                    if (maxv < v) {
-                        maxv = v;
-                    }
-                    if (minv > v) {
-                        minv = v;
-                    }
-                    x[i * 4] = v * 255.0;
-                    x[i * 4 + 1] = v * 255.0;
-                    x[i * 4 + 2] = v * 255.0;
-                    x[i * 4 + 3] = v * 255.0;
-                }
-                copiedBuffer.unmap();
-                const imageData = new ImageData(x, 1024, 1024);
-                imagedataToImage(imageData);
-                console.log("max min: ", maxv, minv);
-            }
+            
             if (projectionMatrixUniformBufferUpdate) {
                 projectionMatrixUniformBufferUpdate.destroy();
             }
@@ -1607,6 +1561,7 @@
             normalMatrixUniformBufferUpdate.destroy();
             viewDirectionUniformBufferUpdate.destroy();
             lightDirectionUniformBufferUpdate.destroy();
+            boneTransformBufferUpdate.destroy();
             lightModelViewMatrixUniformBufferUpdate.destroy();
             angle += 0.01;
             requestAnimationFrame(render);
