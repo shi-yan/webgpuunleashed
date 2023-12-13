@@ -510,6 +510,26 @@
               "is_readonly": false
             }
           ]
+        },
+        {
+          "folder": "5_6_skeleton_animation",
+          "title": "5.6 Skeleton Animation",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "5_7_bump_map",
+          "title": "5.6 Bump Map",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
         }
       ]
     }
