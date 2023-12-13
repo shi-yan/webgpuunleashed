@@ -662,8 +662,45 @@
             this.objBody = null;
         }
 
-        updateAnimation(frameId) {
+
+        updateAnimation(time) {
             let boneTransforms = new Float32Array(16 * 16);
+
+            function interpolatedV(time, V, interpolate) {
+
+                time = time % V[V.length - 1].time;
+                /*  while (time > V[V.length - 1].time) {
+                      time -= V[V.length - 1].time;
+                  }*/
+
+                let firstIndex = -1;
+
+                for (; firstIndex < V.length - 1; ++firstIndex) {
+                   // const i = (firstIndex + V.length) % V.length;
+                   // console.log(i,firstIndex)
+                    if (time < V[firstIndex + 1].time) {
+                        break;
+                    }
+                }
+
+                const secondIndex = firstIndex + 1;
+
+                let startTime = 0;
+                let endTime = V[secondIndex].time;
+
+                if (firstIndex == -1) {
+                    firstIndex = V.length - 1;
+                }
+                else {
+                    startTime = V[firstIndex].time;
+                }
+
+                const factor = (time - startTime) / (endTime - startTime);
+
+                return interpolate(V[firstIndex], V[secondIndex], factor);
+            }
+
+
             function deriveBoneTransformHelper(bone, parentTransform) {
                 if (bone.id !== undefined) {
                     const offsetMatrix = glMatrix.mat4.fromValues(
@@ -684,17 +721,30 @@
                         bone.offsetMatrix[11],
                         bone.offsetMatrix[15]);
                     if (bone.ani) {
+
+                        const interpolatedPos = interpolatedV(time, bone.ani.pos, (pos1, pos2, factor) => {
+                            return glMatrix.vec3.lerp(glMatrix.vec3.create(), glMatrix.vec3.fromValues(pos1.pos[0], pos1.pos[1], pos1.pos[2]),
+                                glMatrix.vec3.fromValues(pos2.pos[0], pos2.pos[1], pos2.pos[2]), factor);
+                        });
                         const translationMatrix = glMatrix.mat4.fromTranslation(glMatrix.mat4.create(),
-                            glMatrix.vec3.fromValues(bone.ani.pos[frameId].pos[0], bone.ani.pos[frameId].pos[1], bone.ani.pos[frameId].pos[2]));
+                            interpolatedPos);
 
-                        const quat = glMatrix.quat.fromValues(bone.ani.rot[frameId].q[1], bone.ani.rot[frameId].q[2], bone.ani.rot[frameId].q[3], bone.ani.rot[frameId].q[0]);
+                        const interpolatedQuat = interpolatedV(time, bone.ani.rot, (quat1, quat2, factor) => {
+                            return glMatrix.quat.lerp(glMatrix.quat.create(),
+                                glMatrix.quat.fromValues(quat1.q[1], quat1.q[2], quat1.q[3], quat1.q[0]),
+                                glMatrix.quat.fromValues(quat2.q[1], quat2.q[2], quat2.q[3], quat2.q[0]),
+                                factor
+                            );
+                        });
 
-                        const rotationMatrix = glMatrix.mat4.fromQuat(glMatrix.mat4.create(), quat);
+                        const rotationMatrix = glMatrix.mat4.fromQuat(glMatrix.mat4.create(), interpolatedQuat);
 
-                        const scalingMatrix = glMatrix.mat4.fromScaling(glMatrix.mat4.create(),
-                            glMatrix.vec3.fromValues(
-                                bone.ani.scal[frameId].pos[0], bone.ani.scal[frameId].pos[1], bone.ani.scal[frameId].pos[2]));
+                        const interpolatedScale = interpolatedV(time, bone.ani.scal, (scal1, scal2, factor) => {
+                            return glMatrix.vec3.lerp(glMatrix.vec3.create(), glMatrix.vec3.fromValues(scal1.pos[0], scal1.pos[1], scal1.pos[2]),
+                                glMatrix.vec3.fromValues(scal2.pos[0], scal2.pos[1], scal2.pos[2]), factor);
+                        });
 
+                        const scalingMatrix = glMatrix.mat4.fromScaling(glMatrix.mat4.create(), interpolatedScale);
 
                         const rotation_x_scale = glMatrix.mat4.multiply(glMatrix.mat4.create(),
                             rotationMatrix, scalingMatrix);
@@ -790,7 +840,7 @@
             }
 
             //console.log("bone transformation", boneTransforms);
-            return boneTransforms ;
+            return boneTransforms;
 
         }
 
@@ -832,7 +882,7 @@
 
             const boneTransforms = this.updateAnimation(0);
 
-            this. boneTransformUniformBuffer = createGPUBuffer(device, boneTransforms, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+            this.boneTransformUniformBuffer = createGPUBuffer(device, boneTransforms, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
             this.boneWeightBuffer = createGPUBuffer(device, boneWeights, GPUBufferUsage.VERTEX);
             this.positionBuffer = createGPUBuffer(device, new Float32Array(this.objBody.vert), GPUBufferUsage.VERTEX);
@@ -1414,17 +1464,22 @@
         };
 
         let copiedBuffer = createGPUBuffer(device, new Float32Array(1024 * 1024), GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
-        let frameId = 0;
-        async function render() {
+
+        let startTime = undefined;
+        async function render(timestamp) {
+            if (!startTime) {
+                startTime = timestamp;
+            }
+            const elapsed = timestamp - startTime;
+
             const devicePixelRatio = window.devicePixelRatio || 1;
             let currentCanvasWidth = canvas.clientWidth * devicePixelRatio;
             let currentCanvasHeight = canvas.clientHeight * devicePixelRatio;
 
             let projectionMatrixUniformBufferUpdate = null;
 
-            frameId = (frameId + 1) % 41;
 
-            const boneTransforms = runCube.updateAnimation(frameId);
+            const boneTransforms = runCube.updateAnimation(elapsed);
             let boneTransformBufferUpdate = createGPUBuffer(device, boneTransforms, GPUBufferUsage.COPY_SRC);
 
 
@@ -1517,8 +1572,8 @@
                 commandEncoder.copyBufferToBuffer(projectionMatrixUniformBufferUpdate, 0,
                     projectionMatrixUniformBuffer, 0, projectionMatrix.byteLength);
             }
-            commandEncoder.copyBufferToBuffer(boneTransformBufferUpdate, 0, 
-            runCube.boneTransformUniformBuffer, 0, boneTransforms.byteLength);
+            commandEncoder.copyBufferToBuffer(boneTransformBufferUpdate, 0,
+                runCube.boneTransformUniformBuffer, 0, boneTransforms.byteLength);
             commandEncoder.copyBufferToBuffer(lightModelViewMatrixUniformBufferUpdate, 0,
                 lightModelViewMatrixUniformBuffer, 0, lightModelViewMatrix.byteLength);
             commandEncoder.copyBufferToBuffer(modelViewMatrixUniformBufferUpdate, 0,
@@ -1553,7 +1608,7 @@
 
             await device.queue.onSubmittedWorkDone();
 
-            
+
             if (projectionMatrixUniformBufferUpdate) {
                 projectionMatrixUniformBufferUpdate.destroy();
             }
