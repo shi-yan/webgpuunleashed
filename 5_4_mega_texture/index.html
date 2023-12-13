@@ -256,7 +256,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                     const x = l.keyRemain % l.tileH;
                     const y = Math.floor(l.keyRemain / l.tileH);
                     console.log("debug load tex", x, y, level);
-                    await loadTileIntoTexture(x, y, level, k, id);
+                    loadTileIntoTexture(x, y, level, k, id);
                 }
             }
             this.used = newUsed;
