@@ -25,6 +25,8 @@
     // 3. shadow
     // 4. remove artifact
     // 5. use comparison sampler?
+    //https://maxammann.org/posts/2022/01/wgpu-stencil-testing/
+    //https://blog.crisp.se/2016/01/25/henrikkniberg/making-sense-of-mvp
 </script>
 <script src="../utils/OBJFile.js"> </script>
 <script src="../utils/utils.js"></script>
@@ -310,7 +312,7 @@
                 depthStencil: {
                     depthWriteEnabled: true,
                     depthCompare: 'less',
-                    format: 'depth32float'
+                    format: 'depth24plus-stencil8'
                 }
             };
 
@@ -326,7 +328,7 @@
         }
     }
 
-    class Teapot {
+    class Stencil {
         constructor() {
             this.pipeline = null;
             this.positionBuffer = null;
@@ -339,9 +341,7 @@
         async setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer) {
             let shaderModule = shaderModuleFromCode(device, 'object_with_shadow_shader');
 
-            let { positionBuffer, normalBuffer, indexBuffer, indexSize } = await loadObj(device, '../data/frame.obj');
-
-            const objResponse = await fetch('../data/frame.obj');
+            const objResponse = await fetch('../data/stencil.obj');
             const objBody = await objResponse.text();
 
             let obj = await (async () => {
@@ -570,7 +570,15 @@
                 depthStencil: {
                     depthWriteEnabled: true,
                     depthCompare: 'less',
-                    format: 'depth32float'
+                    format: 'depth24plus-stencil8',
+                    stencilFront: {
+                        compare: "always",
+                        passOp: "replace",
+                    },
+                    stencilBack: {
+                        compare: "always",
+                        passOp: "replace",
+                    }
                 }
             };
 
@@ -685,8 +693,8 @@
 
         let projectionMatrixUniformBuffer = createGPUBuffer(device, projectionMatrix, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
-        let teapot = new Teapot();
-        await teapot.setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer);
+        let stencil = new Stencil();
+        await stencil.setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer);
 
         let plane = new Plane();
         await plane.setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer);
@@ -711,18 +719,22 @@
                 const depthTextureDesc = {
                     size: [canvas.width, canvas.height, 1],
                     dimension: '2d',
-                    format: 'depth32float',
-                    usage: GPUTextureUsage.RENDER_ATTACHMENT
+                    format: 'depth24plus-stencil8',
+                    usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
                 };
 
                 depthTexture = device.createTexture(depthTextureDesc);
                 let depthTextureView = depthTexture.createView();
 
-                depthAttachment = {
+                depthStencilAttachment = {
                     view: depthTextureView,
                     depthClearValue: 1,
                     depthLoadOp: 'clear',
-                    depthStoreOp: 'store'
+                    depthStoreOp: 'store',
+                    stencilClearValue: 0,
+                    stencilLoadOp: "clear",
+                    stencilStoreOp: "store",
+                    stencilReadOnly: false
                 };
 
                 let projectionMatrix = glMatrix.mat4.perspective(glMatrix.mat4.create(),
@@ -759,10 +771,11 @@
 
             const renderPassDesc = {
                 colorAttachments: [colorAttachment],
-                depthStencilAttachment: depthAttachment
+                depthStencilAttachment: depthStencilAttachment
             };
 
             commandEncoder = device.createCommandEncoder();
+
             if (projectionMatrixUniformBufferUpdate) {
                 commandEncoder.copyBufferToBuffer(projectionMatrixUniformBufferUpdate, 0,
                     projectionMatrixUniformBuffer, 0, projectionMatrix.byteLength);
@@ -779,8 +792,9 @@
 
             const passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
             passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
-            teapot.encode(passEncoder);
-            plane.encode(passEncoder);
+            passEncoder.setStencilReference(0xFF);
+            stencil.encode(passEncoder);
+            //plane.encode(passEncoder);
             passEncoder.end();
 
             device.queue.submit([commandEncoder.finish()]);
@@ -796,7 +810,8 @@
             lightDirectionUniformBufferUpdate.destroy();
 
             angle += 0.01;
-            requestAnimationFrame(render);
+            //requestAnimationFrame(render);
+            downloadStencilTexture(device, depthTexture);
         }
 
         requestAnimationFrame(render);

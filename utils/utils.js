@@ -208,6 +208,33 @@ async function downloadTexture(device, texture, filename = "image.png") {
     copiedBuffer.destroy();
 }
 
+async function downloadStencilTexture(device, texture, filename = "image.png") {
+    const bufferWidth = Math.ceil(texture.width / 256) * 256; //alignment requirement
+    const copiedBuffer = createGPUBuffer(device, new Uint8Array(bufferWidth * texture.height), GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
+
+    const commandEncoder = device.createCommandEncoder();
+    commandEncoder.copyTextureToBuffer({ texture: texture, origin: { x: 0, y: 0 }, aspect : "stencil-only" }, { buffer: copiedBuffer, bytesPerRow: bufferWidth }, { width: texture.width, height: texture.height });
+    device.queue.submit([commandEncoder.finish()]);
+
+    await device.queue.onSubmittedWorkDone();
+
+    await copiedBuffer.mapAsync(GPUMapMode.READ, 0, bufferWidth * texture.height);
+
+    let xExpand2RGBA = new Uint8ClampedArray(bufferWidth * texture.height * 4);
+    const x = new Uint8ClampedArray(copiedBuffer.getMappedRange());
+
+    for(let i =0;i<x.length;++i) {
+        xExpand2RGBA.set([x[i], x[i], x[i], x[i]], i*4);
+    }
+
+    const imageData = new ImageData(xExpand2RGBA, bufferWidth, texture.height);
+    imagedataToImage(imageData, filename);
+
+    copiedBuffer.unmap();
+
+    copiedBuffer.destroy();
+}
+
 async function dumpTextureF32(device, texture) {
     const bufferWidth = Math.ceil(texture.width / 256) * 256; //alignment requirement
     //console.log("texture width", bufferWidth)
