@@ -12,6 +12,8 @@
 
       @binding(0) @group(0) var texSrc : texture_storage_2d<rg32float, read>;
       @binding(1) @group(0) var texDst : texture_storage_2d<rg32float, write>;
+      @binding(2) @group(0) var<uniform> drawPos : vec3<f32>;
+        
 
       const imageSize:i32 = 1024;
 
@@ -20,6 +22,16 @@
 
             var centerY:i32 = i32(GlobalInvocationID.y);
             var centerX:i32 = i32(GlobalInvocationID.x);
+
+            if (drawPos.z > 0.5) {
+                var radius:f32 = sqrt((f32(centerX) - drawPos.x)*(f32(centerX) - drawPos.x) +
+                (f32(centerY) - drawPos.y)*(f32(centerY) - drawPos.y));
+
+                if (radius < 5.0) {
+                    textureStore(texDst, vec2i(GlobalInvocationID.xy), vec4<f32>(0.0,1.0,0.0,0.0));
+                    return;
+                }
+            }
 
             var data:vec2<f32> = vec2<f32>(0.0,0.0);
             var original:vec2<f32> = textureLoad(texSrc, GlobalInvocationID.xy).rg;
@@ -63,6 +75,7 @@
                 + f * (1.0 - original.x),
                  data.y*0.5 + original.x*original.y*original.y - (k+f) * original.y) + original;
             textureStore(texDst, vec2i(GlobalInvocationID.xy), vec4<f32>(data,0.0,0.0));
+                
       }
 </script>
 <script id="render_shader" type="wgsl">
@@ -96,6 +109,7 @@
     }
 </script>
 <script>
+    let drawPos = new Float32Array(3);
     async function webgpu() {
         const feature = "chromium-experimental-read-write-storage-texture";
         const adapter = await navigator.gpu.requestAdapter();
@@ -130,6 +144,11 @@
                         access: "write-only",
                         format: "rg32float",
                     }
+                },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: {}
                 }
             ]
         });
@@ -174,6 +193,7 @@
 
         let dstTexture = device.createTexture(dstTextureDesc);
 
+        let drawPosUniformBuffer = createGPUBuffer(device, drawPos, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
         let uniformBindGroupCompute0 = device.createBindGroup({
             layout: uniformBindGroupLayoutCompute,
@@ -185,6 +205,12 @@
                 {
                     binding: 1,
                     resource: dstTexture.createView()
+                },
+                {
+                    binding: 2,
+                    resource: {
+                        buffer: drawPosUniformBuffer
+                    }
                 }
             ]
         });
@@ -199,6 +225,12 @@
                 {
                     binding: 1,
                     resource: srcTexture.createView()
+                },
+                {
+                    binding: 2,
+                    resource: {
+                        buffer: drawPosUniformBuffer
+                    }
                 }
             ]
         });
@@ -285,10 +317,10 @@
         };
 
         const positions = new Float32Array([
-            1.0, 1.0, 1.0, 1.0,
-            1.0, -1.0, 1.0, 0.0,
-            -1.0, 1.0, 0.0, 1.0,
-            -1.0, -1.0, 0.0, 0.0
+            1.0, 1.0, 1.0, 0.0,
+            1.0, -1.0, 1.0, 1.0,
+            -1.0, 1.0, 0.0, 0.0,
+            -1.0, -1.0, 0.0, 1.0
         ]);
 
         let positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
@@ -323,6 +355,7 @@
 
         const renderPipeline = device.createRenderPipeline(pipelineDescRender);
         let frame = 0;
+
         async function render() {
 
             let colorTexture = context.getCurrentTexture();
@@ -339,8 +372,13 @@
                 colorAttachments: [colorAttachment]
             };
 
-
+            const drawPosUniformBufferUpdate = createGPUBuffer(device, drawPos, GPUBufferUsage.COPY_SRC);
+            //console.log(drawPos)
+            drawPos = new Float32Array(3);
             const commandEncoder = device.createCommandEncoder();
+
+            commandEncoder.copyBufferToBuffer(drawPosUniformBufferUpdate, 0,
+                drawPosUniformBuffer, 0, drawPos.byteLength);
 
             const passEncoder = commandEncoder.beginComputePass(
                 {}
@@ -387,11 +425,40 @@
 
             device.queue.submit([commandEncoder2.finish()]);
             frame++;
+            drawPosUniformBufferUpdate.destroy();
             requestAnimationFrame(render);
         }
 
         requestAnimationFrame(render);
         //console.log(d);
+    }
+
+    let prevX = 0.0;
+    let prevY = 0.0;
+    let isDragging = false;
+
+    canvas.onmousedown = (event) => {
+        var rect = canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+
+
+        isDragging = true;
+
+    }
+
+    canvas.onmousemove = (event) => {
+        if (isDragging != 0) {
+            var rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            drawPos.set([x, y, 1.0], 0);
+        }
+    }
+
+    canvas.onmouseup = (event) => {
+        isDragging = 0;
+        drawPos.set([0.0, 0.0, 0.0], 0);
     }
 
     webgpu();
