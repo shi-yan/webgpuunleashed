@@ -178,7 +178,7 @@
             entries: [
                 {
                     binding: 0,
-                    resource: dstTexture.createView()
+                    resource: srcTexture.createView()
                 },
                 {
                     binding: 1,
@@ -233,7 +233,7 @@
             },
             primitive: {
                 topology: 'triangle-strip',
-                frontFace: 'ccw',
+                frontFace: 'cw',
                 cullMode: 'none'
             }
         };
@@ -267,6 +267,8 @@
         passEncoder.dispatchWorkgroups(64, 64);
         passEncoder.end();
 
+        device.queue.submit([commandEncoder.finish()]);
+        await device.queue.onSubmittedWorkDone();
 
         /*
                 const bufferWidth = 1024 * 8;
