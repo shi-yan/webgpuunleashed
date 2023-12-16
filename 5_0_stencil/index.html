@@ -31,7 +31,7 @@
 <script src="../utils/OBJFile.js"> </script>
 <script src="../utils/utils.js"></script>
 <script src="../utils/helper.js"></script>
-<script id="object_with_shadow_shader" type="wgsl">
+<script id="object_shader" type="wgsl">
     // Vertex shader
     
     @group(0) @binding(0)
@@ -54,6 +54,9 @@
     
     @group(0) @binding(8)
     var<uniform> shininess:f32;// = 20.0;
+
+    @group(0) @binding(9)
+    var<uniform> offset:vec3<f32>;
         
     const diffuseConstant:f32 = 1.0;
     const specularConstant:f32 = 1.0;
@@ -90,7 +93,7 @@
         out.viewDir = normalize((normalMatrix * vec4<f32>(-viewDirection, 0.0)).xyz);
         out.lightDir = normalize((normalMatrix * vec4<f32>(-lightDirection, 0.0)).xyz);
         out.normal = normalize(normalMatrix * vec4<f32>(inNormal, 0.0)).xyz;  
-        var wldLoc:vec4<f32> = modelView * vec4<f32>(inPos, 1.0);
+        var wldLoc:vec4<f32> = modelView * vec4<f32>(inPos + offset, 1.0);
         out.clip_position = projection * wldLoc;
 
         return out;
@@ -156,7 +159,7 @@
         }
 
         async setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer) {
-            let shaderModule = shaderModuleFromCode(device, 'object_with_shadow_shader')
+            let shaderModule = shaderModuleFromCode(device, 'object_shader')
 
             let positions = new Float32Array([
                 -100, -100, 0,
@@ -221,6 +224,11 @@
                         binding: 8,
                         visibility: GPUShaderStage.FRAGMENT,
                         buffer: {}
+                    },
+                    {
+                        binding: 9,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
                     }
                 ]
             });
@@ -229,7 +237,7 @@
             const diffuseUniformBuffer = createGPUBuffer(device, new Float32Array([0.55, 0.55, 0.95, 1.0]), GPUBufferUsage.UNIFORM);
             const specularUniformBuffer = createGPUBuffer(device, new Float32Array([0.0, 0.0, 0.0, 1.0]), GPUBufferUsage.UNIFORM);
             const shininessUniformBuffer = createGPUBuffer(device, new Float32Array([0.0]), GPUBufferUsage.UNIFORM);
-
+            const offsetUniformBuffer = createGPUBuffer(device, new Float32Array([0.0,0.0,0.0]), GPUBufferUsage.UNIFORM);
             this.uniformBindGroup = device.createBindGroup({
                 layout: uniformBindGroupLayout,
                 entries: [
@@ -285,6 +293,12 @@
                         binding: 8,
                         resource: {
                             buffer: shininessUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 9,
+                        resource: {
+                            buffer: offsetUniformBuffer
                         }
                     }
                 ]
@@ -376,70 +390,12 @@
         }
 
         async setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer) {
-            let shaderModule = shaderModuleFromCode(device, 'object_with_shadow_shader');
-
-            const objResponse = await fetch('../data/frame.obj');
-            const objBody = await objResponse.text();
-
-            let obj = await (async () => {
-                return new Promise((resolve, reject) => {
-                    let obj = new OBJFile(objBody);
-                    obj.parse();
-                    resolve(obj);
-                })
-            })();
-
-            let positions = [];
-            let normals = [];
-
-            for (let v of obj.result.models[0].vertices) {
-                console.log(v);
-                positions.push(v.x);
-                positions.push(v.y);
-                positions.push(v.z);
-                normals.push(0.0);
-                normals.push(0.0);
-                normals.push(0.0);
-            }
-
-            positions = new Float32Array(positions);
-            normals = new Float32Array(normals);
-
-            this.positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
-
-            let indices = [];
-
-            for (let f of obj.result.models[0].faces) {
-                let points = [];
-                let facet_indices = [];
-                for (let v of f.vertices) {
-                    const index = v.vertexIndex - 1;
-                    indices.push(index);
-
-                    const vertex = glMatrix.vec3.fromValues(positions[index * 3], positions[index * 3 + 1], positions[index * 3 + 2]);
-
-                    points.push(vertex);
-                    facet_indices.push(index);
-                }
-
-                const v1 = glMatrix.vec3.subtract(glMatrix.vec3.create(), points[1], points[0]);
-                const v2 = glMatrix.vec3.subtract(glMatrix.vec3.create(), points[2], points[0]);
-                const cross = glMatrix.vec3.cross(glMatrix.vec3.create(), v1, v2);
-                const normal = glMatrix.vec3.normalize(glMatrix.vec3.create(), cross);
-
-                for (let i of facet_indices) {
-                    normals[i * 3] += normal[0];
-                    normals[i * 3 + 1] += normal[1];
-                    normals[i * 3 + 2] += normal[2];
-                }
-            }
-            this.normalBuffer = createGPUBuffer(device, normals, GPUBufferUsage.VERTEX);
-
-            this.indexSize = indices.length;
-
-            indices = new Uint16Array(indices);
-
-            this.indexBuffer = createGPUBuffer(device, indices, GPUBufferUsage.INDEX);
+            let shaderModule = shaderModuleFromCode(device, 'object_shader');
+            let { positionBuffer, normalBuffer, indexBuffer, indexSize } = await loadObj(device, '../data/frame.obj');
+            this.positionBuffer = positionBuffer;
+            this.normalBuffer = normalBuffer;
+            this.indexBuffer = indexBuffer;
+            this.indexSize = indexSize;
 
             let uniformBindGroupLayout = device.createBindGroupLayout({
                 entries: [
@@ -487,7 +443,12 @@
                         binding: 8,
                         visibility: GPUShaderStage.FRAGMENT,
                         buffer: {}
-                    }
+                    },
+                    {
+                        binding: 9,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    },
                 ]
             });
 
@@ -495,7 +456,7 @@
             const diffuseUniformBuffer = createGPUBuffer(device, new Float32Array([0.55, 0.55, 0.55, 1.0]), GPUBufferUsage.UNIFORM);
             const specularUniformBuffer = createGPUBuffer(device, new Float32Array([1.0, 1.0, 1.0, 1.0]), GPUBufferUsage.UNIFORM);
             const shininessUniformBuffer = createGPUBuffer(device, new Float32Array([20.0]), GPUBufferUsage.UNIFORM);
-
+            const offsetUniformBuffer = createGPUBuffer(device, new Float32Array([0.0,0.0,0.0]), GPUBufferUsage.UNIFORM);
             this.uniformBindGroup = device.createBindGroup({
                 layout: uniformBindGroupLayout,
                 entries: [
@@ -551,6 +512,12 @@
                         binding: 8,
                         resource: {
                             buffer: shininessUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 9,
+                        resource: {
+                            buffer: offsetUniformBuffer
                         }
                     }
                 ]
@@ -632,6 +599,227 @@
         }
     }
 
+    class Teapot {
+        constructor() {
+            this.pipeline = null;
+            this.positionBuffer = null;
+            this.normalBuffer = null;
+            this.indexBuffer = null;
+            this.uniformBindGroup = null;
+            this.indexSize = null;
+        }
+
+        async setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer) {
+            let shaderModule = shaderModuleFromCode(device, 'object_shader');
+
+            let { positionBuffer, normalBuffer, indexBuffer, indexSize } = await loadObj(device, '../data/teapot.obj');
+            this.positionBuffer = positionBuffer;
+            this.normalBuffer = normalBuffer;
+            this.indexBuffer = indexBuffer;
+            this.indexSize = indexSize;
+
+            let uniformBindGroupLayout = device.createBindGroupLayout({
+                entries: [
+                    {
+                        binding: 0,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    },
+                    {
+                        binding: 1,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    },
+                    {
+                        binding: 2,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    },
+                    {
+                        binding: 3,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    },
+                    {
+                        binding: 4,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    },
+                    {
+                        binding: 5,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        buffer: {}
+                    },
+                    {
+                        binding: 6,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        buffer: {}
+                    },
+                    {
+                        binding: 7,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        buffer: {}
+                    },
+                    {
+                        binding: 8,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        buffer: {}
+                    },
+                    {
+                        binding: 9,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    }
+                ]
+            });
+
+            const ambientUniformBuffer = createGPUBuffer(device, new Float32Array([0.15, 0.10, 0.10, 1.0]), GPUBufferUsage.UNIFORM);
+            const diffuseUniformBuffer = createGPUBuffer(device, new Float32Array([0.55, 0.55, 0.55, 1.0]), GPUBufferUsage.UNIFORM);
+            const specularUniformBuffer = createGPUBuffer(device, new Float32Array([1.0, 1.0, 1.0, 1.0]), GPUBufferUsage.UNIFORM);
+            const shininessUniformBuffer = createGPUBuffer(device, new Float32Array([20.0]), GPUBufferUsage.UNIFORM);
+            const offsetUniformBuffer = createGPUBuffer(device, new Float32Array([-10.0,0.0,0.0]), GPUBufferUsage.UNIFORM);
+            this.uniformBindGroup = device.createBindGroup({
+                layout: uniformBindGroupLayout,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: {
+                            buffer: modelViewMatrixUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 1,
+                        resource: {
+                            buffer: projectionMatrixUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 2,
+                        resource: {
+                            buffer: normalMatrixUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 3,
+                        resource: {
+                            buffer: lightDirectionUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 4,
+                        resource: {
+                            buffer: viewDirectionUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 5,
+                        resource: {
+                            buffer: ambientUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 6,
+                        resource: {
+                            buffer: diffuseUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 7,
+                        resource: {
+                            buffer: specularUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 8,
+                        resource: {
+                            buffer: shininessUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 9,
+                        resource: {
+                            buffer: offsetUniformBuffer
+                        }
+                    }
+                ]
+            });
+
+            const positionAttribDesc = {
+                shaderLocation: 0, // @location(0)
+                offset: 0,
+                format: 'float32x3'
+            };
+
+            const positionBufferLayoutDesc = {
+                attributes: [positionAttribDesc],
+                arrayStride: 4 * 3, // sizeof(float) * 3
+                stepMode: 'vertex'
+            };
+
+            const normalAttribDesc = {
+                shaderLocation: 1, // @location(1)
+                offset: 0,
+                format: 'float32x3'
+            };
+
+            const normalBufferLayoutDesc = {
+                attributes: [normalAttribDesc],
+                arrayStride: 4 * 3, // sizeof(float) * 3
+                stepMode: 'vertex'
+            };
+
+            const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout] };
+            const layout = device.createPipelineLayout(pipelineLayoutDesc);
+
+            const colorState = {
+                format: 'bgra8unorm'
+            };
+
+            const pipelineDesc = {
+                layout,
+                vertex: {
+                    module: shaderModule,
+                    entryPoint: 'vs_main',
+                    buffers: [positionBufferLayoutDesc, normalBufferLayoutDesc]
+                },
+                fragment: {
+                    module: shaderModule,
+                    entryPoint: 'fs_main',
+                    targets: [colorState]
+                },
+                primitive: {
+                    topology: 'triangle-list',
+                    frontFace: 'ccw',
+                    cullMode: 'none'
+                },
+                depthStencil: {
+                    depthWriteEnabled: true,
+                    depthCompare: 'less',
+                    format: 'depth24plus-stencil8',
+                    stencilFront: {
+                        compare: "less",
+                        passOp: "keep",
+                    },
+                    stencilBack: {
+                        compare: "less",
+                        passOp: "keep",
+                    }
+                }
+            };
+
+            this.pipeline = device.createRenderPipeline(pipelineDesc);
+        }
+
+        encode(encoder) {
+            encoder.setPipeline(this.pipeline);
+            encoder.setBindGroup(0, this.uniformBindGroup);
+            encoder.setVertexBuffer(0, this.positionBuffer);
+            encoder.setVertexBuffer(1, this.normalBuffer);
+            encoder.setIndexBuffer(this.indexBuffer, 'uint16');
+            encoder.drawIndexed(this.indexSize);
+        }
+    }
+
     class Stencil {
         constructor() {
             this.pipeline = null;
@@ -644,68 +832,11 @@
         async setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer) {
             let shaderModule = shaderModuleFromCode(device, 'stencil_shader');
 
-            const objResponse = await fetch('../data/stencil.obj');
-            const objBody = await objResponse.text();
-
-            let obj = await (async () => {
-                return new Promise((resolve, reject) => {
-                    let obj = new OBJFile(objBody);
-                    obj.parse();
-                    resolve(obj);
-                })
-            })();
-
-            let positions = [];
-            let normals = [];
-
-            for (let v of obj.result.models[0].vertices) {
-                console.log(v);
-                positions.push(v.x);
-                positions.push(v.y);
-                positions.push(v.z);
-                normals.push(0.0);
-                normals.push(0.0);
-                normals.push(0.0);
-            }
-
-            positions = new Float32Array(positions);
-            normals = new Float32Array(normals);
-
-            this.positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
-
-            let indices = [];
-
-            for (let f of obj.result.models[0].faces) {
-                let points = [];
-                let facet_indices = [];
-                for (let v of f.vertices) {
-                    const index = v.vertexIndex - 1;
-                    indices.push(index);
-
-                    const vertex = glMatrix.vec3.fromValues(positions[index * 3], positions[index * 3 + 1], positions[index * 3 + 2]);
-
-                    points.push(vertex);
-                    facet_indices.push(index);
-                }
-
-                const v1 = glMatrix.vec3.subtract(glMatrix.vec3.create(), points[1], points[0]);
-                const v2 = glMatrix.vec3.subtract(glMatrix.vec3.create(), points[2], points[0]);
-                const cross = glMatrix.vec3.cross(glMatrix.vec3.create(), v1, v2);
-                const normal = glMatrix.vec3.normalize(glMatrix.vec3.create(), cross);
-
-                for (let i of facet_indices) {
-                    normals[i * 3] += normal[0];
-                    normals[i * 3 + 1] += normal[1];
-                    normals[i * 3 + 2] += normal[2];
-                }
-            }
-            this.normalBuffer = createGPUBuffer(device, normals, GPUBufferUsage.VERTEX);
-
-            this.indexSize = indices.length;
-
-            indices = new Uint16Array(indices);
-
-            this.indexBuffer = createGPUBuffer(device, indices, GPUBufferUsage.INDEX);
+            let { positionBuffer, normalBuffer, indexBuffer, indexSize } = await loadObj(device, '../data/stencil.obj');
+            this.positionBuffer = positionBuffer;
+            this.normalBuffer = normalBuffer;
+            this.indexBuffer = indexBuffer;
+            this.indexSize = indexSize;
 
             let uniformBindGroupLayout = device.createBindGroupLayout({
                 entries: [
@@ -805,7 +936,7 @@
 
     class Arcball {
         constructor() {
-            this.radius = 8.0;
+            this.radius = 6.0;
             this.forwardVector = glMatrix.vec4.fromValues(this.radius, 0.0, 0.0, 0.0);
             this.upVector = glMatrix.vec4.fromValues(0.0, 0.0, 1.0, 0.0);
             this.currentRotation = glMatrix.mat4.create();
@@ -902,13 +1033,16 @@
         let projectionMatrixUniformBuffer = createGPUBuffer(device, projectionMatrix, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
         let stencil = new Stencil();
-        await stencil.setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer);
+        await stencil.setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer);
 
         let plane = new Plane();
         await plane.setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer);
 
         let frame = new Frame();
         await frame.setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer);
+
+        let teapot = new Teapot();
+        await teapot.setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer);
 
         let depthTexture = null;
         let depthStencilAttachment = null;
@@ -1035,6 +1169,7 @@
             passEncoder2.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
             passEncoder2.setStencilReference(0x0);
             plane.encode(passEncoder2);
+            teapot.encode(passEncoder2);
             passEncoder2.end();
 
             const passEncoder3 = commandEncoder.beginRenderPass(renderPassDesc2);
