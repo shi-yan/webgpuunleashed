@@ -13,10 +13,56 @@
       @binding(0) @group(0) var texSrc : texture_storage_2d<rg32float, read>;
       @binding(1) @group(0) var texDst : texture_storage_2d<rg32float, write>;
 
+      const imageSize:i32 = 1024;
+
       @compute @workgroup_size(16, 16)
       fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>) {
-            var data = textureLoad(texSrc, vec2i(GlobalInvocationID.xy));
-            textureStore(texDst, vec2i(GlobalInvocationID.xy), data);
+
+            var centerY:i32 = i32(GlobalInvocationID.y);
+            var centerX:i32 = i32(GlobalInvocationID.x);
+
+            var data:vec2<f32> = vec2<f32>(0.0,0.0);
+            var original:vec2<f32> = textureLoad(texSrc, GlobalInvocationID.xy).rg;
+
+            for(var y = -1; y<= 1;y++){
+                var accessY:i32 = centerY + y;
+                if (accessY < 0) {
+                    accessY = imageSize-1;
+                }
+                else if (accessY >= imageSize){
+                    accessY = 0;
+                }
+
+                for(var x = -1; x<=1;x++) {
+                    
+                  
+                    var accessX:i32 =centerX+ x;
+
+                    if (accessX < 0) {
+                        accessX = imageSize-1;
+                    }
+                    else if (accessX >= imageSize){
+                        accessX = 0;
+                    }
+
+                    var rate = -1.0;
+                    if (x==0 && y == 0){
+                        rate = -1.0;
+                    }else if (x ==0 || y==0){
+                        rate = 0.2;
+                    }
+                    else {
+                        rate = 0.05;
+                    }
+                    data += textureLoad(texSrc, vec2i(accessX, accessY)).rg * rate;
+                }
+            }
+            const f:f32 = 0.055;
+            const k:f32 = 0.062;
+            data = vec2<f32>(data.x- original.x*original.y*original.y
+                + f * (1.0 - original.x),
+                 data.y*0.5 + original.x*original.y*original.y - (k+f) * original.y) + original;
+            textureStore(texDst, vec2i(GlobalInvocationID.xy), vec4<f32>(data,0.0,0.0));
       }
 </script>
 <script id="render_shader" type="wgsl">
@@ -46,7 +92,7 @@
     
     @fragment
     fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-        return textureSample(t_diffuse, s_diffuse, in.tex_coords);
+        return vec4<f32>(0.0, textureSample(t_diffuse, s_diffuse, in.tex_coords).xy, 1.0);
     }
 </script>
 <script>
@@ -97,9 +143,17 @@
 
         let textureValues = [];
 
-        for (let i = 0; i < 1024 * 1024; ++i) {
-            textureValues.push(0.5);
-            textureValues.push(0.6);
+        for (let y = 0; y < 1024; ++y) {
+            for (let x = 0; x < 1024; ++x) {
+                if (x > 302 && x < 532 && y >= 302 && y < 532) {
+                    textureValues.push(0.0);
+                    textureValues.push(1.0);
+                }
+                else {
+                    textureValues.push(1.0);
+                    textureValues.push(0.0);
+                }
+            }
         }
 
         let srcTexture = device.createTexture(srcTextureDesc);
@@ -121,7 +175,7 @@
         let dstTexture = device.createTexture(dstTextureDesc);
 
 
-        let uniformBindGroupCompute = device.createBindGroup({
+        let uniformBindGroupCompute0 = device.createBindGroup({
             layout: uniformBindGroupLayoutCompute,
             entries: [
                 {
@@ -134,6 +188,21 @@
                 }
             ]
         });
+
+        let uniformBindGroupCompute1 = device.createBindGroup({
+            layout: uniformBindGroupLayoutCompute,
+            entries: [
+                {
+                    binding: 0,
+                    resource: dstTexture.createView()
+                },
+                {
+                    binding: 1,
+                    resource: srcTexture.createView()
+                }
+            ]
+        });
+
         const computePipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayoutCompute] };
         const computeLayout = device.createPipelineLayout(computePipelineLayoutDesc);
         const computePipeline = device.createComputePipeline({
@@ -173,7 +242,21 @@
         });
 
 
-        let uniformBindGroupRender = device.createBindGroup({
+        let uniformBindGroupRender0 = device.createBindGroup({
+            layout: uniformBindGroupLayoutRender,
+            entries: [
+                {
+                    binding: 0,
+                    resource: dstTexture.createView()
+                },
+                {
+                    binding: 1,
+                    resource: sampler
+                }
+            ]
+        });
+
+        let uniformBindGroupRender1 = device.createBindGroup({
             layout: uniformBindGroupLayoutRender,
             entries: [
                 {
@@ -239,62 +322,75 @@
         };
 
         const renderPipeline = device.createRenderPipeline(pipelineDescRender);
+        let frame = 0;
+        async function render() {
+
+            let colorTexture = context.getCurrentTexture();
+            let colorTextureView = colorTexture.createView();
+
+            let colorAttachment = {
+                view: colorTextureView,
+                clearValue: { r: 0, g: 0, b: 0, a: 1 },
+                loadOp: 'clear',
+                storeOp: 'store'
+            };
+
+            const renderPassDesc = {
+                colorAttachments: [colorAttachment]
+            };
 
 
+            const commandEncoder = device.createCommandEncoder();
 
-        let colorTexture = context.getCurrentTexture();
-        let colorTextureView = colorTexture.createView();
+            const passEncoder = commandEncoder.beginComputePass(
+                {}
+            );
+            passEncoder.setPipeline(computePipeline);
+            if (frame % 2 == 0) {
+                passEncoder.setBindGroup(0, uniformBindGroupCompute0);
+            }
+            else {
+                passEncoder.setBindGroup(0, uniformBindGroupCompute1);
+            }
+            passEncoder.dispatchWorkgroups(64, 64);
+            passEncoder.end();
 
-        let colorAttachment = {
-            view: colorTextureView,
-            clearValue: { r: 1, g: 0, b: 0, a: 1 },
-            loadOp: 'clear',
-            storeOp: 'store'
-        };
+            device.queue.submit([commandEncoder.finish()]);
 
-        const renderPassDesc = {
-            colorAttachments: [colorAttachment]
-        };
+            /*
+                    const bufferWidth = 1024 * 8;
+                    copiedBuffer = createGPUBuffer(device, new Float32Array(1024 * 1024 * 2), GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
+                    commandEncoder.copyTextureToBuffer({ texture: dstTexture, origin: { x: 0, y: 0 } }, { buffer: copiedBuffer, bytesPerRow: bufferWidth }, { width: 1024, height: 1024 });
+            
+                    device.queue.submit([commandEncoder.finish()]);
+                    await device.queue.onSubmittedWorkDone();
+            
+                    await copiedBuffer.mapAsync(GPUMapMode.READ, 0, bufferWidth * 1024);
+                    const d = new Float32Array(copiedBuffer.getMappedRange()).slice(0);
+            
+                    copiedBuffer.unmap();*/
 
+            const commandEncoder2 = device.createCommandEncoder();
 
-        const commandEncoder = device.createCommandEncoder();
+            const passEncoder2 = commandEncoder2.beginRenderPass(renderPassDesc);
+            passEncoder2.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+            passEncoder2.setPipeline(renderPipeline);
+            if (frame % 2 == 0) {
+                passEncoder2.setBindGroup(0, uniformBindGroupRender0);
+            }
+            else {
+                passEncoder2.setBindGroup(0, uniformBindGroupRender1);
+            }
+            passEncoder2.setVertexBuffer(0, positionBuffer);
+            passEncoder2.draw(4, 1);
+            passEncoder2.end();
 
-        const passEncoder = commandEncoder.beginComputePass(
-            {}
-        );
-        passEncoder.setPipeline(computePipeline);
-        passEncoder.setBindGroup(0, uniformBindGroupCompute);
-        passEncoder.dispatchWorkgroups(64, 64);
-        passEncoder.end();
+            device.queue.submit([commandEncoder2.finish()]);
+            frame++;
+            requestAnimationFrame(render);
+        }
 
-        device.queue.submit([commandEncoder.finish()]);
-        await device.queue.onSubmittedWorkDone();
-
-        /*
-                const bufferWidth = 1024 * 8;
-                copiedBuffer = createGPUBuffer(device, new Float32Array(1024 * 1024 * 2), GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
-                commandEncoder.copyTextureToBuffer({ texture: dstTexture, origin: { x: 0, y: 0 } }, { buffer: copiedBuffer, bytesPerRow: bufferWidth }, { width: 1024, height: 1024 });
-        
-                device.queue.submit([commandEncoder.finish()]);
-                await device.queue.onSubmittedWorkDone();
-        
-                await copiedBuffer.mapAsync(GPUMapMode.READ, 0, bufferWidth * 1024);
-                const d = new Float32Array(copiedBuffer.getMappedRange()).slice(0);
-        
-                copiedBuffer.unmap();*/
-
-        const commandEncoder2 = device.createCommandEncoder();
-
-        const passEncoder2 = commandEncoder2.beginRenderPass(renderPassDesc);
-        passEncoder2.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
-        passEncoder2.setPipeline(renderPipeline);
-        passEncoder2.setBindGroup(0, uniformBindGroupRender);
-        passEncoder2.setVertexBuffer(0, positionBuffer);
-        passEncoder2.draw(4, 1);
-        passEncoder2.end();
-
-        device.queue.submit([commandEncoder2.finish()]);
-
+        requestAnimationFrame(render);
         //console.log(d);
     }
 
