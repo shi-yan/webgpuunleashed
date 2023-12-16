@@ -1,0 +1,146 @@
+<html>
+
+<body>
+    <canvas id="canvas" width="640" height="480"></canvas>
+</body>
+<script src="../utils/utils.js">
+    //https://developer.chrome.com/blog/new-in-webgpu-118#htmlimageelement_and_imagedata_support_in_copyexternalimagetotexture
+    // require experimental feature
+</script>
+<script id="shader" type="wgsl">
+    enable chromium_experimental_read_write_storage_texture;
+
+      @binding(0) @group(0) var texSrc : texture_storage_2d<rg32float, read>;
+      @binding(1) @group(0) var texDst : texture_storage_2d<rg32float, write>;
+
+      @compute @workgroup_size(16, 16)
+      fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>) {
+            var data = textureLoad(texSrc, vec2i(GlobalInvocationID.xy));
+            textureStore(texDst, vec2i(GlobalInvocationID.xy), data);
+      }
+</script>
+<script>
+    async function webgpu() {
+        const feature = "chromium-experimental-read-write-storage-texture";
+        const adapter = await navigator.gpu.requestAdapter();
+        console.log(adapter);
+        if (!adapter.features.has(feature)) {
+            throw new Error("Read-write storage texture support is not available");
+        }
+        const device = await adapter.requestDevice({
+            requiredFeatures: [feature],
+        });
+        console.log(device);
+
+        const context = configContext(device, canvas)
+
+        // create shaders
+        let shaderModule = shaderModuleFromCode(device, 'shader');
+
+        let uniformBindGroupLayout = device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.COMPUTE,
+                    storageTexture: {
+                        access: "read-only",
+                        format: "rg32float",
+                    }
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.COMPUTE,
+                    storageTexture: {
+                        access: "write-only",
+                        format: "rg32float",
+                    }
+                }
+            ]
+        });
+
+        const srcTextureDesc = {
+            size: [1024, 1024, 1],
+            dimension: '2d',
+            format: "rg32float",
+            usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.STORAGE_BINDING
+        };
+        let textureValues = [];
+        for (let i = 0; i < 1024 * 1024; ++i) {
+            textureValues.push(0.5);
+            textureValues.push(0.6);
+        }
+
+        let srcTexture = device.createTexture(srcTextureDesc);
+
+        device.queue.writeTexture({ texture: srcTexture }, new Float32Array(textureValues), {
+            offset: 0,
+            bytesPerRow: 1024 * 8,
+            rowsPerImage: 1024
+        }, { width: 1024, height: 1024 });
+        await device.queue.onSubmittedWorkDone();
+
+        const dstTextureDesc = {
+            size: [1024, 1024, 1],
+            dimension: '2d',
+            format: "rg32float",
+            usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.STORAGE_BINDING
+        };
+
+        let dstTexture = device.createTexture(dstTextureDesc);
+
+
+        let uniformBindGroup = device.createBindGroup({
+            layout: uniformBindGroupLayout,
+            entries: [
+                {
+                    binding: 0,
+                    resource: srcTexture.createView()
+                },
+                {
+                    binding: 1,
+                    resource: dstTexture.createView()
+                }
+            ]
+        });
+        const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout] };
+        const layout = device.createPipelineLayout(pipelineLayoutDesc);
+        const computePipeline = device.createComputePipeline({
+            layout,
+            compute: {
+                module: shaderModule,
+                entryPoint: 'main',
+            },
+        });
+
+        const computePassDescriptor = {};
+
+        const commandEncoder = device.createCommandEncoder();
+
+        const passEncoder = commandEncoder.beginComputePass(
+            computePassDescriptor
+        );
+        passEncoder.setPipeline(computePipeline);
+        passEncoder.setBindGroup(0, uniformBindGroup);
+        passEncoder.dispatchWorkgroups(64, 64);
+        passEncoder.end();
+
+        const bufferWidth = 1024 * 8;
+        copiedBuffer = createGPUBuffer(device, new Float32Array(1024 * 1024 * 2), GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
+        commandEncoder.copyTextureToBuffer({ texture: dstTexture, origin: { x: 0, y: 0 } }, { buffer: copiedBuffer, bytesPerRow: bufferWidth }, { width: 1024, height: 1024 });
+
+        device.queue.submit([commandEncoder.finish()]);
+        await device.queue.onSubmittedWorkDone();
+
+        await copiedBuffer.mapAsync(GPUMapMode.READ, 0, bufferWidth * 1024);
+        const d = new Float32Array(copiedBuffer.getMappedRange()).slice(0);
+
+        copiedBuffer.unmap();
+
+
+        console.log(d);
+    }
+
+    webgpu();
+</script>
+
+</html>
