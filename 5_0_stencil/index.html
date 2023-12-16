@@ -114,6 +114,35 @@
     }
 </script>
 
+<script id="stencil_shader" type="wgsl">
+    // Vertex shader
+    
+    @group(0) @binding(0)
+    var<uniform> modelView: mat4x4<f32>;
+    @group(0) @binding(1)
+    var<uniform> projection: mat4x4<f32>;
+    
+    struct VertexOutput {
+        @builtin(position) clip_position: vec4<f32>,
+    };
+    
+    @vertex
+    fn vs_main(
+        @location(0) inPos: vec3<f32>
+    ) -> VertexOutput {
+        var out: VertexOutput;
+        var wldLoc:vec4<f32> = modelView * vec4<f32>(inPos, 1.0);
+        out.clip_position = projection * wldLoc;
+        return out;
+    }
+
+    @fragment
+    fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+        return vec4<f32>( 0.0,0.0,0.0,0.0);
+    }
+</script>
+
+
 <script>
     let angle = 0.0;
     class Plane {
@@ -197,7 +226,7 @@
             });
 
             const ambientUniformBuffer = createGPUBuffer(device, new Float32Array([0.15, 0.10, 0.10, 1.0]), GPUBufferUsage.UNIFORM);
-            const diffuseUniformBuffer = createGPUBuffer(device, new Float32Array([0.55, 0.55, 0.55, 1.0]), GPUBufferUsage.UNIFORM);
+            const diffuseUniformBuffer = createGPUBuffer(device, new Float32Array([0.55, 0.55, 0.95, 1.0]), GPUBufferUsage.UNIFORM);
             const specularUniformBuffer = createGPUBuffer(device, new Float32Array([0.0, 0.0, 0.0, 1.0]), GPUBufferUsage.UNIFORM);
             const shininessUniformBuffer = createGPUBuffer(device, new Float32Array([0.0]), GPUBufferUsage.UNIFORM);
 
@@ -312,7 +341,15 @@
                 depthStencil: {
                     depthWriteEnabled: true,
                     depthCompare: 'less',
-                    format: 'depth24plus-stencil8'
+                    format: 'depth24plus-stencil8',
+                    stencilFront: {
+                        compare: "less",
+                        passOp: "keep",
+                    },
+                    stencilBack: {
+                        compare: "less",
+                        passOp: "keep",
+                    }
                 }
             };
 
@@ -328,7 +365,7 @@
         }
     }
 
-    class Stencil {
+    class Frame {
         constructor() {
             this.pipeline = null;
             this.positionBuffer = null;
@@ -341,7 +378,7 @@
         async setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer) {
             let shaderModule = shaderModuleFromCode(device, 'object_with_shadow_shader');
 
-            const objResponse = await fetch('../data/stencil.obj');
+            const objResponse = await fetch('../data/frame.obj');
             const objBody = await objResponse.text();
 
             let obj = await (async () => {
@@ -573,6 +610,178 @@
                     format: 'depth24plus-stencil8',
                     stencilFront: {
                         compare: "always",
+                        passOp: "keep",
+                    },
+                    stencilBack: {
+                        compare: "always",
+                        passOp: "keep",
+                    }
+                }
+            };
+
+            this.pipeline = device.createRenderPipeline(pipelineDesc);
+        }
+
+        encode(encoder) {
+            encoder.setPipeline(this.pipeline);
+            encoder.setBindGroup(0, this.uniformBindGroup);
+            encoder.setVertexBuffer(0, this.positionBuffer);
+            encoder.setVertexBuffer(1, this.normalBuffer);
+            encoder.setIndexBuffer(this.indexBuffer, 'uint16');
+            encoder.drawIndexed(this.indexSize);
+        }
+    }
+
+    class Stencil {
+        constructor() {
+            this.pipeline = null;
+            this.positionBuffer = null;
+            this.indexBuffer = null;
+            this.uniformBindGroup = null;
+            this.indexSize = null;
+        }
+
+        async setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer) {
+            let shaderModule = shaderModuleFromCode(device, 'stencil_shader');
+
+            const objResponse = await fetch('../data/stencil.obj');
+            const objBody = await objResponse.text();
+
+            let obj = await (async () => {
+                return new Promise((resolve, reject) => {
+                    let obj = new OBJFile(objBody);
+                    obj.parse();
+                    resolve(obj);
+                })
+            })();
+
+            let positions = [];
+            let normals = [];
+
+            for (let v of obj.result.models[0].vertices) {
+                console.log(v);
+                positions.push(v.x);
+                positions.push(v.y);
+                positions.push(v.z);
+                normals.push(0.0);
+                normals.push(0.0);
+                normals.push(0.0);
+            }
+
+            positions = new Float32Array(positions);
+            normals = new Float32Array(normals);
+
+            this.positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
+
+            let indices = [];
+
+            for (let f of obj.result.models[0].faces) {
+                let points = [];
+                let facet_indices = [];
+                for (let v of f.vertices) {
+                    const index = v.vertexIndex - 1;
+                    indices.push(index);
+
+                    const vertex = glMatrix.vec3.fromValues(positions[index * 3], positions[index * 3 + 1], positions[index * 3 + 2]);
+
+                    points.push(vertex);
+                    facet_indices.push(index);
+                }
+
+                const v1 = glMatrix.vec3.subtract(glMatrix.vec3.create(), points[1], points[0]);
+                const v2 = glMatrix.vec3.subtract(glMatrix.vec3.create(), points[2], points[0]);
+                const cross = glMatrix.vec3.cross(glMatrix.vec3.create(), v1, v2);
+                const normal = glMatrix.vec3.normalize(glMatrix.vec3.create(), cross);
+
+                for (let i of facet_indices) {
+                    normals[i * 3] += normal[0];
+                    normals[i * 3 + 1] += normal[1];
+                    normals[i * 3 + 2] += normal[2];
+                }
+            }
+            this.normalBuffer = createGPUBuffer(device, normals, GPUBufferUsage.VERTEX);
+
+            this.indexSize = indices.length;
+
+            indices = new Uint16Array(indices);
+
+            this.indexBuffer = createGPUBuffer(device, indices, GPUBufferUsage.INDEX);
+
+            let uniformBindGroupLayout = device.createBindGroupLayout({
+                entries: [
+                    {
+                        binding: 0,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    },
+                    {
+                        binding: 1,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    }
+                ]
+            });
+
+            this.uniformBindGroup = device.createBindGroup({
+                layout: uniformBindGroupLayout,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: {
+                            buffer: modelViewMatrixUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 1,
+                        resource: {
+                            buffer: projectionMatrixUniformBuffer
+                        }
+                    }
+                ]
+            });
+
+            const positionAttribDesc = {
+                shaderLocation: 0, // @location(0)
+                offset: 0,
+                format: 'float32x3'
+            };
+
+            const positionBufferLayoutDesc = {
+                attributes: [positionAttribDesc],
+                arrayStride: 4 * 3, // sizeof(float) * 3
+                stepMode: 'vertex'
+            };
+
+            const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout] };
+            const layout = device.createPipelineLayout(pipelineLayoutDesc);
+
+            const colorState = {
+                format: 'bgra8unorm'
+            };
+
+            const pipelineDesc = {
+                layout,
+                vertex: {
+                    module: shaderModule,
+                    entryPoint: 'vs_main',
+                    buffers: [positionBufferLayoutDesc]
+                },
+                fragment: {
+                    module: shaderModule,
+                    entryPoint: 'fs_main',
+                    targets: [colorState]
+                },
+                primitive: {
+                    topology: 'triangle-list',
+                    frontFace: 'ccw',
+                    cullMode: 'none'
+                },
+                depthStencil: {
+                    depthWriteEnabled: true,
+                    depthCompare: 'less',
+                    format: 'depth24plus-stencil8',
+                    stencilFront: {
+                        compare: "always",
                         passOp: "replace",
                     },
                     stencilBack: {
@@ -589,7 +798,6 @@
             encoder.setPipeline(this.pipeline);
             encoder.setBindGroup(0, this.uniformBindGroup);
             encoder.setVertexBuffer(0, this.positionBuffer);
-            encoder.setVertexBuffer(1, this.normalBuffer);
             encoder.setIndexBuffer(this.indexBuffer, 'uint16');
             encoder.drawIndexed(this.indexSize);
         }
@@ -699,7 +907,12 @@
         let plane = new Plane();
         await plane.setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer);
 
+        let frame = new Frame();
+        await frame.setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer);
+
         let depthTexture = null;
+        let depthStencilAttachment = null;
+        let depthStencilAttachment2 = null;
 
         async function render() {
             const devicePixelRatio = window.devicePixelRatio || 1;
@@ -737,6 +950,15 @@
                     stencilReadOnly: false
                 };
 
+                depthStencilAttachment2 = {
+                    view: depthTextureView,
+                    depthClearValue: 1,
+                    depthLoadOp: 'clear',
+                    depthStoreOp: 'store',
+                    stencilClearValue: 0,
+                    stencilReadOnly: true
+                };
+
                 let projectionMatrix = glMatrix.mat4.perspective(glMatrix.mat4.create(),
                     1.4, canvas.width / canvas.height, 0.1, 1000.0);
 
@@ -769,9 +991,21 @@
                 storeOp: 'store'
             };
 
+            let colorAttachment2 = {
+                view: colorTextureView,
+                clearValue: { r: 0, g: 0, b: 1, a: 1 },
+                loadOp: 'load',
+                storeOp: 'store'
+            };
+
             const renderPassDesc = {
                 colorAttachments: [colorAttachment],
                 depthStencilAttachment: depthStencilAttachment
+            };
+
+            const renderPassDesc2 = {
+                colorAttachments: [colorAttachment2],
+                depthStencilAttachment: depthStencilAttachment2
             };
 
             commandEncoder = device.createCommandEncoder();
@@ -797,6 +1031,18 @@
             //plane.encode(passEncoder);
             passEncoder.end();
 
+            const passEncoder2 = commandEncoder.beginRenderPass(renderPassDesc2);
+            passEncoder2.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+            passEncoder2.setStencilReference(0x0);
+            plane.encode(passEncoder2);
+            passEncoder2.end();
+
+            const passEncoder3 = commandEncoder.beginRenderPass(renderPassDesc2);
+            passEncoder3.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+            passEncoder3.setStencilReference(0x0);
+            frame.encode(passEncoder3);
+            passEncoder3.end();
+
             device.queue.submit([commandEncoder.finish()]);
 
             await device.queue.onSubmittedWorkDone();
@@ -810,8 +1056,8 @@
             lightDirectionUniformBufferUpdate.destroy();
 
             angle += 0.01;
-            //requestAnimationFrame(render);
-            downloadStencilTexture(device, depthTexture);
+            requestAnimationFrame(render);
+            //  downloadStencilTexture(device, depthTexture);
         }
 
         requestAnimationFrame(render);
