@@ -54,7 +54,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
         const context = configContext(device, canvas);
 
-        const texture = await img2texture(device, 'checkerboard.png');
+        const texture = await img2texture(device, '../data/checkerboard.png');
 
         const sampler = device.createSampler({
             addressModeU: 'repeat',

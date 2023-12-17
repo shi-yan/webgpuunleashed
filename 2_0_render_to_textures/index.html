@@ -550,7 +550,7 @@
             commandEncoder.copyBufferToBuffer(normalMatrixUniformBufferUpdate, 0,
                 normalMatrixUniformBuffer, 0, normalMatrix.byteLength);
 
-            const passEncoder = commandEncoder.beginRenderPass(renderPassForTeapotDesc);
+            let passEncoder = commandEncoder.beginRenderPass(renderPassForTeapotDesc);
             passEncoder.setViewport(0, 0, teapotTextureSize, teapotTextureSize, 0, 1);
             teapot.encode(passEncoder);
             passEncoder.end();

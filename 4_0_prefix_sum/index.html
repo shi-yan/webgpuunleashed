@@ -1,0 +1,273 @@
+<html>
+
+<body>
+    <canvas id="canvas" width="640" height="480"></canvas>
+</body>
+<script src="../utils/utils.js">
+    //mention out of range array access
+    //https://github.com/gpuweb/gpuweb/issues/35
+    // talk about benchmark,
+    // /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --enable-dawn-features=allow_unsafe_apis
+    // https://omar-shehata.medium.com/how-to-use-webgpu-timestamp-query-9bf81fb5344a
+    // https://betterprogramming.pub/efficient-parallel-prefix-sum-in-metal-for-apple-m1-9e60b974d62
+</script>
+<script id="shader" type="wgsl">
+
+      @binding(0) @group(0) var<storage, read> input : array<f32>;
+      @binding(1) @group(0) var<storage, read_write> output : array<f32>;
+      @binding(2) @group(0) var<uniform> n:u32;
+      const bank_size:u32 = 32;
+      var<workgroup> temp: array<f32,512>; //workgroup array must have a fixed size;
+
+      fn bank_conflict_free_idx( idx:u32) -> u32 {
+        var chunk:u32 = idx / bank_size;
+        var offset_in_chunk = idx % bank_size;
+        return offset_in_chunk + chunk;
+      }
+
+      /*fn bank_conflict_free_idx( idx:u32) -> u32 { // fake
+        return idx;
+      }*/
+
+      @compute @workgroup_size(256)
+      fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>) {
+            var thid:u32 = GlobalInvocationID.x;
+            if (thid < (n>>1)){
+                temp[bank_conflict_free_idx(2*thid)] = input[2*thid]; // load input into shared memory 
+                temp[bank_conflict_free_idx(2*thid+1)] = input[2*thid+1];
+            }
+            var offset:u32 = 1;
+            var d:u32 = n>>1;
+
+            for (var d:u32 = n>>1; d > 0; d >>= 1)
+            { 
+                if (thid < d)    
+                {
+                    var ai:u32 = offset*(2*thid+1)-1;     
+                    var bi:u32 = offset*(2*thid+2)-1;  
+                    temp[bank_conflict_free_idx(bi)] += temp[bank_conflict_free_idx(ai)];    
+                }    
+                offset *= 2; 
+
+                workgroupBarrier();   
+            }
+            /*if (thid < (n>>1)){
+                output[2*thid] = temp[2*thid]; 
+                output[2*thid+1] = temp[2*thid+1]; 
+            }*/
+            //output[thid] = 1;
+
+            if (thid == 0) 
+            { 
+                temp[bank_conflict_free_idx(n - 1)] = 0; 
+            } // clear the last element  
+            for (var d:u32 = 1; d < n; d *= 2) // traverse down tree & build scan 
+            {      
+                offset >>= 1;      
+                if (thid < d)      
+                { 
+                    var ai:u32 = offset*(2*thid+1)-1;     
+                    var bi:u32 = offset*(2*thid+2)-1; 
+                    var t:f32 = temp[bank_conflict_free_idx(ai)]; 
+                    temp[bank_conflict_free_idx(ai)] = temp[bank_conflict_free_idx(bi)]; 
+                    temp[bank_conflict_free_idx(bi)] += t;       
+                } 
+                workgroupBarrier();      
+            }
+            
+            if (thid < (n>>1)){
+                output[2*thid] = temp[bank_conflict_free_idx(2*thid)]; 
+                output[2*thid+1] = temp[bank_conflict_free_idx(2*thid+1)]; 
+            }
+      }
+
+</script>
+<script>
+    const bank_size = 32;
+    function bank_conflict_free_idx(idx) {
+        let chunk = Math.floor(idx  / bank_size);
+        let offset_in_chunk = idx % bank_size;
+        return offset_in_chunk + chunk;
+    }
+
+    let n = 512;
+    const print_level = n >> 1;
+    console.log("debug for level ", print_level);
+    let result = '';
+    for (let thid = 0; thid < 32; ++thid) {
+        let offset = 1;
+
+        for (let level = n >> 1; level > 0; level >>= 1) {
+            if (thid < level) {
+                let ai = offset * (2 * thid + 1) - 1;
+                let bi = offset * (2 * thid + 2) - 1;
+                //temp[bank_conflict_free_idx(bi)] += temp[bank_conflict_free_idx(ai)];
+
+                if (print_level == level) {
+                    result += `t: ${thid} (${ai} ${bank_conflict_free_idx(ai)} ${bank_conflict_free_idx(ai) % 32}) `
+                }
+            }
+            offset *= 2;
+
+        }
+    }
+    console.log(result);
+
+</script>
+<script>
+    // createGPUBuffer helper
+    async function webgpu() {
+        const adapter = await navigator.gpu.requestAdapter();
+        console.log(adapter);
+        const hasTimestampQuery = adapter.features.has('timestamp-query');
+
+        let device = await adapter.requestDevice({
+            requiredFeatures: hasTimestampQuery ? ["timestamp-query"] : [],
+        });
+        console.log(device);
+
+        const capacity = 3;//Max number of timestamps we can store
+        const querySet = hasTimestampQuery ? device.createQuerySet({
+            type: "timestamp",
+            count: capacity,
+        }) : null;
+
+        const queryBuffer = hasTimestampQuery ? device.createBuffer({
+            size: 8 * capacity,
+            usage: GPUBufferUsage.QUERY_RESOLVE
+                | GPUBufferUsage.STORAGE
+                | GPUBufferUsage.COPY_SRC
+                | GPUBufferUsage.COPY_DST,
+        }) : null;
+
+        const context = configContext(device, canvas)
+
+        // create shaders
+        let shaderModule = shaderModuleFromCode(device, 'shader');
+
+        let uniformBindGroupLayout = device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: 'read-only-storage' }
+
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: "storage" }
+                },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: {}
+                }
+            ]
+        });
+
+        const arraySize = 512;
+        const testArray = [];
+        for (let i = 0; i < arraySize; ++i) {
+            testArray.push(Math.floor(Math.random() * 100) + 1);
+        }
+
+        let inputArrayBuffer = createGPUBuffer(device, new Float32Array(testArray), GPUBufferUsage.STORAGE);
+        let outputArrayBuffer = createGPUBuffer(device, new Float32Array(arraySize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
+        let readArrayBuffer = createGPUBuffer(device, new Float32Array(arraySize), GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
+
+        let arraySizeBuffer = createGPUBuffer(device, new Uint32Array([arraySize]), GPUBufferUsage.UNIFORM);
+
+        let uniformBindGroup = device.createBindGroup({
+            layout: uniformBindGroupLayout,
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: inputArrayBuffer
+                    }
+                },
+                {
+                    binding: 1,
+                    resource: {
+                        buffer: outputArrayBuffer
+                    }
+                },
+                {
+                    binding: 2,
+                    resource: {
+                        buffer: arraySizeBuffer
+                    }
+                }
+            ]
+        });
+        const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout] };
+        const layout = device.createPipelineLayout(pipelineLayoutDesc);
+        const computePipeline = device.createComputePipeline({
+            layout,
+            compute: {
+                module: shaderModule,
+                entryPoint: 'main',
+            },
+        });
+
+        const computePassDescriptor = {};
+
+        const commandEncoder = device.createCommandEncoder();
+        if (hasTimestampQuery) {
+            commandEncoder.writeTimestamp(querySet, 0);// Initial timestamp
+        }
+        const passEncoder = commandEncoder.beginComputePass(
+            computePassDescriptor
+        );
+        passEncoder.setPipeline(computePipeline);
+        passEncoder.setBindGroup(0, uniformBindGroup);
+        passEncoder.dispatchWorkgroups(1);
+        passEncoder.end();
+        if (hasTimestampQuery) {
+            commandEncoder.writeTimestamp(querySet, 1);// Initial timestamp
+            commandEncoder.copyBufferToBuffer(outputArrayBuffer, 0,
+                readArrayBuffer, 0, arraySize * 4);
+            commandEncoder.resolveQuerySet(
+                querySet,
+                0,// index of first query to resolve 
+                capacity,//number of queries to resolve
+                queryBuffer,
+                0);// destination offset
+        }
+        device.queue.submit([commandEncoder.finish()]);
+        await device.queue.onSubmittedWorkDone();
+
+        await readArrayBuffer.mapAsync(GPUMapMode.READ, 0, arraySize * 4);
+
+        const d = new Float32Array(readArrayBuffer.getMappedRange());
+
+
+        let sum = 0;
+        for (let i = 0; i < arraySize; ++i) {
+            sum += testArray[i];
+        }
+        console.log('result sum', d[arraySize - 1], sum);
+
+        console.log('test array', new Float32Array(testArray));
+        console.log('result array', d);
+
+        readArrayBuffer.unmap();
+        if (hasTimestampQuery) {
+            const gpuReadBuffer = device.createBuffer({ size: queryBuffer.size, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
+            const copyEncoder = device.createCommandEncoder();
+            copyEncoder.copyBufferToBuffer(queryBuffer, 0, gpuReadBuffer, 0, queryBuffer.size);
+            const copyCommands = copyEncoder.finish();
+            device.queue.submit([copyCommands]);
+            await gpuReadBuffer.mapAsync(GPUMapMode.READ);
+            let result = new BigInt64Array(gpuReadBuffer.getMappedRange());
+            console.log("run time: ", (result[1] - result[0]));
+            gpuReadBuffer.unmap();
+            gpuReadBuffer.destroy();
+        }
+    }
+
+    webgpu();
+</script>
+
+</html>
