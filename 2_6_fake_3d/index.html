@@ -5,6 +5,7 @@
 </body>
 <script src="../utils/gl-matrix.js">
     //fake 3d image
+    //https://pytorch.org/hub/intelisl_midas_v2/
 </script>
 <script src="../utils/utils.js"></script>
 <script id="shader" type="wgsl">
@@ -55,8 +56,8 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
         const context = configContext(device, canvas);
 
-        let textureDiffuse = await img2texture(device, "../data/lady.jpg");
-        let textureDepth = await img2texture(device, "../data/lady-map.jpg");
+        let textureDiffuse = await img2texture(device, "../data/portrait.jpg");
+        let textureDepth = await img2texture(device, "../data/depth.png");
 
         const sampler = device.createSampler({
             addressModeU: 'repeat',
