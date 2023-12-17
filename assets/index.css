@@ -122,7 +122,7 @@ li {
   border-color: black;
   width: 3px;
   cursor: ew-resize;
-}._Menu_1abcw_1 {
+}._Menu_1ca9h_1 {
   width: 320px;
   height: 100vh;
   position: fixed;
@@ -136,22 +136,22 @@ li {
   background-color: #0e0b33;
 }
 
-._MenuTitle_1abcw_15 {
+._MenuTitle_1ca9h_15 {
   margin-top: 40px;
   color: #ffffff;
   text-align: center;
   margin-bottom: 8px;
 }
 
-._MenuContent_1abcw_22 {
+._MenuContent_1ca9h_22 {
   flex-grow: 1;
   overflow-y: scroll;
   overflow-x: hidden;
-  padding: 10px;
+  padding: 16px;
   margin-left: 10px;
 }
 
-._ToolBar_1abcw_30 {
+._ToolBar_1ca9h_30 {
   flex-grow: 0;
   flex-shrink: 1;
   display: flex;
@@ -160,7 +160,7 @@ li {
   padding-right: 10px;
 }
 
-._TabButton_1abcw_39 {
+._TabButton_1ca9h_39 {
   border: 0;
   background: none;
   box-shadow: none;
@@ -169,11 +169,11 @@ li {
   cursor: pointer;
 }
 
-._TabButton_1abcw_39:hover {
+._TabButton_1ca9h_39:hover {
   color: #ffffff;
 }
 
-._TabButtonText_1abcw_52 {
+._TabButtonText_1ca9h_52 {
   margin-left: 8px;
   font-family: "Source Code Pro", monospace;
 }
@@ -195,11 +195,11 @@ li {
   color: #ffffff;
 }*/
 
-._TabButton_1abcw_39:focus {
+._TabButton_1ca9h_39:focus {
   outline: none;
 }
 
-._Main_1abcw_78 {
+._Main_1ca9h_78 {
   display: flex;
   width: 100%;
   flex-direction: row;
@@ -207,7 +207,7 @@ li {
   overflow: hidden;
 }
 
-._Editor_1abcw_86 {
+._Editor_1ca9h_86 {
   display: block;
   width: 50%;
   border-radius: 4px;
@@ -218,12 +218,12 @@ li {
   position: relative;
 }
 
-._Output_1abcw_97 {
+._Output_1ca9h_97 {
   overflow: hidden;
   width: 50%;
 }
 
-._Sandbox_1abcw_102 {
+._Sandbox_1ca9h_102 {
   position: absolute;
   border-radius: 4px;
   border-width: 1px;

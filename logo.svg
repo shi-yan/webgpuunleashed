@@ -1,0 +1,12 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.0//EN" "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" height="300" width="347">
+  <defs>
+    <linearGradient id="bg" x1="25%" y1="16.667%" x2="75%" y2="83.33%">
+      <stop offset="0%" style="stop-color:rgb(41,255,253);stop-opacity:1" />
+      <stop offset="100%" style="stop-color:rgb(53,141,254);stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <path d="M0 100 L173.21 0 L346.41 100 L346.41 200 L173.21 300 L0 200 Z M173.21 100 L86.6 150 L173.21 200 L259.81 150 Z" fill="url(#bg)" />
+  Sorry, your browser does not support inline SVG.
+</svg>
