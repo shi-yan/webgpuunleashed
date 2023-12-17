@@ -1,4 +1,5 @@
 {
+  "default_sample": "4_02_reaction_diffusion",
   "description": "Your ticket to the dynamic world of graphics programming.",
   "meta_image": "meta.png",
   "prefix": "WebGPUTutorial",
