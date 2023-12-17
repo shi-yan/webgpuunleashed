@@ -89,6 +89,19 @@ button:focus-visible {
   margin-block-end: 4px;
 }
 
+.menutitle {
+  margin:0;
+  font-size: 16px;
+}
+
+ul {
+  margin-left: 2px;
+}
+
+li {
+  margin-left: 2px;
+}
+
 .clickable:hover {
   background-color: #222045;
   color: #ffffff;
@@ -107,7 +120,7 @@ button:focus-visible {
   border-color: black;
   width: 3px;
   cursor: ew-resize;
-}._Menu_c31qi_1 {
+}._Menu_1abcw_1 {
   width: 320px;
   height: 100vh;
   position: fixed;
@@ -121,13 +134,14 @@ button:focus-visible {
   background-color: #0e0b33;
 }
 
-._MenuTitle_c31qi_15 {
+._MenuTitle_1abcw_15 {
   margin-top: 40px;
   color: #ffffff;
   text-align: center;
+  margin-bottom: 8px;
 }
 
-._MenuContent_c31qi_21 {
+._MenuContent_1abcw_22 {
   flex-grow: 1;
   overflow-y: scroll;
   overflow-x: hidden;
@@ -135,7 +149,7 @@ button:focus-visible {
   margin-left: 10px;
 }
 
-._ToolBar_c31qi_29 {
+._ToolBar_1abcw_30 {
   flex-grow: 0;
   flex-shrink: 1;
   display: flex;
@@ -144,7 +158,7 @@ button:focus-visible {
   padding-right: 10px;
 }
 
-._TabButton_c31qi_38 {
+._TabButton_1abcw_39 {
   border: 0;
   background: none;
   box-shadow: none;
@@ -153,11 +167,11 @@ button:focus-visible {
   cursor: pointer;
 }
 
-._TabButton_c31qi_38:hover {
+._TabButton_1abcw_39:hover {
   color: #ffffff;
 }
 
-._TabButtonText_c31qi_51 {
+._TabButtonText_1abcw_52 {
   margin-left: 8px;
   font-family: "Source Code Pro", monospace;
 }
@@ -179,11 +193,11 @@ button:focus-visible {
   color: #ffffff;
 }*/
 
-._TabButton_c31qi_38:focus {
+._TabButton_1abcw_39:focus {
   outline: none;
 }
 
-._Main_c31qi_77 {
+._Main_1abcw_78 {
   display: flex;
   width: 100%;
   flex-direction: row;
@@ -191,7 +205,7 @@ button:focus-visible {
   overflow: hidden;
 }
 
-._Editor_c31qi_85 {
+._Editor_1abcw_86 {
   display: block;
   width: 50%;
   border-radius: 4px;
@@ -202,28 +216,29 @@ button:focus-visible {
   position: relative;
 }
 
-._Output_c31qi_96 {
+._Output_1abcw_97 {
   overflow: hidden;
   width: 50%;
 }
 
-._Sandbox_c31qi_101 {
+._Sandbox_1abcw_102 {
   position: absolute;
   border-radius: 4px;
   border-width: 1px;
   border-style: solid;
   border-color: #2b284b;
   background-color: #1a183d;
-}._MenuItem_2w08h_1 {
+}._MenuItem_1ct5b_1 {
   color: #9492b1;
   border: 0;
   background: none;
   box-shadow: none;
   border-radius: 0px;
   cursor: pointer;
+  margin-left: 2px;
 }
 
-._ClickableItem_2w08h_10 {
+._ClickableItem_1ct5b_11 {
   padding: 2px;
 }/*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
