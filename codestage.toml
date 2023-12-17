@@ -318,7 +318,31 @@ filename = "index.html"
 is_readonly = false
 
 [[content]]
+title = "4. Compute"
+
+[[content.sub_chapters]]
+title = "4.0 Prefix Sum"
+folder = "4_0_prefix_sum"
+[[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
+
+[[content.sub_chapters]]
+title = "4.2 Reaction Diffusion"
+folder = "4_2_reaction_diffusion"
+[[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
+
+[[content]]
 title = "5. Advanced"
+
+[[content.sub_chapters]]
+title = "5.0 Stencil"
+folder = "5_1_stencil"
+[[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
 
 [[content.sub_chapters]]
 title = "5.1 Shadow Maps"
