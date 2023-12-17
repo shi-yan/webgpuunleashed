@@ -17,12 +17,11 @@
       @binding(1) @group(0) var<storage, read_write> output : array<f32>;
       @binding(2) @group(0) var<uniform> n:u32;
       const bank_size:u32 = 32;
-      var<workgroup> temp: array<f32,512>; //workgroup array must have a fixed size;
+      var<workgroup> temp: array<f32,532>; //workgroup array must have a fixed size;
 
       fn bank_conflict_free_idx( idx:u32) -> u32 {
-        var chunk:u32 = idx / bank_size;
-        var offset_in_chunk = idx % bank_size;
-        return offset_in_chunk + chunk;
+        var chunk_id:u32 = idx / bank_size;
+        return idx + chunk_id;
       }
 
       /*fn bank_conflict_free_idx( idx:u32) -> u32 { // fake

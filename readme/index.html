@@ -4,11 +4,87 @@
 
 <html>
     <head>
-        <title>Halo</title>
-        
+        <title>WebGPU Unleashed : A practical tutorial</title>
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital@1&family=Pragati+Narrow&display=swap');
+
+            body {
+                background-color: #03386f;
+                margin: 0;
+                position:relative;
+                display: flex;
+                flex-direction: column;
+                justify-content: end;
+            }
+
+            .header {
+                height: 20px;
+                background-color: #ffd790;
+            }
+
+            .footer {
+                height: 40px;
+                background-color: #ffd790;
+            }
+
+            .title {
+                height: 220px;
+                background-image: url("./titlebg.png");
+                background-size: cover;
+            }
+
+            .main-title {
+                color: #ffd790;
+                font-weight: 600;
+                font-family: 'Pragati Narrow', sans-serif;
+                font-size: 60px;
+                margin: 20px;
+                margin-bottom: 4px;
+                vertical-align: bottom;
+            }
+
+            .subtitle {
+                font-family: 'Open Sans', sans-serif;
+                color: white;
+                font-weight: 400;
+                font-size: 20px;
+                margin-left: 20px;
+                margin-top: 4px;
+            }
+
+            .author {
+                font-family: 'Open Sans', sans-serif;
+                color: white;
+                font-weight: 400;
+                font-size: 18px;
+                margin-right: 20px;
+                margin-bottom: 4px;
+                text-align: right;
+            }
+
+            .banner {
+                height: 320px;
+                background-size: cover;
+                background-image: url(./banner.jpg);
+            }
+
+            .instruction {
+                flex-grow: 1;
+                background-color: #01376f;
+                color: white;
+            }
+        </style>
     </head>
-    <body id="viewContainer">
-        readme test
+    <body>
+        <div class="instruction">Welcome</div>
+        <div class="header"></div>
+        <div class="title">
+            <div class="main-title">WebGPU Unleashed</div>
+            <div class="subtitle">A Practical Tutorial</div>
+            <div class="author">Shi Yan</div>
+        </div>
+        <div class="banner"></div>
+        <div class="footer"></div>
     </body>
 </html>
 

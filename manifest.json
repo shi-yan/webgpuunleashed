@@ -5,7 +5,7 @@
   "readme_folder": "readme",
   "repo": "https://github.com/shi-yan/WebGPUTutorial",
   "target": "../WebGPUTutorial",
-  "title": "WGPU Tutorial",
+  "title": "WebGPU Unleashed",
   "url": "https://shi-yan.github.io/",
   "utilities": [
     "utils",
@@ -18,7 +18,7 @@
       "title": "1. Basics",
       "sub_chapters": [
         {
-          "folder": "1_0_empty_canvas",
+          "folder": "1_00_empty_canvas",
           "title": "1.0 Empty Canvas",
           "files": [
             {
@@ -28,7 +28,7 @@
           ]
         },
         {
-          "folder": "1_1_triangle",
+          "folder": "1_01_triangle",
           "title": "1.1 Drawing a Triangle",
           "files": [
             {
@@ -38,7 +38,7 @@
           ]
         },
         {
-          "folder": "1_2_triangle_with_vertices",
+          "folder": "1_02_triangle_with_vertices",
           "title": "1.2 Drawing a Triangle with Defined Vertices",
           "files": [
             {
@@ -48,7 +48,7 @@
           ]
         },
         {
-          "folder": "1_3_vertex_color",
+          "folder": "1_03_vertex_color",
           "title": "1.3 Applying Hardcoded Vertex Colors",
           "files": [
             {
@@ -58,7 +58,7 @@
           ]
         },
         {
-          "folder": "1_4_different_vertex_colors",
+          "folder": "1_04_different_vertex_colors",
           "title": "1.4 Different Vertex Colors",
           "files": [
             {
@@ -68,7 +68,7 @@
           ]
         },
         {
-          "folder": "1_5_colored_triangle_with_a_single_buffer",
+          "folder": "1_05_colored_triangle_with_a_single_buffer",
           "title": "1.5 Colored Triangle with a Single Buffer",
           "files": [
             {
@@ -78,7 +78,7 @@
           ]
         },
         {
-          "folder": "1_6_uniforms",
+          "folder": "1_06_uniforms",
           "title": "1.6 Understanding Uniforms",
           "files": [
             {
@@ -88,7 +88,7 @@
           ]
         },
         {
-          "folder": "1_7_working_with_textures",
+          "folder": "1_07_working_with_textures",
           "title": "1.7 Working with Textures",
           "files": [
             {
@@ -98,7 +98,7 @@
           ]
         },
         {
-          "folder": "1_8_transformation_matrices",
+          "folder": "1_08_transformation_matrices",
           "title": "1.8 Utilizing Transformation Matrices",
           "files": [
             {
@@ -108,7 +108,7 @@
           ]
         },
         {
-          "folder": "1_9_cameras",
+          "folder": "1_09_cameras",
           "title": "1.9 Cameras",
           "files": [
             {
@@ -243,7 +243,7 @@
       "title": "2. 2D Techniques",
       "sub_chapters": [
         {
-          "folder": "2_0_render_to_textures",
+          "folder": "2_00_render_to_textures",
           "title": "2.0 Render to Textures",
           "files": [
             {
@@ -253,7 +253,7 @@
           ]
         },
         {
-          "folder": "2_1_orthogonal_cameras",
+          "folder": "2_01_orthogonal_cameras",
           "title": "2.1 Orthogonal Cameras",
           "files": [
             {
@@ -266,7 +266,7 @@
           "title": "2.2 Blur",
           "sub_chapters": [
             {
-              "folder": "2_2_1_blur_1",
+              "folder": "2_02_1_blur_1",
               "title": "2.2.1 Blur 1",
               "files": [
                 {
@@ -276,7 +276,7 @@
               ]
             },
             {
-              "folder": "2_2_2_blur_2",
+              "folder": "2_02_2_blur_2",
               "title": "2.2.2 Blur 2",
               "files": [
                 {
@@ -286,7 +286,7 @@
               ]
             },
             {
-              "folder": "2_2_3_blur_3",
+              "folder": "2_02_3_blur_3",
               "title": "2.2.3 Blur 3",
               "files": [
                 {
@@ -296,7 +296,7 @@
               ]
             },
             {
-              "folder": "2_2_4_blur_4",
+              "folder": "2_02_4_blur_4",
               "title": "2.2.4 Blur 4",
               "files": [
                 {
@@ -306,7 +306,7 @@
               ]
             },
             {
-              "folder": "2_2_5_blur_5",
+              "folder": "2_02_5_blur_5",
               "title": "2.2.5 Blur 5",
               "files": [
                 {
@@ -321,7 +321,7 @@
           "title": "2.3 Video",
           "sub_chapters": [
             {
-              "folder": "2_3_1_video_1",
+              "folder": "2_03_1_video_1",
               "title": "2.3.1 Video 1",
               "files": [
                 {
@@ -331,7 +331,7 @@
               ]
             },
             {
-              "folder": "2_3_2_video_2",
+              "folder": "2_03_2_video_2",
               "title": "2.3.2 Video 2",
               "files": [
                 {
@@ -343,7 +343,7 @@
           ]
         },
         {
-          "folder": "2_4_text",
+          "folder": "2_04_text",
           "title": "2.4 Text",
           "files": [
             {
@@ -353,7 +353,7 @@
           ]
         },
         {
-          "folder": "2_5_billboard",
+          "folder": "2_05_billboard",
           "title": "2.5 Billboard",
           "files": [
             {
@@ -363,7 +363,7 @@
           ]
         },
         {
-          "folder": "2_6_fake_3d",
+          "folder": "2_06_fake_3d",
           "title": "2.6 Fake 3D",
           "files": [
             {
@@ -378,7 +378,7 @@
       "title": "3. Control",
       "sub_chapters": [
         {
-          "folder": "3_0_canvas_resizing",
+          "folder": "3_00_canvas_resizing",
           "title": "3.0 Canvas Resizing",
           "files": [
             {
@@ -388,7 +388,7 @@
           ]
         },
         {
-          "folder": "3_1_arcball",
+          "folder": "3_01_arcball",
           "title": "3.1 Arcball",
           "files": [
             {
@@ -401,7 +401,7 @@
           "title": "3.2 Picking",
           "sub_chapters": [
             {
-              "folder": "3_2_1_picking_ray_casting",
+              "folder": "3_02_1_picking_ray_casting",
               "title": "3.2.1 Ray Casting",
               "files": [
                 {
@@ -411,7 +411,7 @@
               ]
             },
             {
-              "folder": "3_2_2_picking_color_coding",
+              "folder": "3_02_2_picking_color_coding",
               "title": "3.2.2 Color Coding",
               "files": [
                 {
@@ -423,7 +423,7 @@
           ]
         },
         {
-          "folder": "3_3_save_image_and_video",
+          "folder": "3_03_save_image_and_video",
           "title": "3.3 Save Image and Video",
           "files": [
             {
@@ -433,7 +433,7 @@
           ]
         },
         {
-          "folder": "3_4_worker",
+          "folder": "3_04_worker",
           "title": "3.4 Worker",
           "files": [
             {
@@ -447,7 +447,7 @@
           ]
         },
         {
-          "folder": "3_5_error_handling_and_limits",
+          "folder": "3_05_error_handling_and_limits",
           "title": "3.5 Error Handling and Limits",
           "files": [
             {
@@ -462,7 +462,7 @@
       "title": "4. Compute",
       "sub_chapters": [
         {
-          "folder": "4_0_prefix_sum",
+          "folder": "4_00_prefix_sum",
           "title": "4.0 Prefix Sum",
           "files": [
             {
@@ -472,7 +472,7 @@
           ]
         },
         {
-          "folder": "4_2_reaction_diffusion",
+          "folder": "4_02_reaction_diffusion",
           "title": "4.2 Reaction Diffusion",
           "files": [
             {
@@ -487,7 +487,7 @@
       "title": "5. Advanced",
       "sub_chapters": [
         {
-          "folder": "5_1_stencil",
+          "folder": "5_00_stencil",
           "title": "5.0 Stencil",
           "files": [
             {
@@ -497,7 +497,7 @@
           ]
         },
         {
-          "folder": "5_1_shadow_maps",
+          "folder": "5_01_shadow_maps",
           "title": "5.1 Shadow Maps",
           "files": [
             {
@@ -507,7 +507,7 @@
           ]
         },
         {
-          "folder": "5_2_toon_shading",
+          "folder": "5_02_toon_shading",
           "title": "5.2 Toon Shading",
           "files": [
             {
@@ -517,7 +517,7 @@
           ]
         },
         {
-          "folder": "5_3_equalrectangle_rendering",
+          "folder": "5_03_equalrectangle_rendering",
           "title": "5.3 Equalrectangle Rendering",
           "files": [
             {
@@ -527,7 +527,7 @@
           ]
         },
         {
-          "folder": "5_4_mega_texture",
+          "folder": "5_04_mega_texture",
           "title": "5.4 Mega Texture",
           "files": [
             {
@@ -537,7 +537,7 @@
           ]
         },
         {
-          "folder": "5_5_transparency",
+          "folder": "5_05_transparency",
           "title": "5.5 Transparency",
           "files": [
             {
@@ -547,7 +547,7 @@
           ]
         },
         {
-          "folder": "5_6_skeleton_animation",
+          "folder": "5_06_skeleton_animation",
           "title": "5.6 Skeleton Animation",
           "files": [
             {
@@ -557,8 +557,8 @@
           ]
         },
         {
-          "folder": "5_7_bump_map",
-          "title": "5.6 Bump Map",
+          "folder": "5_07_bump_map",
+          "title": "5.7 Bump Map",
           "files": [
             {
               "filename": "index.html",
