@@ -92,10 +92,12 @@ button:focus-visible {
 .menutitle {
   margin:0;
   font-size: 16px;
+  margin-top: 3px;
 }
 
 ul {
   margin-left: 2px;
+  padding: 0;
 }
 
 li {
