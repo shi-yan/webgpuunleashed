@@ -5,8 +5,7 @@ prefix = "WebGPUTutorial"
 target = "../WebGPUTutorial"
 url = "https://shi-yan.github.io/"
 meta_image = "meta.png"
-description = """
-WebGPU example code."""
+description = "Your ticket to the dynamic world of graphics programming."
 utilities = [ "utils" , "data", "shader", "crab_nebula"]
 readme_folder = "readme"
 
