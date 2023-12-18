@@ -1,0 +1,7 @@
+**/build
+.vscode
+5_04_mega_texture/crab_nebula.png
+data/*.blend1
+data/*.blend
+data/*.dae
+5_06_skeleton_animation/preprocess
