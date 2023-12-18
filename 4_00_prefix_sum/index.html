@@ -1,7 +1,7 @@
 <html>
 
-<body>
-    <canvas id="canvas" width="640" height="480"></canvas>
+<body style="background-color: white;">
+    <div id="output"> </div>
 </body>
 <script src="../utils/utils.js">
     //mention out of range array access
@@ -270,8 +270,6 @@
                 | GPUBufferUsage.COPY_DST,
         }) : null;
 
-        const context = configContext(device, canvas)
-
         // create shaders
         let pass1ShaderModule = shaderModuleFromCode(device, 'shader');
         let pass2ShaderModule = shaderModuleFromCode(device, 'scan_sum_shader');
@@ -497,6 +495,7 @@
         const passEncoder = commandEncoder.beginComputePass(
             computePassDescriptor
         );
+        
         passEncoder.setPipeline(pass1ComputePipeline);
         passEncoder.setBindGroup(0, pass1UniformBindGroup);
         passEncoder.dispatchWorkgroups(chunkCount);
@@ -523,11 +522,13 @@
                 queryBuffer,
                 0);// destination offset
         }
+        
         commandEncoder.copyBufferToBuffer(outputArrayBuffer, 0,
             readOutputArrayBuffer, 0, arraySize * 4);
         commandEncoder.copyBufferToBuffer(outputSumArrayBuffer, 0,
             readSumArrayBuffer, 0, sumSize * 4);
 
+            
         device.queue.submit([commandEncoder.finish()]);
         await device.queue.onSubmittedWorkDone();
 
@@ -549,17 +550,22 @@
         let currentSum = 0;
 
         //console.log("first half sum", d[511] + testArray[511], d[512]);
-
+        let hasBug = false;
         for(let i =0;i<testArray.length;++i)
         {
             if (d[i] != currentSum) {
                 console.log("wrong ", i, currentSum, d[i]);
+                document.getElementById('output').innerText += "Wrong: at index " + i + ", expect " + currentSum + " but get " + d[i];
+                hasBug = true;
                 break;
             }
 
             currentSum += testArray[i];
         }
 
+        if (!hasBug) {
+            document.getElementById('output').innerText += "Test pass!";
+        }
         readOutputArrayBuffer.unmap();
 
 
@@ -580,6 +586,7 @@
             await gpuReadBuffer.mapAsync(GPUMapMode.READ);
             let result = new BigInt64Array(gpuReadBuffer.getMappedRange());
             console.log("run time: ", (result[1] - result[0]));
+            document.getElementById('output').innerText += "\nRun time: " + (result[1] - result[0]) + " nsecs" ;
             gpuReadBuffer.unmap();
             gpuReadBuffer.destroy();
         }
