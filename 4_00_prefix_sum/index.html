@@ -49,7 +49,6 @@
 
             workgroupBarrier();
             var offset:u32 = 1;
-            var d:u32 = n>>1;
 
             for (var d:u32 = n>>1; d > 0; d >>= 1)
             { 
@@ -101,12 +100,11 @@
 
             storageBarrier();
  
-           /* d = sumSize>>1;
             offset = 1;
             for (var d:u32 = sumSize>>1; d > 0; d >>= 1)
             {   
                 if (thid == 0) {
-                    if (WorkgroupID.x < d)    
+                    if (WorkgroupID.x < d)
                     {
                         var ai:u32 = offset*(2*WorkgroupID.x +1)-1;     
                         var bi:u32 = offset*(2*WorkgroupID.x +2)-1;  
@@ -117,10 +115,15 @@
                 storageBarrier();   
             }
 
+            if (WorkgroupID.x == 0) 
+            { 
+                sums[sumSize-1] = 0; 
+            } 
+
             for (var d:u32 = 1; d < sumSize; d *= 2) // traverse down tree & build scan 
             {      
                 offset >>= 1;      
-                if (WorkgroupID.x < d)      
+                if (WorkgroupID.x < d && (WorkgroupID.x % 2 == 0))      
                 { 
                     var ai:u32 = offset*(2*WorkgroupID.x +1)-1;     
                     var bi:u32 = offset*(2*WorkgroupID.x +2)-1; 
@@ -129,7 +132,7 @@
                     sums[bi] += t;
                 } 
                 storageBarrier();      
-            }*/
+            }
       }
 
 </script>
