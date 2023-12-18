@@ -5,17 +5,25 @@
 </body>
 <script src="../utils/utils.js">
     //mention out of range array access
+    // uniform flow control
     //https://github.com/gpuweb/gpuweb/issues/35
     // talk about benchmark,
     // /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --enable-dawn-features=allow_unsafe_apis
     // https://omar-shehata.medium.com/how-to-use-webgpu-timestamp-query-9bf81fb5344a
     // https://betterprogramming.pub/efficient-parallel-prefix-sum-in-metal-for-apple-m1-9e60b974d62
+
+    //https://www.khronos.org/opengl/wiki/Sampler_(GLSL)#Non-uniform_flow_control
+    //https://github.com/KhronosGroup/GLSL/issues/52
+    //https://xol.io/blah/the-trouble-with-spirv/
 </script>
 <script id="shader" type="wgsl">
 
-      @binding(0) @group(0) var<storage, read> input : array<f32>;
-      @binding(1) @group(0) var<storage, read_write> output : array<f32>;
-      @binding(2) @group(0) var<uniform> n:u32;
+      @binding(0) @group(0) var<storage, read> input :array<f32>;
+      @binding(1) @group(0) var<storage, read_write> output :array<f32>;
+      @binding(2) @group(0) var<storage, read_write> sums: array<f32>;
+      @binding(3) @group(0) var<uniform> n:u32;
+      @binding(4) @group(0) var<uniform> sumSize:u32;
+
       const bank_size:u32 = 32;
       var<workgroup> temp: array<f32,532>; //workgroup array must have a fixed size;
 
@@ -29,12 +37,17 @@
       }*/
 
       @compute @workgroup_size(256)
-      fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>) {
-            var thid:u32 = GlobalInvocationID.x;
+      fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>,
+        @builtin(local_invocation_id) LocalInvocationID: vec3<u32>,
+        @builtin(workgroup_id) WorkgroupID: vec3<u32>) {
+            var thid:u32 = LocalInvocationID.x;
+            var globalThid:u32 = GlobalInvocationID.x;
             if (thid < (n>>1)){
-                temp[bank_conflict_free_idx(2*thid)] = input[2*thid]; // load input into shared memory 
-                temp[bank_conflict_free_idx(2*thid+1)] = input[2*thid+1];
+                temp[bank_conflict_free_idx(2*thid)] = input[2*globalThid]; // load input into shared memory 
+                temp[bank_conflict_free_idx(2*thid+1)] = input[2*globalThid+1];
             }
+
+            workgroupBarrier();
             var offset:u32 = 1;
             var d:u32 = n>>1;
 
@@ -60,6 +73,7 @@
             { 
                 temp[bank_conflict_free_idx(n - 1)] = 0; 
             } // clear the last element  
+
             for (var d:u32 = 1; d < n; d *= 2) // traverse down tree & build scan 
             {      
                 offset >>= 1;      
@@ -75,16 +89,54 @@
             }
             
             if (thid < (n>>1)){
-                output[2*thid] = temp[bank_conflict_free_idx(2*thid)]; 
-                output[2*thid+1] = temp[bank_conflict_free_idx(2*thid+1)]; 
+                output[2*globalThid] = temp[bank_conflict_free_idx(2*thid)]; 
+                output[2*globalThid+1] = temp[bank_conflict_free_idx(2*thid+1)]; 
             }
+
+            storageBarrier();
+
+            if (thid == 0) {
+                sums[WorkgroupID.x] = output[512 * WorkgroupID.x + 511];
+            }
+
+            storageBarrier();
+ 
+           /* d = sumSize>>1;
+            offset = 1;
+            for (var d:u32 = sumSize>>1; d > 0; d >>= 1)
+            {   
+                if (thid == 0) {
+                    if (WorkgroupID.x < d)    
+                    {
+                        var ai:u32 = offset*(2*WorkgroupID.x +1)-1;     
+                        var bi:u32 = offset*(2*WorkgroupID.x +2)-1;  
+                        sums[bi] += sums[ai];
+                    }    
+                    offset *= 2; 
+                }
+                storageBarrier();   
+            }
+
+            for (var d:u32 = 1; d < sumSize; d *= 2) // traverse down tree & build scan 
+            {      
+                offset >>= 1;      
+                if (WorkgroupID.x < d)      
+                { 
+                    var ai:u32 = offset*(2*WorkgroupID.x +1)-1;     
+                    var bi:u32 = offset*(2*WorkgroupID.x +2)-1; 
+                    var t:f32 = sums[ai]; 
+                    sums[ai] = sums[bi]; 
+                    sums[bi] += t;
+                } 
+                storageBarrier();      
+            }*/
       }
 
 </script>
 <script>
     const bank_size = 32;
     function bank_conflict_free_idx(idx) {
-        let chunk = Math.floor(idx  / bank_size);
+        let chunk = Math.floor(idx / bank_size);
         let offset_in_chunk = idx % bank_size;
         return offset_in_chunk + chunk;
     }
@@ -115,6 +167,19 @@
 </script>
 <script>
     // createGPUBuffer helper
+
+    function roundUpToNearestPowOf2(v) {
+        //https://graphics.stanford.edu/%7Eseander/bithacks.html#RoundUpPowerOf2
+        v--;
+        v |= v >> 1;
+        v |= v >> 2;
+        v |= v >> 4;
+        v |= v >> 8;
+        v |= v >> 16;
+        v++;
+        return v;
+    }
+
     async function webgpu() {
         const adapter = await navigator.gpu.requestAdapter();
         console.log(adapter);
@@ -160,12 +225,22 @@
                 {
                     binding: 2,
                     visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: "storage" }
+                },
+                {
+                    binding: 3,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: {}
+                },
+                {
+                    binding: 4,
+                    visibility: GPUShaderStage.COMPUTE,
                     buffer: {}
                 }
             ]
         });
 
-        const arraySize = 512;
+        const arraySize = 1024;
         const testArray = [];
         for (let i = 0; i < arraySize; ++i) {
             testArray.push(Math.floor(Math.random() * 100) + 1);
@@ -173,10 +248,15 @@
 
         let inputArrayBuffer = createGPUBuffer(device, new Float32Array(testArray), GPUBufferUsage.STORAGE);
         let outputArrayBuffer = createGPUBuffer(device, new Float32Array(arraySize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
-        let readArrayBuffer = createGPUBuffer(device, new Float32Array(arraySize), GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
+        let readOutputArrayBuffer = createGPUBuffer(device, new Float32Array(arraySize), GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
 
         let arraySizeBuffer = createGPUBuffer(device, new Uint32Array([arraySize]), GPUBufferUsage.UNIFORM);
+        let sumSize = roundUpToNearestPowOf2(arraySize / 512 );
+        console.log("sum size", roundUpToNearestPowOf2(arraySize / 512));
+        let sumArrayBuffer = createGPUBuffer(device, new Float32Array(sumSize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
+        let readSumArrayBuffer = createGPUBuffer(device, new Float32Array(sumSize), GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
 
+        let sumSizeBuffer = createGPUBuffer(device, new Uint32Array([sumSize]), GPUBufferUsage.UNIFORM);
         let uniformBindGroup = device.createBindGroup({
             layout: uniformBindGroupLayout,
             entries: [
@@ -195,7 +275,19 @@
                 {
                     binding: 2,
                     resource: {
+                        buffer: sumArrayBuffer
+                    }
+                },
+                {
+                    binding: 3,
+                    resource: {
                         buffer: arraySizeBuffer
+                    }
+                },
+                {
+                    binding: 4,
+                    resource: {
+                        buffer: sumSizeBuffer
                     }
                 }
             ]
@@ -221,12 +313,11 @@
         );
         passEncoder.setPipeline(computePipeline);
         passEncoder.setBindGroup(0, uniformBindGroup);
-        passEncoder.dispatchWorkgroups(1);
+        passEncoder.dispatchWorkgroups(2);
         passEncoder.end();
         if (hasTimestampQuery) {
             commandEncoder.writeTimestamp(querySet, 1);// Initial timestamp
-            commandEncoder.copyBufferToBuffer(outputArrayBuffer, 0,
-                readArrayBuffer, 0, arraySize * 4);
+
             commandEncoder.resolveQuerySet(
                 querySet,
                 0,// index of first query to resolve 
@@ -234,24 +325,46 @@
                 queryBuffer,
                 0);// destination offset
         }
+        commandEncoder.copyBufferToBuffer(outputArrayBuffer, 0,
+            readOutputArrayBuffer, 0, arraySize * 4);
+        commandEncoder.copyBufferToBuffer(sumArrayBuffer, 0,
+            readSumArrayBuffer, 0, sumSize * 4);
+
         device.queue.submit([commandEncoder.finish()]);
         await device.queue.onSubmittedWorkDone();
 
-        await readArrayBuffer.mapAsync(GPUMapMode.READ, 0, arraySize * 4);
+        await readOutputArrayBuffer.mapAsync(GPUMapMode.READ, 0, arraySize * 4);
 
-        const d = new Float32Array(readArrayBuffer.getMappedRange());
+        const d = new Float32Array(readOutputArrayBuffer.getMappedRange());
 
 
         let sum = 0;
         for (let i = 0; i < arraySize; ++i) {
             sum += testArray[i];
         }
-        console.log('result sum', d[arraySize - 1], sum);
+        //console.log('result sum', d[arraySize - 1], sum);
 
-        console.log('test array', new Float32Array(testArray));
-        console.log('result array', d);
+        console.log('test array', (new Float32Array(testArray)).slice(0, 512));
+        console.log('result array', d.slice(0, 512));
+        console.log('first half sum', d.slice(0, 512)[511]);
 
-        readArrayBuffer.unmap();
+        console.log('test array', (new Float32Array(testArray)).slice(512, 1024));
+        console.log('result array', d.slice(512, 1024));
+        console.log('second half sum', d.slice(512, 1024)[511]);
+
+        readOutputArrayBuffer.unmap();
+
+
+        await readSumArrayBuffer.mapAsync(GPUMapMode.READ, 0, sumSize * 4);
+
+        const d2 = new Float32Array(readSumArrayBuffer.getMappedRange());
+
+        console.log(d2);
+
+        readSumArrayBuffer.unmap();
+
+
+
         if (hasTimestampQuery) {
             const gpuReadBuffer = device.createBuffer({ size: queryBuffer.size, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
             const copyEncoder = device.createCommandEncoder();
