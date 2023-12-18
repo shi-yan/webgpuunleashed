@@ -3,7 +3,7 @@ repo = "https://github.com/shi-yan/WebGPUTutorial"
 # need to have the slash
 prefix = "WebGPUTutorial"
 target = "../WebGPUTutorial"
-url = "https://shi-yan.github.io/"
+url = "https://shi-yan.github.io/WebGPUTutorial/"
 meta_image = "meta.png"
 description = "Your ticket to the dynamic world of graphics programming."
 utilities = [ "utils" , "data", "shader", "crab_nebula"]
