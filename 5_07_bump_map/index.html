@@ -100,7 +100,7 @@ var t_disp: texture_2d<f32>;
 @group(0) @binding(8)
 var s_diffuse: sampler;
 
-const height_scale:f32 = 0.05;
+const height_scale:f32 = 0.001;
 
 fn ParallaxMapping( texCoords:vec2<f32>,  viewDir:vec3<f32>) -> vec2<f32>
 { 
@@ -117,9 +117,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     var T:vec3<f32> = normalize(t - dot(t, n) * n);
     var B:vec3<f32> = cross(n, T);
     
-    var TBN:mat3x3<f32> =  mat3x3<f32>(T, B, n);  
-    
-
+    var TBN:mat3x3<f32> =  mat3x3<f32>(T, B, n);
 
     var viewDir: vec3<f32> = in.viewDir;
 
@@ -248,10 +246,10 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         // create shaders
         let code = document.getElementById('shader').innerText;
 
-        let diffuseTexture = await img2texture(device, '../data/Rock_Mosaic_DIFF.png');
-        let specTexture = await img2texture(device, '../data/Rock_Mosaic_SPEC.png');
-        let normalTexture = await img2texture(device, '../data/Rock_Mosaic_NORM.png');
-        let displacementTexture = await img2texture(device, '../data/Rock_Mosaic_DISP.png');
+        let diffuseTexture = await img2texture(device, '../data/brick.jpg');
+        //let specTexture = await img2texture(device, '../data/Rock_Mosaic_SPEC.png');
+        let normalTexture = await img2texture(device, '../data/brick_normal.png');
+        let displacementTexture = await img2texture(device, '../data/brick_disp.png');
 
         const shaderDesc = { code: code };
         let shaderModule = device.createShaderModule(shaderDesc);

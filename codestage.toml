@@ -8,7 +8,7 @@ meta_image = "meta.png"
 description = "Your ticket to the dynamic world of graphics programming."
 utilities = [ "utils" , "data", "shader", "crab_nebula"]
 readme_folder = "readme"
-default_sample = "4_02_reaction_diffusion"
+default_sample = "5_06_skeleton_animation"
 
 [[content]]
 title = "1. Basics"
