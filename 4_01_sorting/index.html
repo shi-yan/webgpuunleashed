@@ -69,8 +69,10 @@
                     temp1[bank_conflict_free_idx(2*thid+1)] = 1 << 16;
                 }
             }
-
             workgroupBarrier();
+
+         
+
             var offset:u32 = 1;
 
             for (var d:u32 = n>>1; d > 0; d >>= 1)
@@ -111,7 +113,12 @@
                 } 
                 workgroupBarrier();      
             }
-            
+
+            var count0:u32 = temp0[bank_conflict_free_idx(2*255)] & 0xFFFF;
+            var count1:u32 = (temp0[bank_conflict_free_idx(2*255)] >> 16 )& 0xFFFF;
+            var count2:u32 = temp1[bank_conflict_free_idx(2*255)] & 0xFFFF;
+            //var count3:u16 = (temp1[bank_conflict_free_idx(2*255)] >> 16 )& 0xFFFF;
+
             if (thid < (n>>1)){
                 var val:u32 = input[2*globalThid] & 3;
 
@@ -121,18 +128,18 @@
                     id += temp0[bank_conflict_free_idx(2*thid)] & 0xFFFF;
                 }
                 else if (val == 1) {
-                    id += temp0[bank_conflict_free_idx(2*thid)] & 0xFFFF;
+                    id +=count0;
                     id += (temp0[bank_conflict_free_idx(2*thid)] >> 16 )& 0xFFFF;
                 }
                 else if (val == 2) {
-                    id += temp0[bank_conflict_free_idx(2*thid)] & 0xFFFF;
-                    id += (temp0[bank_conflict_free_idx(2*thid)] >> 16 )& 0xFFFF;
+                    id += count0;
+                    id += count1;
                     id += temp1[bank_conflict_free_idx(2*thid)] & 0xFFFF;
                 }
                 else if (val == 3) {
-                    id += temp0[bank_conflict_free_idx(2*thid)] & 0xFFFF;
-                    id += (temp0[bank_conflict_free_idx(2*thid)] >> 16 )& 0xFFFF;
-                    id += temp1[bank_conflict_free_idx(2*thid)] & 0xFFFF;
+                    id +=count0;
+                    id +=count1;
+                    id +=count2;
                     id += (temp1[bank_conflict_free_idx(2*thid)] >> 16 )& 0xFFFF;
                 }
 
@@ -146,22 +153,22 @@
                     id += temp0[bank_conflict_free_idx(2*thid+1)] & 0xFFFF;
                 }
                 else if (val == 1) {
-                    id += temp0[bank_conflict_free_idx(2*thid+1)] & 0xFFFF;
+                    id += count0;
                     id += (temp0[bank_conflict_free_idx(2*thid+1)] >> 16 )& 0xFFFF;
                 }
                 else if (val == 2) {
-                    id += temp0[bank_conflict_free_idx(2*thid+1)] & 0xFFFF;
-                    id += (temp0[bank_conflict_free_idx(2*thid+1)] >> 16 )& 0xFFFF;
+                    id += count0;
+                    id += count1;
                     id += temp1[bank_conflict_free_idx(2*thid+1)] & 0xFFFF;
                 }
                 else if (val == 3) {
-                    id += temp0[bank_conflict_free_idx(2*thid+1)] & 0xFFFF;
-                    id += (temp0[bank_conflict_free_idx(2*thid+1)] >> 16 )& 0xFFFF;
-                    id += temp1[bank_conflict_free_idx(2*thid+1)] & 0xFFFF;
+                    id += count0;
+                    id += count1;
+                    id += count2;
                     id += (temp1[bank_conflict_free_idx(2*thid+1)] >> 16 )& 0xFFFF;
                 }
-
                 output[id] = input[2*globalThid+1]; 
+             
             }
       }
 
@@ -240,9 +247,9 @@
         console.log(testArray);
 
 
-        let inputArrayBuffer = createGPUBuffer(device, new Float32Array(testArray), GPUBufferUsage.STORAGE);
-        let outputArrayBuffer = createGPUBuffer(device, new Float32Array(arraySize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
-        let readOutputArrayBuffer = createGPUBuffer(device, new Float32Array(arraySize), GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
+        let inputArrayBuffer = createGPUBuffer(device, new Uint32Array(testArray), GPUBufferUsage.STORAGE);
+        let outputArrayBuffer = createGPUBuffer(device, new Uint32Array(arraySize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
+        let readOutputArrayBuffer = createGPUBuffer(device, new Uint32Array(arraySize), GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
 
         let arraySizeBuffer = createGPUBuffer(device, new Uint32Array([512]), GPUBufferUsage.UNIFORM);
 
@@ -317,9 +324,25 @@
 
         await readOutputArrayBuffer.mapAsync(GPUMapMode.READ, 0, arraySize * 4);
 
-        const d = new Float32Array(readOutputArrayBuffer.getMappedRange());
+        const d = new Uint32Array(readOutputArrayBuffer.getMappedRange());
+        console.log(d.slice(256))
 
-        console.log('result array', d);
+       /* let r = [];
+        let r2 = [];
+
+        let zeroc = 0;
+
+        for(let i =0;i<d.length;++i){
+            r.push((d[i] >> 16) & 0xFFFF);
+            r2.push(zeroc);
+
+            if (testArray[i] == 3) {
+                zeroc++;
+            }
+        }
+
+        console.log('result array', r);
+        console.log('result array', r2);*/
 
         readOutputArrayBuffer.unmap();
 
