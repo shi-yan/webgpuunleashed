@@ -21,8 +21,7 @@
       @binding(0) @group(0) var<storage, read> input :array<f32>;
       @binding(1) @group(0) var<storage, read_write> output :array<f32>;
       @binding(2) @group(0) var<storage, read_write> sums: array<f32>;
-      @binding(3) @group(0) var<uniform> n:u32;
-      @binding(4) @group(0) var<uniform> sumSize:u32;
+      const n:u32 = 512;
 
       const bank_size:u32 = 32;
       var<workgroup> temp: array<f32,532>; //workgroup array must have a fixed size;
@@ -183,7 +182,7 @@
 <script id="add_sum_shader" type="wgsl">
     @binding(0) @group(0) var<storage, read_write> output :array<f32>;
     @binding(1) @group(0) var<storage, read> sums: array<f32>;
-    @binding(2) @group(0) var<uniform> n:u32;
+    const n:u32 = 512;
 
     @compute @workgroup_size(256)
     fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>,
@@ -292,16 +291,6 @@
                     binding: 2,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: { type: "storage" }
-                },
-                {
-                    binding: 3,
-                    visibility: GPUShaderStage.COMPUTE,
-                    buffer: {}
-                },
-                {
-                    binding: 4,
-                    visibility: GPUShaderStage.COMPUTE,
-                    buffer: {}
                 }
             ]
         });
@@ -339,11 +328,6 @@
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: { type: 'read-only-storage' }
 
-                },
-                {
-                    binding: 2,
-                    visibility: GPUShaderStage.COMPUTE,
-                    buffer: {}
                 }
             ]
         });
@@ -362,7 +346,6 @@
         let outputArrayBuffer = createGPUBuffer(device, new Float32Array(arraySize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
         let readOutputArrayBuffer = createGPUBuffer(device, new Float32Array(arraySize), GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
 
-        let arraySizeBuffer = createGPUBuffer(device, new Uint32Array([512]), GPUBufferUsage.UNIFORM);
         console.log("sum size", sumSize);
 
         let sumArrayBuffer = createGPUBuffer(device, new Float32Array(sumSize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
@@ -390,18 +373,6 @@
                     binding: 2,
                     resource: {
                         buffer: sumArrayBuffer
-                    }
-                },
-                {
-                    binding: 3,
-                    resource: {
-                        buffer: arraySizeBuffer
-                    }
-                },
-                {
-                    binding: 4,
-                    resource: {
-                        buffer: sumSizeBuffer
                     }
                 }
             ]
@@ -445,12 +416,6 @@
                     binding: 1,
                     resource: {
                         buffer: outputSumArrayBuffer
-                    }
-                },
-                {
-                    binding: 2,
-                    resource: {
-                        buffer: arraySizeBuffer
                     }
                 }
             ]
