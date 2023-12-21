@@ -19,8 +19,9 @@
 <script id="shader" type="wgsl">
 
       @binding(0) @group(0) var<storage, read> input :array<u32>;
-      @binding(1) @group(0) var<storage, read_write> output :array<u32>;
-      @binding(2) @group(0) var<storage, read_write> sums: array<u32>;
+      @binding(1) @group(0) var<storage, read_write> output0 :array<u32>;
+      @binding(2) @group(0) var<storage, read_write> output1 :array<u32>;
+      @binding(3) @group(0) var<storage, read_write> sums: array<u32>;
 
       @binding(0) @group(1) var<uniform> radixMask:array<vec4<u32>, 4>;
       @binding(0) @group(2) var<uniform> radixMaskId:u32;
@@ -149,18 +150,26 @@
                 sums[WorkgroupID.x * 4+2] = count2;
                 sums[WorkgroupID.x * 4+3] = count3;
             }
+
+            if (thid < (n>>1)){
+                output0[2*globalThid] = temp0[bank_conflict_free_idx(2*thid)]; 
+                output0[2*globalThid+1] = temp0[bank_conflict_free_idx(2*thid+1)]; 
+
+                output1[2*globalThid] = temp1[bank_conflict_free_idx(2*thid)]; 
+                output1[2*globalThid+1] = temp1[bank_conflict_free_idx(2*thid+1)]; 
+            }
       }
 </script>
 
 
 <script id="scan_sum_shader" type="wgsl">
 
-    @binding(0) @group(0) var<storage, read> input :array<f32>;
-    @binding(1) @group(0) var<storage, read_write> output :array<f32>;
+    @binding(0) @group(0) var<storage, read> input :array<u32>;
+    @binding(1) @group(0) var<storage, read_write> output :array<u32>;
     @binding(2) @group(0) var<uniform> n:u32;
 
     const bank_size:u32 = 32;
-    var<workgroup> temp: array<f32,532>; //workgroup array must have a fixed size;
+    var<workgroup> temp: array<u32,532>; //workgroup array must have a fixed size;
 
     fn bank_conflict_free_idx( idx:u32) -> u32 {
       var chunk_id:u32 = idx / bank_size;
@@ -216,7 +225,7 @@
               { 
                   var ai:u32 = offset*(2*thid+1)-1;     
                   var bi:u32 = offset*(2*thid+2)-1; 
-                  var t:f32 = temp[bank_conflict_free_idx(ai)]; 
+                  var t:u32 = temp[bank_conflict_free_idx(ai)]; 
                   temp[bank_conflict_free_idx(ai)] = temp[bank_conflict_free_idx(bi)]; 
                   temp[bank_conflict_free_idx(bi)] += t;       
               } 
@@ -229,6 +238,94 @@
           }
     }
 
+</script>
+
+
+<script id="shuffle_shader" type="wgsl">
+    @binding(0) @group(0) var<storage, read> input :array<u32>;
+    @binding(1) @group(0) var<storage, read> temp0 :array<u32>;
+    @binding(2) @group(0) var<storage, read> temp1 :array<u32>;
+    @binding(3) @group(0) var<storage, read> sums: array<u32>;
+    @binding(4) @group(0) var<uniform> sumSize: u32;
+    @binding(5) @group(0) var<storage, read_write> output :array<u32>;
+    const n:u32 = 512;
+
+    @binding(0) @group(1) var<uniform> radixMask:array<vec4<u32>, 4>;
+    @binding(0) @group(2) var<uniform> radixMaskId:u32;
+
+    fn mask(id:u32) -> u32 {
+        return radixMask[id / 4][id % 4];
+    }
+
+    @compute @workgroup_size(256)
+    fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>,
+      @builtin(local_invocation_id) LocalInvocationID: vec3<u32>,
+      @builtin(workgroup_id) WorkgroupID: vec3<u32>) {
+        var thid:u32 = LocalInvocationID.x;
+        var globalThid:u32 = GlobalInvocationID.x;
+        
+        var count0beforeCurrentWorkgroup:u32 = sums[WorkgroupID.x * 4];
+        var count1beforeCurrentWorkgroup:u32 = sums[WorkgroupID.x * 4+1];
+        var count2beforeCurrentWorkgroup:u32 = sums[WorkgroupID.x * 4+2];
+        var count3beforeCurrentWorkgroup:u32 =  sums[WorkgroupID.x * 4+3];
+
+        var count0overall:u32 = sums[sumSize*4];
+        var count1overall:u32 = sums[sumSize*4+1];
+        var count2overall:u32 = sums[sumSize*4+2];
+        var count3overall:u32 = sums[sumSize*4+3];
+
+        if (thid < (n>>1)){
+            var val:u32 = (input[2*globalThid] & mask(radixMaskId)) >> (radixMaskId << 1);
+
+            var id:u32 = 0;
+
+            if (val == 0) {
+                id += (temp0[2*globalThid] + ((count1beforeCurrentWorkgroup << 16) & count0beforeCurrentWorkgroup) ) & 0xFFFF;
+            }
+            else if (val == 1) {
+                id +=count0overall;
+                id += ((temp0[2*globalThid] + ((count1beforeCurrentWorkgroup << 16) & count0beforeCurrentWorkgroup))>> 16 )& 0xFFFF;
+            }
+            else if (val == 2) {
+                id += count0overall;
+                id += count1overall;
+                id += (temp1[2*globalThid] + ((count3beforeCurrentWorkgroup << 16) & count2beforeCurrentWorkgroup) )& 0xFFFF;
+            }
+            else if (val == 3) {
+                id +=count0overall;
+                id +=count1overall;
+                id +=count2overall;
+                id += ((temp1[2*globalThid] + ((count3beforeCurrentWorkgroup << 16) & count2beforeCurrentWorkgroup) ) >> 16 )& 0xFFFF;
+            }
+
+            output[id] = input[2*globalThid]; 
+
+            id = 0;
+
+            val = (input[2*globalThid+1] & mask(radixMaskId)) >> (radixMaskId << 1);
+
+            if (val == 0) {
+                id += (temp0[2*globalThid+1] + ((count1beforeCurrentWorkgroup << 16) & count0beforeCurrentWorkgroup) ) & 0xFFFF;
+            }
+            else if (val == 1) {
+                id +=count0overall;
+                id += ((temp0[2*globalThid+1] + ((count1beforeCurrentWorkgroup << 16) & count0beforeCurrentWorkgroup))>> 16 )& 0xFFFF;
+            }
+            else if (val == 2) {
+                id += count0overall;
+                id += count1overall;
+                id += (temp1[2*globalThid+1] + ((count3beforeCurrentWorkgroup << 16) & count2beforeCurrentWorkgroup) )& 0xFFFF;
+            }
+            else if (val == 3) {
+                id +=count0overall;
+                id +=count1overall;
+                id +=count2overall;
+                id += ((temp1[2*globalThid+1] + ((count3beforeCurrentWorkgroup << 16) & count2beforeCurrentWorkgroup) ) >> 16 )& 0xFFFF;
+            }
+
+            output[id] = input[2*globalThid+1];
+        }
+    }
 </script>
 
 <script>
@@ -273,6 +370,7 @@
         // create shaders
         let pass1ShaderModule = shaderModuleFromCode(device, 'shader');
         let pass2ShaderModule = shaderModuleFromCode(device, 'scan_sum_shader');
+        let pass3ShaderModule = shaderModuleFromCode(device, 'shuffle_shader');
 
         let pass1UniformBindGroupLayoutInputOutput = device.createBindGroupLayout({
             entries: [
@@ -291,11 +389,16 @@
                     binding: 2,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: { type: "storage" }
+                },
+                {
+                    binding: 3,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: "storage" }
                 }
             ]
         });
 
-        let pass1UniformBindGroupLayoutRadixMask = device.createBindGroupLayout({
+        let pass13UniformBindGroupLayoutRadixMask = device.createBindGroupLayout({
             entries: [
                 {
                     binding: 0,
@@ -305,7 +408,7 @@
             ]
         });
 
-        let pass1UniformBindGroupLayoutRadixId = device.createBindGroupLayout({
+        let pass13UniformBindGroupLayoutRadixId = device.createBindGroupLayout({
             entries: [
                 {
                     binding: 0,
@@ -337,6 +440,42 @@
             ]
         });
 
+        let pass3UniformBindGroup0Layout = device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: 'read-only-storage' }
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: 'read-only-storage' }
+                },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: 'read-only-storage' }
+                },
+                {
+                    binding: 3,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: 'read-only-storage' }
+                },
+                {
+                    binding: 4,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: {  }
+                },
+                {
+                    binding: 5,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: { type: 'storage' }
+
+                }
+            ]
+        });
+
         const arraySize = 1024;
         const chunkCount = arraySize / 512;
 
@@ -359,7 +498,10 @@
         }
 
         let inputArrayBuffer = createGPUBuffer(device, new Uint32Array(testArray), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
+        let tempBuffer0 = createGPUBuffer(device, new Uint32Array(arraySize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
+        let tempBuffer1 = createGPUBuffer(device, new Uint32Array(arraySize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
         let outputArrayBuffer = createGPUBuffer(device, new Uint32Array(arraySize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
+
         let sumArrayBuffer = createGPUBuffer(device, new Float32Array(sumSize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
         let outputSumArrayBuffer = createGPUBuffer(device, new Float32Array(sumSize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
 
@@ -387,11 +529,17 @@
                 {
                     binding: 1,
                     resource: {
-                        buffer: outputArrayBuffer
+                        buffer: tempBuffer0
                     }
                 },
                 {
                     binding: 2,
+                    resource: {
+                        buffer: tempBuffer1
+                    }
+                },
+                {
+                    binding: 3,
                     resource: {
                         buffer: sumArrayBuffer
                     }
@@ -411,11 +559,17 @@
                 {
                     binding: 1,
                     resource: {
-                        buffer: inputArrayBuffer
+                        buffer: tempBuffer0
                     }
                 },
                 {
                     binding: 2,
+                    resource: {
+                        buffer: tempBuffer1
+                    }
+                },
+                {
+                    binding: 3,
                     resource: {
                         buffer: sumArrayBuffer
                     }
@@ -423,8 +577,8 @@
             ]
         });
 
-        let pass1UniformBindGroupRadixMask = device.createBindGroup({
-            layout: pass1UniformBindGroupLayoutRadixMask,
+        let pass13UniformBindGroupRadixMask = device.createBindGroup({
+            layout: pass13UniformBindGroupLayoutRadixMask,
             entries: [
                 {
                     binding: 0,
@@ -434,10 +588,10 @@
                 }
             ]
         });
-        let pass1UniformBindGroupRadixIds = [];
+        let pass13UniformBindGroupRadixIds = [];
         for (let i = 0; i < 16; ++i) {
-            let pass1UniformBindGroupRadixId = device.createBindGroup({
-                layout: pass1UniformBindGroupLayoutRadixId,
+            let pass13UniformBindGroupRadixId = device.createBindGroup({
+                layout: pass13UniformBindGroupLayoutRadixId,
                 entries: [
                     {
                         binding: 0,
@@ -447,7 +601,7 @@
                     }
                 ]
             });
-            pass1UniformBindGroupRadixIds.push(pass1UniformBindGroupRadixId);
+            pass13UniformBindGroupRadixIds.push(pass13UniformBindGroupRadixId);
         }
 
 
@@ -474,10 +628,96 @@
                 }
             ]
         });
+        
+
+        let pass3UniformBindGroup0 = device.createBindGroup({
+            layout: pass3UniformBindGroup0Layout,
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: inputArrayBuffer
+                    }
+                },
+                {
+                    binding: 1,
+                    resource: {
+                        buffer: tempBuffer0
+                    }
+                },
+                {
+                    binding: 2,
+                    resource: {
+                        buffer: tempBuffer1
+                    }
+                },
+                {
+                    binding: 3,
+                    resource: {
+                        buffer: sumArrayBuffer
+                    }
+                },
+                {
+                    binding: 4,
+                    resource: {
+                        buffer: sumSizeBuffer
+                    }
+                },
+                {
+                    binding: 5,
+                    resource: {
+                        buffer: outputArrayBuffer
+                    }
+                }
+            ]
+        });
+
+
+        let pass3UniformBindGroup1 = device.createBindGroup({
+            layout: pass3UniformBindGroup0Layout,
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: outputArrayBuffer
+                    }
+                },
+                {
+                    binding: 1,
+                    resource: {
+                        buffer: tempBuffer0
+                    }
+                },
+                {
+                    binding: 2,
+                    resource: {
+                        buffer: tempBuffer1
+                    }
+                },
+                {
+                    binding: 3,
+                    resource: {
+                        buffer: sumArrayBuffer
+                    }
+                },
+                {
+                    binding: 4,
+                    resource: {
+                        buffer: sumSizeBuffer
+                    }
+                },
+                {
+                    binding: 5,
+                    resource: {
+                        buffer: inputArrayBuffer
+                    }
+                }
+            ]
+        });
 
         const pass1PipelineLayoutDesc = {
             bindGroupLayouts: [pass1UniformBindGroupLayoutInputOutput,
-                pass1UniformBindGroupLayoutRadixMask, pass1UniformBindGroupLayoutRadixId]
+                pass13UniformBindGroupLayoutRadixMask, pass13UniformBindGroupLayoutRadixId]
         };
         const pass1Layout = device.createPipelineLayout(pass1PipelineLayoutDesc);
         const pass1ComputePipeline = device.createComputePipeline({
@@ -494,6 +734,18 @@
             layout: pass2Layout,
             compute: {
                 module: pass2ShaderModule,
+                entryPoint: 'main',
+            }
+        });
+
+
+        const pass3PipelineLayoutDesc = { bindGroupLayouts: [pass3UniformBindGroup0Layout,
+                pass13UniformBindGroupLayoutRadixMask, pass13UniformBindGroupLayoutRadixId] };
+        const pass3Layout = device.createPipelineLayout(pass3PipelineLayoutDesc);
+        const pass3ComputePipeline = device.createComputePipeline({
+            layout: pass3Layout,
+            compute: {
+                module: pass3ShaderModule,
                 entryPoint: 'main',
             }
         });
@@ -518,9 +770,9 @@
             else {
                 passEncoder.setBindGroup(0, pass1UniformBindGroupInputOutput1);
             }
-            passEncoder.setBindGroup(1, pass1UniformBindGroupRadixMask);
-            passEncoder.setBindGroup(2, pass1UniformBindGroupRadixIds[i]);
-            passEncoder.dispatchWorkgroups(1);
+            passEncoder.setBindGroup(1, pass13UniformBindGroupRadixMask);
+            passEncoder.setBindGroup(2, pass13UniformBindGroupRadixIds[i]);
+            passEncoder.dispatchWorkgroups(chunkCount);
             passEncoder.end();
 
 
@@ -529,6 +781,19 @@
             pass2Encoder.setBindGroup(0, pass2UniformBindGroup);
             pass2Encoder.dispatchWorkgroups(1);
             pass2Encoder.end();
+
+
+            const pass3Encoder = commandEncoder.beginComputePass(computePassDescriptor);
+            pass3Encoder.setPipeline(pass3ComputePipeline);
+            if (i % 2 == 0){
+                pass3Encoder.setBindGroup(0, pass3UniformBindGroup0);
+            } else {
+                pass3Encoder.setBindGroup(0, pass3UniformBindGroup1);
+            }
+            pass3Encoder.setBindGroup(1, pass13UniformBindGroupRadixMask);
+            pass3Encoder.setBindGroup(2, pass13UniformBindGroupRadixIds[i]);
+            pass3Encoder.dispatchWorkgroups(chunkCount);
+            pass3Encoder.end();
         }
 
         if (hasTimestampQuery) {
