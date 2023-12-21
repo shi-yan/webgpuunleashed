@@ -20,15 +20,24 @@
 
       @binding(0) @group(0) var<storage, read> input :array<u32>;
       @binding(1) @group(0) var<storage, read_write> output :array<u32>;
-      @binding(2) @group(0) var<uniform> n:u32;
+      
+      @binding(0) @group(1) var<uniform> radixMask:array<vec4<u32>, 4>;
+
+      @binding(0) @group(2) var<uniform> radixMaskId:u32;
+
 
       const bank_size:u32 = 32;
+      const n:u32 = 512;
       var<workgroup> temp0: array<u32,532>;
       var<workgroup> temp1: array<u32,532>;
 
       fn bank_conflict_free_idx( idx:u32) -> u32 {
         var chunk_id:u32 = idx / bank_size;
         return idx + chunk_id;
+      }
+
+      fn mask(id:u32) -> u32 {
+       return radixMask[id / 4][id % 4];
       }
 
       @compute @workgroup_size(256)
@@ -39,7 +48,7 @@
             var globalThid:u32 = GlobalInvocationID.x;
             if (thid < (n>>1)){
 
-                var val:u32 = input[2*globalThid] & 3;
+                var val:u32 = (input[2*globalThid] & mask(radixMaskId)) >> (radixMaskId << 1);
 
                 if (val == 0) {
                     temp0[bank_conflict_free_idx(2*thid)] = 1;
@@ -54,7 +63,7 @@
                     temp1[bank_conflict_free_idx(2*thid)] = 1 << 16;
                 }
 
-                val = input[2*globalThid+1] & 3;
+                val = (input[2*globalThid+1] & mask(radixMaskId)) >> (radixMaskId << 1);
 
                 if (val == 0) {
                     temp0[bank_conflict_free_idx(2*thid+1)] = 1;
@@ -119,8 +128,24 @@
             var count2:u32 = temp1[bank_conflict_free_idx(2*255)] & 0xFFFF;
             //var count3:u16 = (temp1[bank_conflict_free_idx(2*255)] >> 16 )& 0xFFFF;
 
+            var last:u32 =  (input[2*255] & mask(radixMaskId))  >> (radixMaskId << 1); 
+            switch(last) {
+                case 0: {count0 += 1;}
+                case 1: {count1 += 1;}
+                case 2: {count2 += 1;}
+                default {}
+            }
+
+            last =  (input[2*255+1] & mask(radixMaskId))  >> (radixMaskId << 1); 
+            switch(last) {
+                case 0: {count0 += 1;}
+                case 1: {count1 += 1;}
+                case 2: {count2 += 1;}
+                default {}
+            }
+
             if (thid < (n>>1)){
-                var val:u32 = input[2*globalThid] & 3;
+                var val:u32 = (input[2*globalThid] & mask(radixMaskId)) >> (radixMaskId << 1);
 
                 var id:u32 = 0;
 
@@ -147,7 +172,7 @@
 
                 id = 0;
 
-                val = input[2*globalThid+1] & 3;
+                val = (input[2*globalThid+1] & mask(radixMaskId)) >> (radixMaskId << 1);
 
                 if (val == 0) {
                     id += temp0[bank_conflict_free_idx(2*thid+1)] & 0xFFFF;
@@ -216,7 +241,7 @@
         // create shaders
         let pass1ShaderModule = shaderModuleFromCode(device, 'shader');
 
-        let pass1UniformBindGroupLayout = device.createBindGroupLayout({
+        let pass1UniformBindGroupLayoutInputOutput = device.createBindGroupLayout({
             entries: [
                 {
                     binding: 0,
@@ -228,9 +253,24 @@
                     binding: 1,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: { type: "storage" }
-                },
+                }
+            ]
+        });
+
+        let pass1UniformBindGroupLayoutRadixMask = device.createBindGroupLayout({
+            entries: [
                 {
-                    binding: 2,
+                    binding: 0,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: {}
+                }
+            ]
+        });
+
+        let pass1UniformBindGroupLayoutRadixId = device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: {}
                 }
@@ -241,20 +281,37 @@
 
         const testArray = [];
         for (let i = 0; i < arraySize; ++i) {
-            testArray.push(Math.floor(Math.random() * 4));
+            testArray.push(Math.floor(Math.random() * 16));
         }
 
         console.log(testArray);
 
+        let radixMask = [];
 
-        let inputArrayBuffer = createGPUBuffer(device, new Uint32Array(testArray), GPUBufferUsage.STORAGE);
+        let m = 0b11;
+
+        for (let i = 0; i < 16; ++i) {
+            radixMask.push(m);
+            m <<= 2;
+        }
+
+        let inputArrayBuffer = createGPUBuffer(device, new Uint32Array(testArray), GPUBufferUsage.STORAGE| GPUBufferUsage.COPY_SRC);
         let outputArrayBuffer = createGPUBuffer(device, new Uint32Array(arraySize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
+
         let readOutputArrayBuffer = createGPUBuffer(device, new Uint32Array(arraySize), GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
 
-        let arraySizeBuffer = createGPUBuffer(device, new Uint32Array([512]), GPUBufferUsage.UNIFORM);
+        let radixMaskUniformBuffer = createGPUBuffer(device, new Uint32Array(radixMask), GPUBufferUsage.UNIFORM);
 
-        let pass1UniformBindGroup = device.createBindGroup({
-            layout: pass1UniformBindGroupLayout,
+        let radixIdUniformBuffers = [];
+
+        for (let i = 0; i < 16; ++i) {
+            let radixIdUniformBuffer = createGPUBuffer(device, new Uint32Array([i]), GPUBufferUsage.UNIFORM);
+
+            radixIdUniformBuffers.push(radixIdUniformBuffer);
+        }
+
+        let pass1UniformBindGroupInputOutput0 = device.createBindGroup({
+            layout: pass1UniformBindGroupLayoutInputOutput,
             entries: [
                 {
                     binding: 0,
@@ -267,18 +324,59 @@
                     resource: {
                         buffer: outputArrayBuffer
                     }
+                }
+            ]
+        });
+
+        let pass1UniformBindGroupInputOutput1 = device.createBindGroup({
+            layout: pass1UniformBindGroupLayoutInputOutput,
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: outputArrayBuffer
+                    }
                 },
                 {
-                    binding: 2,
+                    binding: 1,
                     resource: {
-                        buffer: arraySizeBuffer
+                        buffer: inputArrayBuffer
                     }
                 }
             ]
         });
 
+        let pass1UniformBindGroupRadixMask = device.createBindGroup({
+            layout: pass1UniformBindGroupLayoutRadixMask,
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: radixMaskUniformBuffer
+                    }
+                }
+            ]
+        });
+        let pass1UniformBindGroupRadixIds = [];
+        for (let i = 0; i < 16; ++i) {
+            let pass1UniformBindGroupRadixId = device.createBindGroup({
+                layout: pass1UniformBindGroupLayoutRadixId,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: {
+                            buffer: radixIdUniformBuffers[i]
+                        }
+                    }
+                ]
+            });
+            pass1UniformBindGroupRadixIds.push(pass1UniformBindGroupRadixId);
+        }
 
-        const pass1PipelineLayoutDesc = { bindGroupLayouts: [pass1UniformBindGroupLayout] };
+        const pass1PipelineLayoutDesc = {
+            bindGroupLayouts: [pass1UniformBindGroupLayoutInputOutput,
+                pass1UniformBindGroupLayoutRadixMask, pass1UniformBindGroupLayoutRadixId]
+        };
         const pass1Layout = device.createPipelineLayout(pass1PipelineLayoutDesc);
         const pass1ComputePipeline = device.createComputePipeline({
             layout: pass1Layout,
@@ -295,15 +393,24 @@
         if (hasTimestampQuery) {
             commandEncoder.writeTimestamp(querySet, 0);// Initial timestamp
         }
-        const passEncoder = commandEncoder.beginComputePass(
-            computePassDescriptor
-        );
-        
-        passEncoder.setPipeline(pass1ComputePipeline);
-        passEncoder.setBindGroup(0, pass1UniformBindGroup);
-        passEncoder.dispatchWorkgroups(1);
-        passEncoder.end();
 
+        for (let i = 0; i < 2; ++i) {
+            const passEncoder = commandEncoder.beginComputePass(
+                computePassDescriptor
+            );
+
+            passEncoder.setPipeline(pass1ComputePipeline);
+            if (i % 2 == 0) {
+                passEncoder.setBindGroup(0, pass1UniformBindGroupInputOutput0);
+            }
+            else {
+                passEncoder.setBindGroup(0, pass1UniformBindGroupInputOutput1);
+            }
+            passEncoder.setBindGroup(1, pass1UniformBindGroupRadixMask);
+            passEncoder.setBindGroup(2, pass1UniformBindGroupRadixIds[i]);
+            passEncoder.dispatchWorkgroups(1);
+            passEncoder.end();
+        }
 
         if (hasTimestampQuery) {
             commandEncoder.writeTimestamp(querySet, 1);// Initial timestamp
@@ -314,35 +421,51 @@
                 queryBuffer,
                 0);// destination offset
         }
-        
-        commandEncoder.copyBufferToBuffer(outputArrayBuffer, 0,
+
+        commandEncoder.copyBufferToBuffer(inputArrayBuffer, 0,
             readOutputArrayBuffer, 0, arraySize * 4);
 
-            
+
         device.queue.submit([commandEncoder.finish()]);
         await device.queue.onSubmittedWorkDone();
 
         await readOutputArrayBuffer.mapAsync(GPUMapMode.READ, 0, arraySize * 4);
 
         const d = new Uint32Array(readOutputArrayBuffer.getMappedRange());
-        console.log(d.slice(256))
 
-       /* let r = [];
-        let r2 = [];
+        const dispSize = 64;
+        for (let i = 0; i < arraySize / dispSize; ++i) {
+            console.log(d.slice(i*dispSize,(i+1)* dispSize));
+        }
 
-        let zeroc = 0;
+        let v = 0;
 
-        for(let i =0;i<d.length;++i){
-            r.push((d[i] >> 16) & 0xFFFF);
-            r2.push(zeroc);
-
-            if (testArray[i] == 3) {
-                zeroc++;
+        for(let i =0;i<d.length;++i) {
+            if (d[i] >= v) {
+                v = d[i];
+            }
+            else {
+                console.log("wrong v ", i, d[i], v);
+                break;
             }
         }
 
-        console.log('result array', r);
-        console.log('result array', r2);*/
+        /* let r = [];
+         let r2 = [];
+ 
+         let zeroc = 0;
+ 
+         for(let i =0;i<d.length;++i){
+             r.push((d[i] >> 16) & 0xFFFF);
+             r2.push(zeroc);
+ 
+             if (testArray[i] == 3) {
+                 zeroc++;
+             }
+         }
+ 
+         console.log('result array', r);
+         console.log('result array', r2);*/
 
         readOutputArrayBuffer.unmap();
 
@@ -355,7 +478,7 @@
             await gpuReadBuffer.mapAsync(GPUMapMode.READ);
             let result = new BigInt64Array(gpuReadBuffer.getMappedRange());
             console.log("run time: ", (result[1] - result[0]));
-            document.getElementById('output').innerText += "\nRun time: " + (result[1] - result[0]) + " nsecs" ;
+            document.getElementById('output').innerText += "\nRun time: " + (result[1] - result[0]) + " nsecs";
             gpuReadBuffer.unmap();
             gpuReadBuffer.destroy();
         }
