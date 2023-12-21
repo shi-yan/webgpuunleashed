@@ -281,7 +281,7 @@
 
         const testArray = [];
         for (let i = 0; i < arraySize; ++i) {
-            testArray.push(Math.floor(Math.random() * 16));
+            testArray.push(Math.floor(Math.random() * 65536));
         }
 
         console.log(testArray);
@@ -394,7 +394,7 @@
             commandEncoder.writeTimestamp(querySet, 0);// Initial timestamp
         }
 
-        for (let i = 0; i < 2; ++i) {
+        for (let i = 0; i < 8; ++i) {
             const passEncoder = commandEncoder.beginComputePass(
                 computePassDescriptor
             );
