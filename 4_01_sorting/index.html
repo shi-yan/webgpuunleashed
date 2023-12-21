@@ -169,7 +169,7 @@
     @binding(2) @group(0) var<uniform> n:u32;
 
     const bank_size:u32 = 32;
-    var<workgroup> temp: array<u32,532>; //workgroup array must have a fixed size;
+    var<workgroup> temp: array<vec4<u32>,532>; //workgroup array must have a fixed size;
 
     fn bank_conflict_free_idx( idx:u32) -> u32 {
       var chunk_id:u32 = idx / bank_size;
@@ -187,8 +187,11 @@
           var thid:u32 = LocalInvocationID.x;
           var globalThid:u32 = GlobalInvocationID.x;
           if (thid < (n>>1)){
-              temp[bank_conflict_free_idx(2*thid)] = input[2*globalThid]; // load input into shared memory 
-              temp[bank_conflict_free_idx(2*thid+1)] = input[2*globalThid+1];
+              temp[bank_conflict_free_idx(2*thid)] = vec4<u32>( input[(2*globalThid)*4],
+                input[(2*globalThid)*4+1], input[(2*globalThid)*4+2],  input[(2*globalThid)*4+3]);
+
+              temp[bank_conflict_free_idx(2*thid+1)] = vec4<u32>( input[(2*globalThid+1)*4],
+                input[(2*globalThid+1)*4+1], input[(2*globalThid+1)*4+2], input[(2*globalThid+1)*4+3]);
           }
 
           workgroupBarrier();
@@ -214,7 +217,7 @@
 
           if (thid == 0) 
           { 
-              temp[bank_conflict_free_idx(n - 1)] = 0; 
+              temp[bank_conflict_free_idx(n - 1)]= vec4<u32>(0,0,0,0); 
           } // clear the last element  
           workgroupBarrier();      
 
@@ -225,7 +228,7 @@
               { 
                   var ai:u32 = offset*(2*thid+1)-1;     
                   var bi:u32 = offset*(2*thid+2)-1; 
-                  var t:u32 = temp[bank_conflict_free_idx(ai)]; 
+                  var t:vec4<u32> = temp[bank_conflict_free_idx(ai)]; 
                   temp[bank_conflict_free_idx(ai)] = temp[bank_conflict_free_idx(bi)]; 
                   temp[bank_conflict_free_idx(bi)] += t;       
               } 
@@ -233,8 +236,15 @@
           }
           
           if (thid < (n>>1)){
-              output[2*globalThid] = temp[bank_conflict_free_idx(2*thid)]; 
-              output[2*globalThid+1] = temp[bank_conflict_free_idx(2*thid+1)]; 
+              output[(2*globalThid)*4] = temp[bank_conflict_free_idx(2*thid)][0]; 
+              output[(2*globalThid)*4+1] = temp[bank_conflict_free_idx(2*thid)][1]; 
+              output[(2*globalThid)*4+2] = temp[bank_conflict_free_idx(2*thid)][2]; 
+              output[(2*globalThid)*4+3] = temp[bank_conflict_free_idx(2*thid)][3]; 
+
+              output[(2*globalThid+1)*4] = temp[bank_conflict_free_idx(2*thid+1)][0]; 
+              output[(2*globalThid+1)*4+1] = temp[bank_conflict_free_idx(2*thid+1)][1]; 
+              output[(2*globalThid+1)*4+2] = temp[bank_conflict_free_idx(2*thid+1)][2]; 
+              output[(2*globalThid+1)*4+3] = temp[bank_conflict_free_idx(2*thid+1)][3]; 
           }
     }
 
@@ -269,10 +279,10 @@
         var count2beforeCurrentWorkgroup:u32 = sums[WorkgroupID.x * 4+2];
         var count3beforeCurrentWorkgroup:u32 =  sums[WorkgroupID.x * 4+3];
 
-        var count0overall:u32 = sums[sumSize*4];
-        var count1overall:u32 = sums[sumSize*4+1];
-        var count2overall:u32 = sums[sumSize*4+2];
-        var count3overall:u32 = sums[sumSize*4+3];
+        var count0overall:u32 = sums[(sumSize-1)*4];
+        var count1overall:u32 = sums[(sumSize-1)*4+1];
+        var count2overall:u32 = sums[(sumSize-1)*4+2];
+        var count3overall:u32 = sums[(sumSize-1)*4+3];
 
         if (thid < (n>>1)){
             var val:u32 = (input[2*globalThid] & mask(radixMaskId)) >> (radixMaskId << 1);
@@ -465,7 +475,7 @@
                 {
                     binding: 4,
                     visibility: GPUShaderStage.COMPUTE,
-                    buffer: {  }
+                    buffer: {}
                 },
                 {
                     binding: 5,
@@ -483,7 +493,7 @@
 
         const testArray = [];
         for (let i = 0; i < arraySize; ++i) {
-            testArray.push(Math.floor(Math.random() * 65536));
+            testArray.push(Math.floor(Math.random() * 4));
         }
 
         console.log(testArray);
@@ -502,8 +512,9 @@
         let tempBuffer1 = createGPUBuffer(device, new Uint32Array(arraySize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
         let outputArrayBuffer = createGPUBuffer(device, new Uint32Array(arraySize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
 
-        let sumArrayBuffer = createGPUBuffer(device, new Float32Array(sumSize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
-        let outputSumArrayBuffer = createGPUBuffer(device, new Float32Array(sumSize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
+        let sumArrayBuffer = createGPUBuffer(device, new Uint32Array(sumSize * 4), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
+        let outputSumArrayBuffer = createGPUBuffer(device, new Uint32Array(sumSize * 4), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
+        let readOutputSumArrayBuffer = createGPUBuffer(device, new Uint32Array(sumSize*4), GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
 
         let readOutputArrayBuffer = createGPUBuffer(device, new Uint32Array(arraySize), GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
 
@@ -628,7 +639,7 @@
                 }
             ]
         });
-        
+
 
         let pass3UniformBindGroup0 = device.createBindGroup({
             layout: pass3UniformBindGroup0Layout,
@@ -654,7 +665,7 @@
                 {
                     binding: 3,
                     resource: {
-                        buffer: sumArrayBuffer
+                        buffer: outputSumArrayBuffer
                     }
                 },
                 {
@@ -739,8 +750,10 @@
         });
 
 
-        const pass3PipelineLayoutDesc = { bindGroupLayouts: [pass3UniformBindGroup0Layout,
-                pass13UniformBindGroupLayoutRadixMask, pass13UniformBindGroupLayoutRadixId] };
+        const pass3PipelineLayoutDesc = {
+            bindGroupLayouts: [pass3UniformBindGroup0Layout,
+                pass13UniformBindGroupLayoutRadixMask, pass13UniformBindGroupLayoutRadixId]
+        };
         const pass3Layout = device.createPipelineLayout(pass3PipelineLayoutDesc);
         const pass3ComputePipeline = device.createComputePipeline({
             layout: pass3Layout,
@@ -758,7 +771,7 @@
             commandEncoder.writeTimestamp(querySet, 0);// Initial timestamp
         }
 
-        for (let i = 0; i < 8; ++i) {
+        for (let i = 0; i < 1; ++i) {
             const passEncoder = commandEncoder.beginComputePass(
                 computePassDescriptor
             );
@@ -785,7 +798,7 @@
 
             const pass3Encoder = commandEncoder.beginComputePass(computePassDescriptor);
             pass3Encoder.setPipeline(pass3ComputePipeline);
-            if (i % 2 == 0){
+            if (i % 2 == 0) {
                 pass3Encoder.setBindGroup(0, pass3UniformBindGroup0);
             } else {
                 pass3Encoder.setBindGroup(0, pass3UniformBindGroup1);
@@ -808,6 +821,9 @@
 
         commandEncoder.copyBufferToBuffer(inputArrayBuffer, 0,
             readOutputArrayBuffer, 0, arraySize * 4);
+
+        commandEncoder.copyBufferToBuffer(outputSumArrayBuffer, 0,
+            readOutputSumArrayBuffer, 0, sumSize * 4 * 4);
 
 
         device.queue.submit([commandEncoder.finish()]);
@@ -852,6 +868,31 @@
          console.log('result array', r2);*/
 
         readOutputArrayBuffer.unmap();
+
+        await readOutputSumArrayBuffer.mapAsync(GPUMapMode.READ, 0, sumSize * 4 * 4);
+
+        const s = new Uint32Array(readOutputSumArrayBuffer.getMappedRange());
+
+        console.log(s);
+        readOutputSumArrayBuffer.unmap();
+
+
+        let count0 = 0;
+        let count1 = 0;
+        let count2 = 0;
+        let count3 = 0;
+
+        for(let i =0;i<512;++i){
+            switch(testArray[i]){
+                case 0: count0++;break;
+                case 1: count1++;break;
+                case 2: count2++;break;
+                case 3: count3++;break;
+            }
+        }
+
+        console.log(count0, count1, count2, count3);
+
 
         if (hasTimestampQuery) {
             const gpuReadBuffer = device.createBuffer({ size: queryBuffer.size, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
