@@ -6,7 +6,7 @@
   "readme_folder": "readme",
   "repo": "https://github.com/shi-yan/WebGPUTutorial",
   "target": "../WebGPUTutorial",
-  "title": "WebGPU Unleashed | A Practical Tutorial",
+  "title": "WebGPU Unleashed",
   "url": "https://shi-yan.github.io/WebGPUTutorial/",
   "utilities": [
     "utils",
