@@ -1,4 +1,4 @@
-title = "WebGPU Unleashed | A Practical Tutorial"
+title = "WebGPU Unleashed"
 repo = "https://github.com/shi-yan/WebGPUTutorial"
 # need to have the slash
 prefix = "WebGPUTutorial"
@@ -9,6 +9,7 @@ description = "Your ticket to the dynamic world of graphics programming."
 utilities = [ "utils" , "data", "shader", "crab_nebula"]
 readme_folder = "readme"
 default_sample = "5_06_skeleton_animation"
+google_analytics_id = "G-G278P1YSJ6"
 
 [[content]]
 title = "1. Basics"
@@ -323,6 +324,13 @@ title = "4. Compute"
 [[content.sub_chapters]]
 title = "4.0 Prefix Sum"
 folder = "4_00_prefix_sum"
+[[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
+
+[[content.sub_chapters]]
+title = "4.1 Radix Sorting"
+folder = "4_01_radix_sorting"
 [[content.sub_chapters.files]]
 filename = "index.html"
 is_readonly = false
