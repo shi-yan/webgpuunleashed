@@ -1346,6 +1346,10 @@
     }
 
     async function webgpu() {
+        if (!navigator.gpu) {
+            showWarning("WebGPU support is not available. A WebGPU capable browser is required to run this sample.");
+            throw new Error("WebGPU support is not available");
+        }
         const adapter = await navigator.gpu.requestAdapter();
 
         let device = await adapter.requestDevice();

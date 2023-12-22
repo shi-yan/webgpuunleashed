@@ -111,10 +111,16 @@
 <script>
     let drawPos = new Float32Array(3);
     async function webgpu() {
+        if (!navigator.gpu) {
+            showWarning("WebGPU support is not available. A WebGPU capable browser is required to run this sample.");
+            throw new Error("WebGPU support is not available");
+        }
+
         const feature = "chromium-experimental-read-write-storage-texture";
         const adapter = await navigator.gpu.requestAdapter();
         console.log(adapter);
         if (!adapter.features.has(feature)) {
+            showWarning("This sample requires a chrome experimental feature. Please restart chrome with the --enable-dawn-features=allow_unsafe_apis flag.");
             throw new Error("Read-write storage texture support is not available");
         }
         const device = await adapter.requestDevice({

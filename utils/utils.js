@@ -213,7 +213,7 @@ async function downloadStencilTexture(device, texture, filename = "image.png") {
     const copiedBuffer = createGPUBuffer(device, new Uint8Array(bufferWidth * texture.height), GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
 
     const commandEncoder = device.createCommandEncoder();
-    commandEncoder.copyTextureToBuffer({ texture: texture, origin: { x: 0, y: 0 }, aspect : "stencil-only" }, { buffer: copiedBuffer, bytesPerRow: bufferWidth }, { width: texture.width, height: texture.height });
+    commandEncoder.copyTextureToBuffer({ texture: texture, origin: { x: 0, y: 0 }, aspect: "stencil-only" }, { buffer: copiedBuffer, bytesPerRow: bufferWidth }, { width: texture.width, height: texture.height });
     device.queue.submit([commandEncoder.finish()]);
 
     await device.queue.onSubmittedWorkDone();
@@ -223,8 +223,8 @@ async function downloadStencilTexture(device, texture, filename = "image.png") {
     let xExpand2RGBA = new Uint8ClampedArray(bufferWidth * texture.height * 4);
     const x = new Uint8ClampedArray(copiedBuffer.getMappedRange());
 
-    for(let i =0;i<x.length;++i) {
-        xExpand2RGBA.set([x[i], x[i], x[i], x[i]], i*4);
+    for (let i = 0; i < x.length; ++i) {
+        xExpand2RGBA.set([x[i], x[i], x[i], x[i]], i * 4);
     }
 
     const imageData = new ImageData(xExpand2RGBA, bufferWidth, texture.height);
@@ -256,7 +256,7 @@ async function dumpTextureF32(device, texture) {
     return x;
 }
 
-async function dumpTextureF32AsImage(device,texture) {
+async function dumpTextureF32AsImage(device, texture) {
     const bufferWidth = Math.ceil(texture.width / 256) * 256; //alignment requirement
     console.log("texture width", bufferWidth, texture.width, texture.height)
     const copiedBuffer = createGPUBuffer(device, new Float32Array(bufferWidth * texture.height), GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
@@ -285,4 +285,18 @@ async function dumpTextureF32AsImage(device,texture) {
     imagedataToImage(imageData);
 
     copiedBuffer.destroy();
+}
+
+function showWarning(message) {
+
+    let elm = document.createElement('h3');
+    elm.innerText = message;
+    elm.style.backgroundColor = "maroon";
+    elm.style.color = "#ffd690";
+    elm.style.margin = "20px";
+    elm.style.padding = "20px";
+    elm.style.fontSize = "24px";
+    elm.style.position = "absolute";
+    elm.style.top = "0";
+    document.body.appendChild(elm);
 }

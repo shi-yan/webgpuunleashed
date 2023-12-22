@@ -1,5 +1,5 @@
 {
-  "default_sample": "4_02_reaction_diffusion",
+  "default_sample": "5_06_skeleton_animation",
   "description": "Your ticket to the dynamic world of graphics programming.",
   "meta_image": "meta.png",
   "prefix": "WebGPUTutorial",
@@ -465,6 +465,16 @@
         {
           "folder": "4_00_prefix_sum",
           "title": "4.0 Prefix Sum",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "4_01_radix_sorting",
+          "title": "4.1 Radix Sorting",
           "files": [
             {
               "filename": "index.html",
