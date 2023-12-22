@@ -1,6 +1,7 @@
 {
   "default_sample": "5_06_skeleton_animation",
   "description": "Your ticket to the dynamic world of graphics programming.",
+  "google_analytics_id": "G-G278P1YSJ6",
   "meta_image": "meta.png",
   "prefix": "WebGPUTutorial",
   "readme_folder": "readme",
