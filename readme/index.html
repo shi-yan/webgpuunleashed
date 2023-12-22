@@ -85,10 +85,27 @@
             padding: 2px;
             margin: 2px;
         }
+
+        .warning {
+            text-align: center;
+            font-family: 'Open Sans', sans-serif;
+            font-weight: 600;
+            font-size: 24px;
+            color:#ffd690;
+            background-color: maroon;
+            margin: 20px;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .warning a {
+            color:white;
+        }
     </style>
 </head>
 
 <body>
+    <div id="warning"></div>
     <div class="instruction">
         <p>Welcome to the code samples for 'WebGPU Unleashed: A Practical Tutorial', your ticket to the
             dynamic world of graphics programming.</p>
@@ -117,6 +134,14 @@
     </div>
     <div class="banner"></div>
     <div class="footer"></div>
+    <script>
+        async function WebGPU() {
+        if (!navigator.gpu || !await navigator.gpu.requestAdapter())
+        {
+            document.getElementById("warning").innerHTML = "<h3 class='warning'>No WebGPU detected. This site requires <a target=\"_blank\" href=\"https://caniuse.com/webgpu\">a browser supporting WebGPU</a>.</h3>"
+        }}
+        WebGPU();
+    </script>
 </body>
 
 </html>

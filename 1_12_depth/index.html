@@ -45,9 +45,10 @@ fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -> @location(0)
 <script>
     //depth
     async function webgpu() {
-        if (!navigator.gpu || GPUBufferUsage.COPY_SRC === undefined) {
-            console.log("no gpu")
-            return;
+        if (!navigator.gpu) {
+            console.log("no WebGPU")
+            showWarning("WebGPU support is not available. A WebGPU capable browser is required to run this sample.");
+            throw new Error("WebGPU support is not available");        
         }
 
         const adapter = await navigator.gpu.requestAdapter();
