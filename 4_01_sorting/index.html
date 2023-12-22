@@ -126,7 +126,7 @@
             var count2:u32 = temp1[bank_conflict_free_idx(2*255)] & 0xFFFF;
             var count3:u32 = (temp1[bank_conflict_free_idx(2*255)] >> 16 )& 0xFFFF;
 
-            var last:u32 =  (input[2*255] & mask(radixMaskId))  >> (radixMaskId << 1); 
+            var last:u32 =  (input[2*((WorkgroupID.x+1) * 256-1)] & mask(radixMaskId))  >> (radixMaskId << 1); 
             switch(last) {
                 case 0: {count0 += 1;}
                 case 1: {count1 += 1;}
@@ -135,7 +135,7 @@
                 default {}
             }
 
-            last =  (input[2*255+1] & mask(radixMaskId))  >> (radixMaskId << 1); 
+            last =  (input[2*((WorkgroupID.x+1) * 256-1)+1] & mask(radixMaskId))  >> (radixMaskId << 1); 
             switch(last) {
                 case 0: {count0 += 1;}
                 case 1: {count1 += 1;}
@@ -209,11 +209,6 @@
 
               workgroupBarrier();   
           }
-          /*if (thid < (n>>1)){
-              output[2*thid] = temp[2*thid]; 
-              output[2*thid+1] = temp[2*thid+1]; 
-          }*/
-          //output[thid] = 1;
 
           if (thid == 0) 
           { 
@@ -236,15 +231,15 @@
           }
           
           if (thid < (n>>1)){
-              output[(2*globalThid)*4] = temp[bank_conflict_free_idx(2*thid)][0]; 
-              output[(2*globalThid)*4+1] = temp[bank_conflict_free_idx(2*thid)][1]; 
-              output[(2*globalThid)*4+2] = temp[bank_conflict_free_idx(2*thid)][2]; 
-              output[(2*globalThid)*4+3] = temp[bank_conflict_free_idx(2*thid)][3]; 
+              output[(2*globalThid)*4] =   temp[bank_conflict_free_idx(2*thid)][0] +  input[(2*globalThid)*4]; 
+              output[(2*globalThid)*4+1] = temp[bank_conflict_free_idx(2*thid)][1] +  input[(2*globalThid)*4+1]; 
+              output[(2*globalThid)*4+2] = temp[bank_conflict_free_idx(2*thid)][2] +  input[(2*globalThid)*4+2]; 
+              output[(2*globalThid)*4+3] = temp[bank_conflict_free_idx(2*thid)][3] +  input[(2*globalThid)*4+3]; 
 
-              output[(2*globalThid+1)*4] = temp[bank_conflict_free_idx(2*thid+1)][0]; 
-              output[(2*globalThid+1)*4+1] = temp[bank_conflict_free_idx(2*thid+1)][1]; 
-              output[(2*globalThid+1)*4+2] = temp[bank_conflict_free_idx(2*thid+1)][2]; 
-              output[(2*globalThid+1)*4+3] = temp[bank_conflict_free_idx(2*thid+1)][3]; 
+              output[(2*globalThid+1)*4] =   temp[bank_conflict_free_idx(2*thid+1)][0] + input[(2*globalThid+1)*4]; 
+              output[(2*globalThid+1)*4+1] = temp[bank_conflict_free_idx(2*thid+1)][1] + input[(2*globalThid+1)*4+1]; 
+              output[(2*globalThid+1)*4+2] = temp[bank_conflict_free_idx(2*thid+1)][2] + input[(2*globalThid+1)*4+2];  
+              output[(2*globalThid+1)*4+3] = temp[bank_conflict_free_idx(2*thid+1)][3] + input[(2*globalThid+1)*4+3]; 
           }
     }
 
@@ -274,10 +269,17 @@
         var thid:u32 = LocalInvocationID.x;
         var globalThid:u32 = GlobalInvocationID.x;
         
-        var count0beforeCurrentWorkgroup:u32 = sums[WorkgroupID.x * 4];
-        var count1beforeCurrentWorkgroup:u32 = sums[WorkgroupID.x * 4+1];
-        var count2beforeCurrentWorkgroup:u32 = sums[WorkgroupID.x * 4+2];
-        var count3beforeCurrentWorkgroup:u32 =  sums[WorkgroupID.x * 4+3];
+        var count0beforeCurrentWorkgroup:u32 = 0;
+        var count1beforeCurrentWorkgroup:u32 = 0;
+        var count2beforeCurrentWorkgroup:u32 = 0;
+        var count3beforeCurrentWorkgroup:u32 = 0;
+
+        if (WorkgroupID.x > 0) {
+         count0beforeCurrentWorkgroup = sums[(WorkgroupID.x-1) * 4];
+         count1beforeCurrentWorkgroup = sums[(WorkgroupID.x-1) * 4+1];
+         count2beforeCurrentWorkgroup = sums[(WorkgroupID.x-1) * 4+2];
+         count3beforeCurrentWorkgroup =  sums[(WorkgroupID.x-1) * 4+3];
+        }
 
         var count0overall:u32 = sums[(sumSize-1)*4];
         var count1overall:u32 = sums[(sumSize-1)*4+1];
@@ -290,55 +292,78 @@
             var id:u32 = 0;
 
             if (val == 0) {
-                id += (temp0[2*globalThid] + ((count1beforeCurrentWorkgroup << 16) & count0beforeCurrentWorkgroup) ) & 0xFFFF;
+                id += (temp0[2*globalThid] + ((count1beforeCurrentWorkgroup << 16) | count0beforeCurrentWorkgroup) ) & 0xFFFF;
             }
             else if (val == 1) {
                 id +=count0overall;
-                id += ((temp0[2*globalThid] + ((count1beforeCurrentWorkgroup << 16) & count0beforeCurrentWorkgroup))>> 16 )& 0xFFFF;
+                id += ((temp0[2*globalThid] + ((count1beforeCurrentWorkgroup << 16) | count0beforeCurrentWorkgroup))>> 16 )& 0xFFFF;
             }
             else if (val == 2) {
                 id += count0overall;
                 id += count1overall;
-                id += (temp1[2*globalThid] + ((count3beforeCurrentWorkgroup << 16) & count2beforeCurrentWorkgroup) )& 0xFFFF;
+                id += (temp1[2*globalThid] + ((count3beforeCurrentWorkgroup << 16) | count2beforeCurrentWorkgroup) )& 0xFFFF;
             }
             else if (val == 3) {
                 id +=count0overall;
                 id +=count1overall;
                 id +=count2overall;
-                id += ((temp1[2*globalThid] + ((count3beforeCurrentWorkgroup << 16) & count2beforeCurrentWorkgroup) ) >> 16 )& 0xFFFF;
+                id += ((temp1[2*globalThid] + ((count3beforeCurrentWorkgroup << 16) | count2beforeCurrentWorkgroup) ) >> 16 )& 0xFFFF;
             }
 
             output[id] = input[2*globalThid]; 
+            //output[2*globalThid] = id;
 
             id = 0;
 
             val = (input[2*globalThid+1] & mask(radixMaskId)) >> (radixMaskId << 1);
 
             if (val == 0) {
-                id += (temp0[2*globalThid+1] + ((count1beforeCurrentWorkgroup << 16) & count0beforeCurrentWorkgroup) ) & 0xFFFF;
+                id += (temp0[2*globalThid+1] + ((count1beforeCurrentWorkgroup << 16) | count0beforeCurrentWorkgroup) ) & 0xFFFF;
             }
             else if (val == 1) {
                 id +=count0overall;
-                id += ((temp0[2*globalThid+1] + ((count1beforeCurrentWorkgroup << 16) & count0beforeCurrentWorkgroup))>> 16 )& 0xFFFF;
+                id += ((temp0[2*globalThid+1] + ((count1beforeCurrentWorkgroup << 16) | count0beforeCurrentWorkgroup))>> 16 )& 0xFFFF;
             }
             else if (val == 2) {
                 id += count0overall;
                 id += count1overall;
-                id += (temp1[2*globalThid+1] + ((count3beforeCurrentWorkgroup << 16) & count2beforeCurrentWorkgroup) )& 0xFFFF;
+                id += (temp1[2*globalThid+1] + ((count3beforeCurrentWorkgroup << 16) | count2beforeCurrentWorkgroup) )& 0xFFFF;
             }
             else if (val == 3) {
                 id +=count0overall;
                 id +=count1overall;
                 id +=count2overall;
-                id += ((temp1[2*globalThid+1] + ((count3beforeCurrentWorkgroup << 16) & count2beforeCurrentWorkgroup) ) >> 16 )& 0xFFFF;
+                id += ((temp1[2*globalThid+1] + ((count3beforeCurrentWorkgroup << 16) | count2beforeCurrentWorkgroup) ) >> 16 )& 0xFFFF;
             }
 
             output[id] = input[2*globalThid+1];
+            //output[2*globalThid+1] = id;
         }
     }
 </script>
 
 <script>
+
+    var m_w = 123456789;
+    var m_z = 987654321;
+    var mask = 0xffffffff;
+
+    // Takes any integer
+    function seed(i) {
+        m_w = (123456789 + i) & mask;
+        m_z = (987654321 - i) & mask;
+    }
+
+    // Returns number between 0 (inclusive) and 1.0 (exclusive),
+    // just like Math.random().
+    function random() {
+        m_z = (36969 * (m_z & 65535) + (m_z >> 16)) & mask;
+        m_w = (18000 * (m_w & 65535) + (m_w >> 16)) & mask;
+        var result = ((m_z << 16) + (m_w & 65535)) >>> 0;
+        result /= 4294967296;
+        return result;
+    }
+
     // createGPUBuffer helper
 
     function roundUpToNearestPowOf2(v) {
@@ -493,7 +518,7 @@
 
         const testArray = [];
         for (let i = 0; i < arraySize; ++i) {
-            testArray.push(Math.floor(Math.random() * 4));
+            testArray.push(Math.floor(random() * 16));
         }
 
         console.log(testArray);
@@ -514,7 +539,7 @@
 
         let sumArrayBuffer = createGPUBuffer(device, new Uint32Array(sumSize * 4), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
         let outputSumArrayBuffer = createGPUBuffer(device, new Uint32Array(sumSize * 4), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
-        let readOutputSumArrayBuffer = createGPUBuffer(device, new Uint32Array(sumSize*4), GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
+        let readOutputSumArrayBuffer = createGPUBuffer(device, new Uint32Array(sumSize * 4), GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
 
         let readOutputArrayBuffer = createGPUBuffer(device, new Uint32Array(arraySize), GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
 
@@ -771,7 +796,7 @@
             commandEncoder.writeTimestamp(querySet, 0);// Initial timestamp
         }
 
-        for (let i = 0; i < 1; ++i) {
+        for (let i = 0; i < 2; ++i) {
             const passEncoder = commandEncoder.beginComputePass(
                 computePassDescriptor
             );
@@ -850,6 +875,55 @@
             }
         }
 
+        const inspectId = 523;
+
+        let tcount0 = 0;
+        let tcount1 = 0;
+        let tcount2 = 0;
+        let tcount3 = 0;
+
+        let before = 0;
+
+        for(let i = 0;i<1024;++i) {
+            /*if (i == 512) {
+                tcount0 = 0;
+                tcount1 = 0;
+                tcount2 = 0;
+                tcount3 = 0;
+            }*/
+
+            if (i == inspectId) {
+                switch(testArray[i]) {
+                    case 0: before = tcount0; break;
+                    case 1: before = tcount1; break;
+                    case 2: before = tcount2; break;
+                    case 3: before = tcount3; break;
+                }
+            }
+
+            switch ( testArray[i] ){
+                case 0: tcount0++;break;
+                case 1: tcount1++; break;
+                case 2: tcount2++; break;
+                case 3: tcount3++;break;
+                
+            }
+        }
+
+        switch(testArray[inspectId]) {
+            case 0: {
+
+            } break;
+            case 1: { before += tcount0;}
+            break;
+            case 2: {before += (tcount0 + tcount1);} break;
+            case 3: {before += (tcount0 + tcount1 + tcount2);} break;
+        }
+
+
+        console.log("pos by shader",d[inspectId]);
+        console.log("pos gt",testArray[inspectId],tcount0, tcount1 ,tcount2,before);
+
         /* let r = [];
          let r2 = [];
  
@@ -882,12 +956,12 @@
         let count2 = 0;
         let count3 = 0;
 
-        for(let i =0;i<512;++i){
-            switch(testArray[i]){
-                case 0: count0++;break;
-                case 1: count1++;break;
-                case 2: count2++;break;
-                case 3: count3++;break;
+        for (let i = 0; i < 512; ++i) {
+            switch (testArray[i]) {
+                case 0: count0++; break;
+                case 1: count1++; break;
+                case 2: count2++; break;
+                case 3: count3++; break;
             }
         }
 
