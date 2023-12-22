@@ -37,7 +37,8 @@
       }
 
       fn mask(id:u32) -> u32 {
-       return radixMask[id / 4][id % 4];
+       //return radixMask[id / 4][id % 4];
+       return u32(3) << (id << 1);
       }
 
       @compute @workgroup_size(256)
@@ -259,7 +260,8 @@
     @binding(0) @group(2) var<uniform> radixMaskId:u32;
 
     fn mask(id:u32) -> u32 {
-        return radixMask[id / 4][id % 4];
+        //return radixMask[id / 4][id % 4];
+        return u32(3) << (id << 1);
     }
 
     @compute @workgroup_size(256)
@@ -518,7 +520,7 @@
 
         const testArray = [];
         for (let i = 0; i < arraySize; ++i) {
-            testArray.push(Math.floor(random() * 16));
+            testArray.push(Math.floor(random() * 65536));
         }
 
         console.log(testArray);
@@ -733,7 +735,7 @@
                 {
                     binding: 3,
                     resource: {
-                        buffer: sumArrayBuffer
+                        buffer: outputSumArrayBuffer
                     }
                 },
                 {
@@ -796,7 +798,7 @@
             commandEncoder.writeTimestamp(querySet, 0);// Initial timestamp
         }
 
-        for (let i = 0; i < 2; ++i) {
+        for (let i = 0; i < 8; ++i) {
             const passEncoder = commandEncoder.beginComputePass(
                 computePassDescriptor
             );
@@ -858,90 +860,14 @@
 
         const d = new Uint32Array(readOutputArrayBuffer.getMappedRange());
 
-        const dispSize = 64;
-        for (let i = 0; i < arraySize / dispSize; ++i) {
-            console.log(d.slice(i * dispSize, (i + 1) * dispSize));
+        for(let i =0;i<d.length;++i) {
+            console.log("d",  (d[i] ) );
         }
 
-        let v = 0;
-
-        for (let i = 0; i < d.length; ++i) {
-            if (d[i] >= v) {
-                v = d[i];
-            }
-            else {
-                console.log("wrong v ", i, d[i], v);
-                break;
-            }
-        }
-
-        const inspectId = 523;
-
-        let tcount0 = 0;
-        let tcount1 = 0;
-        let tcount2 = 0;
-        let tcount3 = 0;
-
-        let before = 0;
-
-        for(let i = 0;i<1024;++i) {
-            /*if (i == 512) {
-                tcount0 = 0;
-                tcount1 = 0;
-                tcount2 = 0;
-                tcount3 = 0;
-            }*/
-
-            if (i == inspectId) {
-                switch(testArray[i]) {
-                    case 0: before = tcount0; break;
-                    case 1: before = tcount1; break;
-                    case 2: before = tcount2; break;
-                    case 3: before = tcount3; break;
-                }
-            }
-
-            switch ( testArray[i] ){
-                case 0: tcount0++;break;
-                case 1: tcount1++; break;
-                case 2: tcount2++; break;
-                case 3: tcount3++;break;
-                
-            }
-        }
-
-        switch(testArray[inspectId]) {
-            case 0: {
-
-            } break;
-            case 1: { before += tcount0;}
-            break;
-            case 2: {before += (tcount0 + tcount1);} break;
-            case 3: {before += (tcount0 + tcount1 + tcount2);} break;
-        }
-
-
-        console.log("pos by shader",d[inspectId]);
-        console.log("pos gt",testArray[inspectId],tcount0, tcount1 ,tcount2,before);
-
-        /* let r = [];
-         let r2 = [];
- 
-         let zeroc = 0;
- 
-         for(let i =0;i<d.length;++i){
-             r.push((d[i] >> 16) & 0xFFFF);
-             r2.push(zeroc);
- 
-             if (testArray[i] == 3) {
-                 zeroc++;
-             }
-         }
- 
-         console.log('result array', r);
-         console.log('result array', r2);*/
 
         readOutputArrayBuffer.unmap();
+
+
 
         await readOutputSumArrayBuffer.mapAsync(GPUMapMode.READ, 0, sumSize * 4 * 4);
 
@@ -951,21 +877,6 @@
         readOutputSumArrayBuffer.unmap();
 
 
-        let count0 = 0;
-        let count1 = 0;
-        let count2 = 0;
-        let count3 = 0;
-
-        for (let i = 0; i < 512; ++i) {
-            switch (testArray[i]) {
-                case 0: count0++; break;
-                case 1: count1++; break;
-                case 2: count2++; break;
-                case 3: count3++; break;
-            }
-        }
-
-        console.log(count0, count1, count2, count3);
 
 
         if (hasTimestampQuery) {
