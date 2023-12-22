@@ -122,6 +122,16 @@ li {
   border-color: black;
   width: 3px;
   cursor: ew-resize;
+}
+
+.mobile {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  background-color: black;
+  color: white;
+  font-weight: 600;
+  font-size: 24px;
 }._Menu_1ca9h_1 {
   width: 320px;
   height: 100vh;
