@@ -34,7 +34,7 @@ int main()
         outputFile << "\"r\":[" << rot0[i] << ", " << rot1[i] << ", " << rot2[i] << "," << rot3[i] << "]," << std::endl;
         outputFile << "\"c\":[" << (0.5 + SH_C0 * f_dc_0[i]) << ", " << (0.5 + SH_C0 * f_dc_1[i]) << ", " << (0.5 + SH_C0 * f_dc_2[i]) << "]," << std::endl;
 
-        outputFile << "\"s\":[" << scale0[i] << ", " << scale1[i] << ", " << scale2[i] << "]," << std::endl;
+        outputFile << "\"s\":[" << exp(scale0[i]) << ", " << exp(scale1[i]) << ", " << exp(scale2[i]) << "]," << std::endl;
         outputFile << "\"o\":" << (1.0 / (1.0 + exp(-opacity[i]))) << "}";
 
         if (i != opacity.size() - 1)

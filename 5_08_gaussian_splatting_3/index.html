@@ -46,7 +46,7 @@
         
     const diffuseConstant:f32 = 1.0;
     const specularConstant:f32 = 1.0;
-    const ambientConstant: f32 = 1.0;
+    const ambientConstant: f32 = 0.0;
     
     fn specular(lightDir:vec3<f32>, viewDir:vec3<f32>, normal:vec3<f32>,  specularColor:vec3<f32>, 
          shininess:f32) -> vec3<f32> {
@@ -63,21 +63,69 @@
         @builtin(position) clip_position: vec4<f32>,
         @location(0) viewDir: vec3<f32>,
         @location(1) normal: vec3<f32>,
-        @location(2) lightDir: vec3<f32>
+        @location(2) lightDir: vec3<f32>,
+        @location(3) color: vec3<f32>
     };
+
+    fn quat2mat(quat:vec4<f32>) -> mat4x4<f32> {
+        return mat4x4<f32>(
+            vec4<f32>(1 - 2*quat.y*quat.y - 2*quat.z*quat.z, 
+                2*quat.x*quat.y + 2*quat.z*quat.w, 
+                2*quat.x*quat.z - 2*quat.y*quat.w, 0.0),
+                vec4<f32>(2*quat.x*quat.y - 2*quat.z*quat.w,
+                    1 - 2*quat.x*quat.x - 2*quat.z*quat.z,
+                    2*quat.y*quat.z + 2*quat.x*quat.w, 0.0),
+                    vec4<f32>(2*quat.x*quat.z + 2*quat.y*quat.w, 
+                        2*quat.y*quat.z - 2*quat.x*quat.w,
+                        1 - 2*quat.x*quat.x - 2*quat.y*quat.y, 0.0),
+                        vec4<f32>(0.0,0.0,0.0,1.0)
+            );
+    }
+
+    fn scale2mat(scale:vec3<f32>) -> mat4x4<f32> {
+        
+        return mat4x4<f32> (scale.x,0.0,0.0,0.0,
+             0.0, scale.y,0.0,0.0,
+             0.0,0.0,scale.z,0.0,
+        0.0, 0.0, 0.0, 1.0);
+    }
+
+    fn translation2mat(translation:vec3<f32>) -> mat4x4<f32> {
+        return mat4x4<f32> (1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+       0.0,
+         0.0,
+         0.0,
+       0.0,
+        1.0,
+        0.0,
+      translation.x,
+        translation.y,
+     translation.z,
+       1.0);
+    }
     
     @vertex
     fn vs_main(
         @location(0) inPos: vec3<f32>,
-        @location(1) inNormal: vec3<f32>
+        @location(1) inNormal: vec3<f32>,
+        @location(2) scale:vec3<f32>,
+        @location(3) rotation:vec4<f32>,
+        @location(4) translation:vec3<f32>,
+        @location(5) color:vec3<f32>
     ) -> VertexOutput {
         var out: VertexOutput;
-    
-        out.viewDir = normalize((normalMatrix * vec4<f32>(-viewDirection, 0.0)).xyz);
-        out.lightDir = normalize((normalMatrix * vec4<f32>(-lightDirection, 0.0)).xyz);
-        out.normal = normalize(normalMatrix * vec4<f32>(inNormal, 0.0)).xyz;  
-      
-        out.clip_position = projection * modelView * vec4<f32>(inPos, 1.0);
+
+        var scaleM = scale2mat(scale);
+        var rotationM = quat2mat(rotation);
+        var translationM = translation2mat(translation);
+        out.color = color;
+
+        out.clip_position = projection * modelView * translationM * rotationM * scaleM* vec4<f32>(inPos, 1.0);
         return out;
     }
     
@@ -86,15 +134,8 @@
     @fragment
     fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     
-        var lightDir:vec3<f32> = in.lightDir;
-        var n:vec3<f32> = normalize(in.normal);
-        var viewDir: vec3<f32> = in.viewDir;
-    
-        var radiance:vec3<f32>  = ambientColor.rgb * ambientConstant + 
-            diffuse(lightDir, n, diffuseColor.rgb)* diffuseConstant +
-            specular(lightDir, viewDir, n, specularColor.rgb, shininess) * specularConstant;
           
-        return vec4<f32>(radiance ,1.0);
+        return vec4<f32>(in.color ,1.0);
     }
 </script>
 
@@ -109,14 +150,13 @@
             this.uniformBindGroup = null;
             this.indexSize = null;
 
-            this.transformation = null;
-            this.normalMatrixUniformBufferUpdate = null;
-            this.modelViewMatrixUniformBufferUpdate = null;
-            this.normalMatrixUniformBuffer = null;
-            this.modelViewMatrixUniformBuffer = null;
+            this.locBuffer = null;
+            this.colorBuffer = null;
+            this.rotationBuffer = null;
+            this.scaleBuffer = null;
         }
 
-        async setup(device, projectionMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer) {
+        async setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer) {
             let shaderModule = shaderModuleFromCode(device, 'sphere_shader')
 
             let { positionBuffer, normalBuffer, indexBuffer, indexSize } = await loadObj(device, '../data/sphere.obj');
@@ -125,15 +165,31 @@
             this.indexBuffer = indexBuffer;
             this.indexSize = indexSize;
 
-            const rot = glMatrix.quat.fromValues(0.601, 0.576, 0.554, 0.01);
-            const scale = glMatrix.mat4.fromScaling(glMatrix.mat4.create(), glMatrix.vec3.fromValues(2.0, 0.3, 0.5));
-            const rotation = glMatrix.mat4.fromQuat(glMatrix.mat4.create(), rot);
-            this.transformation = glMatrix.mat4.multiply(glMatrix.mat4.create(), rotation, scale);
 
-            console.log(this.transformation)
+            const objResponse = await fetch('../data/food.json');
+            this.objBody = await objResponse.json();
 
-            this.modelViewMatrixUniformBuffer = createGPUBuffer(device, this.transformation, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
-            this.normalMatrixUniformBuffer = createGPUBuffer(device, this.transformation, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+            console.log(this.objBody);
+            let pos = [];
+            let col = [];
+            let rot = [];
+            let scal = [];
+
+            for (let p of this.objBody) {
+                col.push(...p.c);
+                rot.push(...p.r);
+                pos.push(...p.p);
+                scal.push(...p.s);
+            }
+
+
+            this.pointSize = this.objBody.length;
+
+            this.locBuffer = createGPUBuffer(device, new Float32Array(pos), GPUBufferUsage.VERTEX);
+            this.colorBuffer = createGPUBuffer(device, new Float32Array(col), GPUBufferUsage.VERTEX);
+            this.rotationBuffer = createGPUBuffer(device, new Float32Array(rot), GPUBufferUsage.VERTEX);
+            this.scaleBuffer = createGPUBuffer(device, new Float32Array(scal), GPUBufferUsage.VERTEX);
+
 
             let uniformBindGroupLayout = device.createBindGroupLayout({
                 entries: [
@@ -171,7 +227,7 @@
                     {
                         binding: 0,
                         resource: {
-                            buffer: this.modelViewMatrixUniformBuffer
+                            buffer: modelViewMatrixUniformBuffer
                         }
                     },
                     {
@@ -183,7 +239,7 @@
                     {
                         binding: 2,
                         resource: {
-                            buffer: this.normalMatrixUniformBuffer
+                            buffer: normalMatrixUniformBuffer
                         }
                     },
                     {
@@ -225,6 +281,56 @@
                 stepMode: 'vertex'
             };
 
+            const scaleAttribDesc = {
+                shaderLocation: 2, // @location(1)
+                offset: 0,
+                format: 'float32x3'
+            };
+
+            const scaleBufferLayoutDesc = {
+                attributes: [scaleAttribDesc],
+                arrayStride: 4 * 3,
+                stepMode: 'instance'
+            };
+
+            const rotationAttribDesc = {
+                shaderLocation: 3, // @location(1)
+                offset: 0,
+                format: 'float32x4'
+            };
+
+            const rotationBufferLayoutDesc = {
+                attributes: [rotationAttribDesc],
+                arrayStride: 4 * 4,
+                stepMode: 'instance'
+            };
+
+            const translateAttribDesc = {
+                shaderLocation: 4, // @location(1)
+                offset: 0,
+                format: 'float32x3'
+            };
+
+            const translateBufferLayoutDesc = {
+                attributes: [translateAttribDesc],
+                arrayStride: 4 * 3,
+                stepMode: 'instance'
+            };
+
+            const colorAttribDesc = {
+                shaderLocation: 5, // @location(1)
+                offset: 0,
+                format: 'float32x3'
+            };
+
+            const colorBufferLayoutDesc = {
+                attributes: [colorAttribDesc],
+                arrayStride: 4 * 3,
+                stepMode: 'instance'
+            };
+
+
+
             const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout] };
             const layout = device.createPipelineLayout(pipelineLayoutDesc);
 
@@ -237,7 +343,8 @@
                 vertex: {
                     module: shaderModule,
                     entryPoint: 'vs_main',
-                    buffers: [positionBufferLayoutDesc, normalBufferLayoutDesc]
+                    buffers: [positionBufferLayoutDesc, normalBufferLayoutDesc, scaleBufferLayoutDesc,
+                rotationBufferLayoutDesc, translateBufferLayoutDesc, colorBufferLayoutDesc]
                 },
                 fragment: {
                     module: shaderModule,
@@ -259,37 +366,23 @@
             this.pipeline = device.createRenderPipeline(pipelineDesc);
         }
 
-        setArcballModelView(device, arcballModelViewMatrix) {
-            //console.log(glMatrix.mat4.create())
-            let modelViewMatrix = glMatrix.mat4.multiply(glMatrix.mat4.create(), arcballModelViewMatrix, this.transformation);
-
-            //let modelViewMatrix = arcballModelViewMatrix;
-            let modelViewMatrixInverse = glMatrix.mat4.invert(glMatrix.mat4.create(), modelViewMatrix);
-
-            let normalMatrix = glMatrix.mat4.transpose(glMatrix.mat4.create(), modelViewMatrixInverse);
-
-            this.normalMatrixUniformBufferUpdate = createGPUBuffer(device, normalMatrix, GPUBufferUsage.COPY_SRC);
-            this.modelViewMatrixUniformBufferUpdate = createGPUBuffer(device, modelViewMatrix, GPUBufferUsage.COPY_SRC);
-
-            commandEncoder.copyBufferToBuffer(this.modelViewMatrixUniformBufferUpdate, 0,
-                this.modelViewMatrixUniformBuffer, 0, modelViewMatrix.byteLength);
-            commandEncoder.copyBufferToBuffer(this.normalMatrixUniformBufferUpdate, 0,
-                this.normalMatrixUniformBuffer, 0, modelViewMatrix.byteLength);
-        }
-
         encode(encoder) {
             encoder.setPipeline(this.pipeline);
             encoder.setBindGroup(0, this.uniformBindGroup);
             encoder.setVertexBuffer(0, this.positionBuffer);
             encoder.setVertexBuffer(1, this.normalBuffer);
+            encoder.setVertexBuffer(2, this.scaleBuffer);
+            encoder.setVertexBuffer(3, this.rotationBuffer);
+            encoder.setVertexBuffer(4, this.locBuffer);
+            encoder.setVertexBuffer(5, this.colorBuffer);
             encoder.setIndexBuffer(this.indexBuffer, 'uint16');
-            encoder.drawIndexed(this.indexSize);
+            encoder.drawIndexed(this.indexSize, this.pointSize);
         }
     }
 
     class Arcball {
         constructor() {
-            this.radius = 5.0;
+            this.radius = 1.0;
             this.forwardVector = glMatrix.vec4.fromValues(this.radius, 0.0, 0.0, 0.0);
             this.upVector = glMatrix.vec4.fromValues(0.0, 0.0, 1.0, 0.0);
             this.currentRotation = glMatrix.mat4.create();
@@ -393,7 +486,7 @@
         await axis.setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer);
 
         let sphere = new Sphere();
-        await sphere.setup(device, projectionMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer);
+        await sphere.setup(device,modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer);
 
         let depthTexture = null;
 
@@ -496,7 +589,6 @@
             commandEncoder.copyBufferToBuffer(viewDirectionUniformBufferUpdate, 0,
                 lightDirectionUniformBuffer, 0, viewDir.byteLength);
 
-            sphere.setArcballModelView(device, modelViewMatrix);
             passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
             passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
             sphere.encode(passEncoder);
@@ -514,14 +606,6 @@
             modelViewMatrixUniformBufferUpdate.destroy();
             normalMatrixUniformBufferUpdate.destroy();
             viewDirectionUniformBufferUpdate.destroy();
-
-            if (sphere.normalMatrixUniformBufferUpdate) {
-                sphere.normalMatrixUniformBufferUpdate.destroy();
-            }
-
-            if (sphere.modelViewMatrixUniformBufferUpdate) {
-                sphere.modelViewMatrixUniformBufferUpdate.destroy();
-            }
         }
 
         let timeId = null;
