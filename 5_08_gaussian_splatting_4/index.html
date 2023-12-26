@@ -123,15 +123,18 @@
     ) -> VertexOutput {
         var out: VertexOutput;
 
-        var pos:vec4<f32> = vec4<f32>(3.0,3.0,3.0,1.0);
+        var pos:vec4<f32> = vec4<f32>(10.0,10.0,10.0,1.0);
 
         pos = projection * modelView * pos;
 
         var adjust = normalize( basis.xy * vec2<f32>(screen.x/screen.y, 1.0));
         var basis2 = normalize( vec2<f32>(adjust.y, -adjust.x) * vec2<f32>(screen.y/screen.x,1.0));
         out.coord = inPos;
-        out.clip_position = vec4<f32>( pos.xy + (inPos.x * basis.xy * basis.z * 0.3 + inPos.y * basis2 *  basis.w  * 0.3) , 0, 1)  ;
-        return out;
+        out.clip_position = vec4<f32>( pos.xy/pos.w + (inPos.x * basis.xy * basis.z * 0.03 + inPos.y * basis2 *  basis.w  * 0.03) , pos.z/pos.w, 1)  ;
+        
+         //   out.clip_position = vec4<f32>( + inPos*0.1 , 0, 1)  ;
+        
+            return out;
     }
     
     // Fragment shader
@@ -202,17 +205,23 @@
 
 
             const T = glMatrix.mat4.multiply(glMatrix.mat4.create(), rotation, scale);
+
+
+            console.log("T", T);
+
             const T_transpose = glMatrix.mat4.transpose(glMatrix.mat4.create(), T);
 
             this.covariance = glMatrix.mat4.multiply(glMatrix.mat4.create(), T, T_transpose);
 
-            const translation = glMatrix.mat4.fromTranslation(glMatrix.mat4.create(), glMatrix.vec3.fromValues(3,3,3));
+            let translation = glMatrix.mat4.fromTranslation(glMatrix.mat4.create(), glMatrix.vec3.fromValues(10,10,10));
+            //translation[15] = 0;
+            //console.log("translation", translation)
 
             const translation_transpose = glMatrix.mat4.transpose(glMatrix.mat4.create(), translation);
 
-            this.covariance = glMatrix.mat4.multiply(glMatrix.mat4.create(), this.covariance, translation_transpose);
+           // this.covariance = glMatrix.mat4.multiply(glMatrix.mat4.create(), this.covariance, translation_transpose);
 
-            this.covariance = glMatrix.mat4.multiply(glMatrix.mat4.create(), translation, this.covariance);
+           // this.covariance = glMatrix.mat4.multiply(glMatrix.mat4.create(), translation, this.covariance);
 
             this.transformation = glMatrix.mat4.multiply(glMatrix.mat4.create(), rotation, scale);
             this.transformation = glMatrix.mat4.multiply(glMatrix.mat4.create(), translation, this.transformation);
@@ -500,7 +509,7 @@
 
             printM(new_c)
 
-            const cov2Dv = glMatrix.vec3.fromValues(new_c[0] / new_c[15], new_c[1]/ new_c[15], new_c[5]/ new_c[15]);
+            const cov2Dv = glMatrix.vec3.fromValues(new_c[0] , new_c[1], new_c[5]);
 
             let a = cov2Dv[0];
             let b = cov2Dv[1];
@@ -548,7 +557,7 @@
 
     class Arcball {
         constructor() {
-            this.radius = 5.0;
+            this.radius = 25.0;
             this.forwardVector = glMatrix.vec4.fromValues(this.radius, 0.0, 0.0, 0.0);
             this.upVector = glMatrix.vec4.fromValues(0.0, 0.0, 1.0, 0.0);
             this.currentRotation = glMatrix.mat4.create();
