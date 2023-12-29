@@ -111,23 +111,95 @@
 
 </script>
 
-<script id="shader" type="wgsl">
-    // given centroids, scaling and rotation,
+<script id="basis_shader" type="wgsl">
+    // given centroids, covariance, modelView, projection;
     // compute 2d basis, distance
     @binding(0) @group(0) var<storage, read> centroid :array<vec3<f32>>;
-    @binding(2) @group(0) var<storage, read> covariance: array<vec3<f32>>;
-    @binding(3) @group(0) var<storage, read_write> basis: array<vec4<f32>>;
-    @binding(4) @group(0) var<storage, read_write> distance: array<vec4<u32>>;
-    @binding(5) @group(0) var<storage, read_write> id: array<u32>;
-    @binding(3) @group(1) var<uniform> modelView: mat4x4<f32>;
-    @binding(4) @group(1) var<uniform> projection: mat4x4<f32>;
-
+    @binding(1) @group(0) var<storage, read> covariance: array<vec3<f32>>;
+    @binding(2) @group(0) var<storage, read_write> basis: array<vec4<f32>>;
+    @binding(3) @group(0) var<storage, read_write> distance: array<u32>;
+    @binding(4) @group(0) var<storage, read_write> id: array<u32>;
+    @binding(5) @group(0) var<uniform> splatCount: u32;
     
+    @binding(0) @group(1) var<uniform> modelView: mat4x4<f32>;
+    @binding(1) @group(1) var<uniform> projection: mat4x4<f32>;
 
-    const n:u32 = 512;
+    @compute @workgroup_size(256)
+    fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>,
+      @builtin(local_invocation_id) LocalInvocationID: vec3<u32>,
+      @builtin(workgroup_id) WorkgroupID: vec3<u32>) {
+          if (GlobalInvocationID.x < splatCount) {
+            var gid = GlobalInvocationID.x;
+            var covarianceFirst = covariance[gid*2];
+            var covarianceSecond = covariance[gid*2+1];
+
+            var covarianceMatrix: mat4x4<f32> = mat4x4(
+                covarianceFirst.x,
+                covarianceFirst.y,
+                covarianceFirst.z,
+                0.0,
+                covarianceFirst.y,
+                covarianceSecond.x,
+                covarianceSecond.y,
+                0.0,
+                covarianceFirst.z,
+                covarianceSecond.y,
+                covarianceSecond.z,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                1.0
+                );
+
+            var m:mat4x4<f32> =  projection * modelView;
+
+            var m_t:mat4x4<f32> = transpose(m);
+        
+            var new_c:mat4x4<f32> =  m * covarianceMatrix * m_t;
+            
+                var cov2Dv:vec3<f32> = vec3<f32>(new_c[0][0] , new_c[0][1], new_c[1][1]);
+
+                var a:f32 = cov2Dv.x;
+                var b:f32 = cov2Dv.y;
+                var d:f32 = cov2Dv.z;
+    
+                var D:f32 = a * d - b * b;
+                var trace:f32 = a + d;
+                var traceOver2:f32 = 0.5 * trace;
+                var term2:f32 = sqrt(trace * trace / 4.0 - D);
+                
+                var eigenValue1:f32 = traceOver2 + term2;
+                var eigenValue2:f32 = max(traceOver2 - term2, 0.0);
+    
+                const maxSplatSize:f32 = 1024.0;
+                var eigenVector1:vec2<f32> = normalize(vec2<f32>(b, eigenValue1 - a));
+                var eigenVector2:vec2<f32> = vec2<f32>(eigenVector1.y, -eigenVector1.x);
+                var scale1:f32 = min(sqrt( eigenValue1)*4.0, maxSplatSize);
+                var scale2:f32 = min(sqrt( eigenValue2)*4.0, maxSplatSize);
+    
+                var center:vec4<f32> = vec4<f32>( centroid[gid],1.0);
+                var dis:vec4<f32> = projection * modelView * center;
+                distance[gid] = u32(dis.z/dis.w * f32(0xFFFFFFF1));
+        
+          }
+    }
+
+</script>
+
+<script id="scan_shader" type="wgsl">
+
+    @binding(0) @group(0) var<storage, read> input :array<u32>;
+    @binding(1) @group(0) var<storage, read_write> output0 :array<u32>;
+    @binding(2) @group(0) var<storage, read_write> output1 :array<u32>;
+    @binding(3) @group(0) var<storage, read_write> sums: array<u32>;
+
+    @binding(0) @group(1) var<uniform> radixMaskId:u32;
 
     const bank_size:u32 = 32;
-    var<workgroup> temp: array<f32,532>; //workgroup array must have a fixed size;
+    const n:u32 = 512;
+    var<workgroup> temp0: array<u32,532>;
+    var<workgroup> temp1: array<u32,532>;
 
     fn bank_conflict_free_idx( idx:u32) -> u32 {
       var chunk_id:u32 = idx / bank_size;
@@ -140,12 +212,42 @@
       @builtin(workgroup_id) WorkgroupID: vec3<u32>) {
           var thid:u32 = LocalInvocationID.x;
           var globalThid:u32 = GlobalInvocationID.x;
-          if (thid < (n>>1)){
-              temp[bank_conflict_free_idx(2*thid)] = input[2*globalThid]; // load input into shared memory 
-              temp[bank_conflict_free_idx(2*thid+1)] = input[2*globalThid+1];
-          }
+          var mask:u32 = u32(3) << (radixMaskId << 1);
 
+          if (thid < (n>>1)){
+
+              var val:u32 = (input[2*globalThid] & mask) >> (radixMaskId << 1);
+
+              if (val == 0) {
+                  temp0[bank_conflict_free_idx(2*thid)] = 1;
+              }
+              else if (val == 1) {
+                  temp0[bank_conflict_free_idx(2*thid)] = 1 << 16;
+              }
+              else if (val == 2) {
+                  temp1[bank_conflict_free_idx(2*thid)] = 1;
+              }
+              else if (val == 3) {
+                  temp1[bank_conflict_free_idx(2*thid)] = 1 << 16;
+              }
+
+              val = (input[2*globalThid+1] & mask) >> (radixMaskId << 1);
+
+              if (val == 0) {
+                  temp0[bank_conflict_free_idx(2*thid+1)] = 1;
+              }
+              else if (val == 1) {
+                  temp0[bank_conflict_free_idx(2*thid+1)] = 1 << 16;
+              }
+              else if (val == 2) {
+                  temp1[bank_conflict_free_idx(2*thid+1)] = 1;
+              }
+              else if (val == 3) {
+                  temp1[bank_conflict_free_idx(2*thid+1)] = 1 << 16;
+              }
+          }
           workgroupBarrier();
+
           var offset:u32 = 1;
 
           for (var d:u32 = n>>1; d > 0; d >>= 1)
@@ -154,22 +256,19 @@
               {
                   var ai:u32 = offset*(2*thid+1)-1;     
                   var bi:u32 = offset*(2*thid+2)-1;  
-                  temp[bank_conflict_free_idx(bi)] += temp[bank_conflict_free_idx(ai)];    
+                  temp0[bank_conflict_free_idx(bi)] += temp0[bank_conflict_free_idx(ai)]; 
+                  temp1[bank_conflict_free_idx(bi)] += temp1[bank_conflict_free_idx(ai)];    
               }    
               offset *= 2; 
 
               workgroupBarrier();   
           }
-          /*if (thid < (n>>1)){
-              output[2*thid] = temp[2*thid]; 
-              output[2*thid+1] = temp[2*thid+1]; 
-          }*/
-          //output[thid] = 1;
 
           if (thid == 0) 
           { 
-              temp[bank_conflict_free_idx(n - 1)] = 0; 
-          } // clear the last element  
+              temp0[bank_conflict_free_idx(n - 1)] = 0; 
+              temp1[bank_conflict_free_idx(n - 1)] = 0; 
+          }
           workgroupBarrier();      
 
           for (var d:u32 = 1; d < n; d *= 2) // traverse down tree & build scan 
@@ -179,27 +278,56 @@
               { 
                   var ai:u32 = offset*(2*thid+1)-1;     
                   var bi:u32 = offset*(2*thid+2)-1; 
-                  var t:f32 = temp[bank_conflict_free_idx(ai)]; 
-                  temp[bank_conflict_free_idx(ai)] = temp[bank_conflict_free_idx(bi)]; 
-                  temp[bank_conflict_free_idx(bi)] += t;       
+                  var t:u32 = temp0[bank_conflict_free_idx(ai)]; 
+                  temp0[bank_conflict_free_idx(ai)] = temp0[bank_conflict_free_idx(bi)]; 
+                  temp0[bank_conflict_free_idx(bi)] += t;     
+                  
+                  t = temp1[bank_conflict_free_idx(ai)]; 
+                  temp1[bank_conflict_free_idx(ai)] = temp1[bank_conflict_free_idx(bi)]; 
+                  temp1[bank_conflict_free_idx(bi)] += t;       
               } 
               workgroupBarrier();      
           }
-          
-          if (thid < (n>>1)){
-              output[2*globalThid] = temp[bank_conflict_free_idx(2*thid)]; 
-              output[2*globalThid+1] = temp[bank_conflict_free_idx(2*thid+1)]; 
+
+          var count0:u32 = temp0[bank_conflict_free_idx(2*255)] & 0xFFFF;
+          var count1:u32 = (temp0[bank_conflict_free_idx(2*255)] >> 16 )& 0xFFFF;
+          var count2:u32 = temp1[bank_conflict_free_idx(2*255)] & 0xFFFF;
+          var count3:u32 = (temp1[bank_conflict_free_idx(2*255)] >> 16 )& 0xFFFF;
+
+          var last:u32 =  (input[2*((WorkgroupID.x+1) * 256-1)] & mask)  >> (radixMaskId << 1); 
+          switch(last) {
+              case 0: {count0 += 1;}
+              case 1: {count1 += 1;}
+              case 2: {count2 += 1;}
+              case 3: {count3 += 1;}
+              default {}
           }
 
-          storageBarrier();
+          last =  (input[2*((WorkgroupID.x+1) * 256-1)+1] & mask)  >> (radixMaskId << 1); 
+          switch(last) {
+              case 0: {count0 += 1;}
+              case 1: {count1 += 1;}
+              case 2: {count2 += 1;}
+              case 3: {count3 += 1;}
+              default {}
+          }
 
           if (thid == 0) {
-              sums[WorkgroupID.x] = output[512 * WorkgroupID.x + 511] + input[512 * WorkgroupID.x + 511];
+              sums[WorkgroupID.x * 4] = count0;
+              sums[WorkgroupID.x * 4+1] = count1;
+              sums[WorkgroupID.x * 4+2] = count2;
+              sums[WorkgroupID.x * 4+3] = count3;
+          }
+
+          if (thid < (n>>1)){
+              output0[2*globalThid] = temp0[bank_conflict_free_idx(2*thid)]; 
+              output0[2*globalThid+1] = temp0[bank_conflict_free_idx(2*thid+1)]; 
+
+              output1[2*globalThid] = temp1[bank_conflict_free_idx(2*thid)]; 
+              output1[2*globalThid+1] = temp1[bank_conflict_free_idx(2*thid+1)]; 
           }
     }
-
 </script>
-
 
 <script id="shader" type="wgsl">
 
@@ -246,11 +374,6 @@
 
               workgroupBarrier();   
           }
-          /*if (thid < (n>>1)){
-              output[2*thid] = temp[2*thid]; 
-              output[2*thid+1] = temp[2*thid+1]; 
-          }*/
-          //output[thid] = 1;
 
           if (thid == 0) 
           { 
@@ -404,6 +527,18 @@
 
 
 <script>
+    function roundUpToNearestPowOf2(v) {
+        //https://graphics.stanford.edu/%7Eseander/bithacks.html#RoundUpPowerOf2
+        v--;
+        v |= v >> 1;
+        v |= v >> 2;
+        v |= v >> 4;
+        v |= v >> 8;
+        v |= v >> 16;
+        v++;
+        return v;
+    }
+
     class Splat {
         constructor() {
             this.covariancePipeline = null;
@@ -413,11 +548,26 @@
             this.colorBuffer = null;
             this.rotationBuffer = null;
             this.scaleBuffer = null;
-            this.covariance = null;
 
             this.splatSize = 0;
             this.workgroupSize = 0;
             this.splatSizeBuffer = null;
+            this.covarianceBuffer = null;
+
+            this.basisBuffer = null;
+            this.distanceBuffer = null;
+            this.distanceBuffer2 = null;
+            this.idBuffer = null;
+
+            this.basisUniformBindGroup1 = null;
+            this.basisUniformBindGroup2 = null;
+            this.basisPipeline = null;
+
+            this.pass1UniformBindGroupRadixIds = [];
+            this.pass1ComputePipeline = null;
+            this.pass1UniformBindGroupInputOutput0 = null;
+            this.pass1UniformBindGroupInputOutput1 = null;
+            this.chunkCount = 0;
         }
 
         async setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer) {
@@ -444,7 +594,7 @@
             this.colorBuffer = createGPUBuffer(device, new Float32Array(col), GPUBufferUsage.STORAGE);
             this.rotationBuffer = createGPUBuffer(device, new Float32Array(rot), GPUBufferUsage.STORAGE);
             this.scaleBuffer = createGPUBuffer(device, new Float32Array(scal), GPUBufferUsage.STORAGE);
-            this.covariance = createGPUBuffer(device, new Float32Array(this.splatSize * 6), GPUBufferUsage.STORAGE);
+            this.covarianceBuffer = createGPUBuffer(device, new Float32Array(this.splatSize * 6), GPUBufferUsage.STORAGE);
             this.splatSizeBuffer = createGPUBuffer(device, new Float32Array([this.splatSize]), GPUBufferUsage.UNIFORM);
 
             let covarianceShaderModule = shaderModuleFromCode(device, 'covariance_shader');
@@ -454,17 +604,17 @@
                     {
                         binding: 0,
                         visibility: GPUShaderStage.COMPUTE,
-                        buffer: { type:  'read-only-storage' }
+                        buffer: { type: 'read-only-storage' }
                     },
                     {
                         binding: 1,
                         visibility: GPUShaderStage.COMPUTE,
-                        buffer: { type: 'read-only-storage'   }
+                        buffer: { type: 'read-only-storage' }
                     },
                     {
                         binding: 2,
                         visibility: GPUShaderStage.COMPUTE,
-                        buffer: { type:  "storage" }
+                        buffer: { type: "storage" }
                     },
                     {
                         binding: 3,
@@ -492,7 +642,7 @@
                     {
                         binding: 2,
                         resource: {
-                            buffer: this.covariance
+                            buffer: this.covarianceBuffer
                         }
                     },
                     {
@@ -514,6 +664,297 @@
                     entryPoint: 'main',
                 }
             });
+
+
+
+            //@binding(0) @group(1) var<uniform> modelView: mat4x4<f32>;
+            //@binding(1) @group(1) var<uniform> projection: mat4x4<f32>;
+
+            let basisShaderModule = shaderModuleFromCode(device, 'basis_shader');
+
+
+            let basisUniformBindGroupLayout1 = device.createBindGroupLayout({
+                entries: [
+                    {
+                        binding: 0,
+                        visibility: GPUShaderStage.COMPUTE,
+                        buffer: { type: 'read-only-storage' }
+                    },
+                    {
+                        binding: 1,
+                        visibility: GPUShaderStage.COMPUTE,
+                        buffer: { type: 'read-only-storage' }
+                    },
+                    {
+                        binding: 2,
+                        visibility: GPUShaderStage.COMPUTE,
+                        buffer: { type: "storage" }
+                    },
+                    {
+                        binding: 3,
+                        visibility: GPUShaderStage.COMPUTE,
+                        buffer: { type: "storage" }
+                    },
+                    {
+                        binding: 4,
+                        visibility: GPUShaderStage.COMPUTE,
+                        buffer: { type: "storage" }
+                    },
+                    {
+                        binding: 5,
+                        visibility: GPUShaderStage.COMPUTE,
+                        buffer: {}
+                    }
+                ]
+            });
+
+            let basisUniformBindGroupLayout2 = device.createBindGroupLayout({
+                entries: [
+                    {
+                        binding: 0,
+                        visibility: GPUShaderStage.COMPUTE,
+                        buffer: {}
+                    },
+                    {
+                        binding: 1,
+                        visibility: GPUShaderStage.COMPUTE,
+                        buffer: {}
+                    }
+                ]
+            });
+
+
+            this.basisBuffer = createGPUBuffer(device, new Float32Array(4 * this.splatSize), GPUBufferUsage.STORAGE);
+            this.distanceBuffer = createGPUBuffer(device, new Uint32Array(this.splatSize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
+            this.idBuffer = createGPUBuffer(device, new Uint32Array(this.splatSize), GPUBufferUsage.STORAGE);
+
+
+
+            this.basisUniformBindGroup1 = device.createBindGroup({
+                layout: basisUniformBindGroupLayout1,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: {
+                            buffer: this.locBuffer
+                        }
+                    },
+                    {
+                        binding: 1,
+                        resource: {
+                            buffer: this.covarianceBuffer
+                        }
+                    },
+                    {
+                        binding: 2,
+                        resource: {
+                            buffer: this.basisBuffer
+                        }
+                    },
+                    {
+                        binding: 3,
+                        resource: {
+                            buffer: this.distanceBuffer
+                        }
+                    },
+                    {
+                        binding: 4,
+                        resource: {
+                            buffer: this.idBuffer
+                        }
+                    },
+                    {
+                        binding: 5,
+                        resource: {
+                            buffer: this.splatSizeBuffer
+                        }
+                    }
+                ]
+            });
+
+            this.basisUniformBindGroup2 = device.createBindGroup({
+                layout: basisUniformBindGroupLayout2,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: {
+                            buffer: modelViewMatrixUniformBuffer
+                        }
+                    }, {
+                        binding: 1,
+                        resource: {
+                            buffer: projectionMatrixUniformBuffer
+                        }
+                    },
+                ]
+            });
+
+
+            const basisPipelineLayoutDesc = { bindGroupLayouts: [basisUniformBindGroupLayout1, basisUniformBindGroupLayout2] };
+            const basisLayout = device.createPipelineLayout(basisPipelineLayoutDesc);
+
+            this.basisPipeline = device.createComputePipeline({
+                layout: basisLayout,
+                compute: {
+                    module: basisShaderModule,
+                    entryPoint: 'main',
+                }
+            });
+
+
+
+            let scanShaderModule = shaderModuleFromCode(device, 'scan_shader');
+
+
+            let scanUniformBindGroupLayoutInputOutput = device.createBindGroupLayout({
+                entries: [
+                    {
+                        binding: 0,
+                        visibility: GPUShaderStage.COMPUTE,
+                        buffer: { type: 'read-only-storage' }
+
+                    },
+                    {
+                        binding: 1,
+                        visibility: GPUShaderStage.COMPUTE,
+                        buffer: { type: "storage" }
+                    },
+                    {
+                        binding: 2,
+                        visibility: GPUShaderStage.COMPUTE,
+                        buffer: { type: "storage" }
+                    },
+                    {
+                        binding: 3,
+                        visibility: GPUShaderStage.COMPUTE,
+                        buffer: { type: "storage" }
+                    }
+                ]
+            });
+
+            let scanUniformBindGroupLayoutRadixId = device.createBindGroupLayout({
+                entries: [
+                    {
+                        binding: 0,
+                        visibility: GPUShaderStage.COMPUTE,
+                        buffer: {}
+                    }
+                ]
+            });
+
+            let tempBuffer0 = createGPUBuffer(device, new Uint32Array(this.splatSize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
+            let tempBuffer1 = createGPUBuffer(device, new Uint32Array(this.splatSize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
+
+            this.chunkCount = this.splatSize / 512;
+
+            let sumSize = roundUpToNearestPowOf2(this.chunkCount);
+
+            let sumArrayBuffer = createGPUBuffer(device, new Uint32Array(sumSize * 4), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
+            let outputSumArrayBuffer = createGPUBuffer(device, new Uint32Array(sumSize * 4), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
+            let sumSizeBuffer = createGPUBuffer(device, new Uint32Array([sumSize]), GPUBufferUsage.UNIFORM);
+
+            this.distanceBuffer2 = createGPUBuffer(device, new Uint32Array(this.splatSize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
+
+            this.pass1UniformBindGroupInputOutput0 = device.createBindGroup({
+                layout: scanUniformBindGroupLayoutInputOutput,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: {
+                            buffer: this.distanceBuffer
+                        }
+                    },
+                    {
+                        binding: 1,
+                        resource: {
+                            buffer: tempBuffer0
+                        }
+                    },
+                    {
+                        binding: 2,
+                        resource: {
+                            buffer: tempBuffer1
+                        }
+                    },
+                    {
+                        binding: 3,
+                        resource: {
+                            buffer: sumArrayBuffer
+                        }
+                    }
+                ]
+            });
+
+            this. pass1UniformBindGroupInputOutput1 = device.createBindGroup({
+                layout: scanUniformBindGroupLayoutInputOutput,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: {
+                            buffer: this.distanceBuffer2
+                        }
+                    },
+                    {
+                        binding: 1,
+                        resource: {
+                            buffer: tempBuffer0
+                        }
+                    },
+                    {
+                        binding: 2,
+                        resource: {
+                            buffer: tempBuffer1
+                        }
+                    },
+                    {
+                        binding: 3,
+                        resource: {
+                            buffer: sumArrayBuffer
+                        }
+                    }
+                ]
+            });
+
+
+            const pass1PipelineLayoutDesc = {
+                bindGroupLayouts: [scanUniformBindGroupLayoutInputOutput,
+                    scanUniformBindGroupLayoutRadixId]
+            };
+            const pass1Layout = device.createPipelineLayout(pass1PipelineLayoutDesc);
+            this.pass1ComputePipeline = device.createComputePipeline({
+                layout: pass1Layout,
+                compute: {
+                    module: scanShaderModule,
+                    entryPoint: 'main',
+                },
+            });
+
+            let radixIdUniformBuffers = [];
+
+            for (let i = 0; i < 16; ++i) {
+                let radixIdUniformBuffer = createGPUBuffer(device, new Uint32Array([i]), GPUBufferUsage.UNIFORM);
+
+                radixIdUniformBuffers.push(radixIdUniformBuffer);
+            }
+
+
+            for (let i = 0; i < 16; ++i) {
+                let pass1UniformBindGroupRadixId = device.createBindGroup({
+                    layout: scanUniformBindGroupLayoutRadixId,
+                    entries: [
+                        {
+                            binding: 0,
+                            resource: {
+                                buffer: radixIdUniformBuffers[i]
+                            }
+                        }
+                    ]
+                });
+                this.pass1UniformBindGroupRadixIds.push(pass1UniformBindGroupRadixId);
+            }
+
+
+
         }
 
         async calculateCovariance(device) {
@@ -528,8 +969,48 @@
             passEncoder.setBindGroup(0, this.covarianceUniformBindGroup);
             passEncoder.dispatchWorkgroups(this.workgroupSize);
             passEncoder.end();
+
+            const passEncoder2 = commandEncoder.beginComputePass(computePassDescriptor);
+            passEncoder2.setPipeline(this.basisPipeline);
+            passEncoder2.setBindGroup(0, this.basisUniformBindGroup1);
+            passEncoder2.setBindGroup(1, this.basisUniformBindGroup2);
+            passEncoder2.dispatchWorkgroups(this.workgroupSize);
+            passEncoder2.end();
+
+            for (let i = 0; i < 16; ++i) {
+                const passEncoder = commandEncoder.beginComputePass(
+                    computePassDescriptor
+                );
+
+                passEncoder.setPipeline(this.pass1ComputePipeline);
+                if (i % 2 == 0) {
+                    passEncoder.setBindGroup(0, this.pass1UniformBindGroupInputOutput0);
+                }
+                else {
+                    passEncoder.setBindGroup(0, this.pass1UniformBindGroupInputOutput1);
+                }
+                passEncoder.setBindGroup(1, this.pass1UniformBindGroupRadixIds[i]);
+                passEncoder.dispatchWorkgroups(this.chunkCount);
+                passEncoder.end();
+
+            }
+
+
+            const copiedBuffer = createGPUBuffer(device, new Uint32Array(this.splatSize), GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
+
+            commandEncoder.copyBufferToBuffer(this.distanceBuffer, 0,
+                copiedBuffer, 0, this.splatSize * 4);
             device.queue.submit([commandEncoder.finish()]);
+
             await device.queue.onSubmittedWorkDone();
+
+            await copiedBuffer.mapAsync(GPUMapMode.READ, 0, this.splatSize * 4);
+
+            const d = new Uint32Array(copiedBuffer.getMappedRange());
+            console.log('distances ', d);
+
+            copiedBuffer.unmap();
+
         }
 
         /* encode(encoder) {
