@@ -22,7 +22,7 @@
     // given centroids, covariance, modelView, projection;
     // compute 2d basis, distance
     @binding(0) @group(0) var<storage, read> centroid :array<vec3<f32>>;
-    @binding(1) @group(0) var<storage, read_write> distance: array<f32>;
+    @binding(1) @group(0) var<storage, read_write> distance: array<vec3<f32>>;
     @binding(2) @group(0) var<uniform> splatCount: u32;
     
     @compute @workgroup_size(256)
@@ -32,9 +32,8 @@
           if (GlobalInvocationID.x ==1) {
             var gid = GlobalInvocationID.x;
                 var center:vec3<f32> = centroid[1];
-                distance[0] = center.x;
-                distance[1] = center.y;
-                distance[2] = center.z;
+                distance[0] = centroid[0];
+                distance[1] = centroid[1];
           }
     }
 </script>
@@ -130,7 +129,7 @@
 
         let basisShaderModule = shaderModuleFromCode(device, 'basis_shader');
 
-        let locBuffer = createGPUBuffer(device, new Float32Array([1, 2, 3, 4, 5, 6, 7, 8, 9]), GPUBufferUsage.STORAGE);
+        let locBuffer = createGPUBuffer(device, new Float32Array([1, 2, 3, 0, 4, 5, 6, 0, 7, 8, 9, 0]), GPUBufferUsage.STORAGE);
         let splatSizeBuffer = createGPUBuffer(device, new Float32Array([3]), GPUBufferUsage.UNIFORM);
 
 
@@ -154,7 +153,7 @@
             ]
         });
 
-        const distanceBuffer = createGPUBuffer(device, new Float32Array(3), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
+        const distanceBuffer = createGPUBuffer(device, new Float32Array(3*4), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
 
         const basisUniformBindGroup1 = device.createBindGroup({
             layout: basisUniformBindGroupLayout1,
@@ -202,15 +201,15 @@
         passEncoder2.dispatchWorkgroups(1);
         passEncoder2.end();
 
-        const copiedBuffer = createGPUBuffer(device, new Float32Array(3), GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
+        const copiedBuffer = createGPUBuffer(device, new Float32Array(3*4), GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
 
         commandEncoder.copyBufferToBuffer(distanceBuffer, 0,
-            copiedBuffer, 0, 3 * 4);
+            copiedBuffer, 0, 3 * 4*4);
         device.queue.submit([commandEncoder.finish()]);
 
         await device.queue.onSubmittedWorkDone();
 
-        await copiedBuffer.mapAsync(GPUMapMode.READ, 0, 3 * 4);
+        await copiedBuffer.mapAsync(GPUMapMode.READ, 0, 3 * 4*4);
 
         const d = new Float32Array(copiedBuffer.getMappedRange());
 
