@@ -499,7 +499,7 @@
         });
 
         const arraySize = 1024;
-        const chunkCount = arraySize / 512;
+        const chunkCount = Math.ceil(arraySize / 512);
 
         let sumSize = roundUpToNearestPowOf2(chunkCount);
 

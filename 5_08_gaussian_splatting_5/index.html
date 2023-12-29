@@ -20,6 +20,8 @@
 </body>
 <script src="../utils/gl-matrix.js">
     //arcball, explain vec4 vec3 (1.0) (0.0)
+
+    //alignment rule
 </script>
 <script src="../utils/OBJFile.js"> </script>
 <script src="../utils/utils.js"></script>
@@ -117,7 +119,7 @@
     @binding(0) @group(0) var<storage, read> centroid :array<vec3<f32>>;
     @binding(1) @group(0) var<storage, read> covariance: array<vec3<f32>>;
     @binding(2) @group(0) var<storage, read_write> basis: array<vec4<f32>>;
-    @binding(3) @group(0) var<storage, read_write> distance: array<f32>;
+    @binding(3) @group(0) var<storage, read_write> distance: array<u32>;
     @binding(4) @group(0) var<storage, read_write> id: array<u32>;
     @binding(5) @group(0) var<uniform> splatCount: u32;
     
@@ -130,7 +132,7 @@
       @builtin(workgroup_id) WorkgroupID: vec3<u32>) {
           if (GlobalInvocationID.x < splatCount) {
             var gid = GlobalInvocationID.x;
-           /* var covarianceFirst = covariance[gid*2];
+            var covarianceFirst = covariance[gid*2];
             var covarianceSecond = covariance[gid*2+1];
 
             var covarianceMatrix: mat4x4<f32> = mat4x4(
@@ -151,9 +153,9 @@
                 0.0,
                 1.0
                 );
-*/
+
             var m:mat4x4<f32> =  projection * modelView;
-/*
+
             var m_t:mat4x4<f32> = transpose(m);
         
             var new_c:mat4x4<f32> =  m * covarianceMatrix * m_t;
@@ -177,16 +179,10 @@
                 var eigenVector2:vec2<f32> = vec2<f32>(eigenVector1.y, -eigenVector1.x);
                 var scale1:f32 = min(sqrt( eigenValue1)*4.0, maxSplatSize);
                 var scale2:f32 = min(sqrt( eigenValue2)*4.0, maxSplatSize);
-    */
-              
-                    if (gid == 1) {
-                        var center:vec3<f32> = centroid[1];
-                           // var dis:vec4<f32> = m * center;
-                distance[0] = center.x;
-                distance[1] = center.y;
-                distance[2] = center.z;
-
-                    }
+    
+                var center:vec4<f32> = vec4(centroid[gid], 1.0);
+                var dis:vec4<f32> = m * center;
+                distance[gid] = u32(dis.z / dis.w * f32(0xFFFFFFFF >> 8));         
           }
     }
 
@@ -711,10 +707,11 @@
 
 
 <script>
-                const debugId = 1;
+    const debugId = 1;
 
     function roundUpToNearestPowOf2(v) {
         //https://graphics.stanford.edu/%7Eseander/bithacks.html#RoundUpPowerOf2
+        //v = Math.ceil(v)
         v--;
         v |= v >> 1;
         v |= v >> 2;
@@ -730,7 +727,7 @@
 
         const v = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), center, m);
 
-        return v[2]/v[3];
+        return v[2] / v[3];
     }
 
     class Splat {
@@ -769,6 +766,9 @@
             this.pass3UniformBindGroup0 = null;
             this.pass3UniformBindGroup1 = null;
 
+            this.sumArrayBuffer = null;
+            this.sumSize = 0;
+
         }
 
         async setup(device, projectionMatrix, modelViewMatrix, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer) {
@@ -783,27 +783,27 @@
 
             for (let p of this.objBody) {
                 col.push(...p.c);
+                col.push(0.0); // padding
                 rot.push(...p.r);
                 pos.push(...p.p);
+                pos.push(0.0);
                 scal.push(...p.s);
+                scal.push(0.0);
 
-              //  console.log(p.p);
+                // console.log("col", p.c);
             }
 
-            console.log(pos[0],pos[1],pos[2])
-            console.log(pos[3],pos[4],pos[5])
-
-
-            const d= debugDistance(projectionMatrix, modelViewMatrix, glMatrix.vec4.fromValues(pos[debugId*3],pos[debugId*3+1],pos[debugId*3+2],1.0));
-            console.log("debug dis ", d,  pos[debugId*3],pos[debugId*3+1],pos[debugId*3+2]);
+            //const d= debugDistance(projectionMatrix, modelViewMatrix, glMatrix.vec4.fromValues(pos[debugId*3],pos[debugId*3+1],pos[debugId*3+2],1.0));
+            //console.log("debug dis ", d,  pos[debugId*3],pos[debugId*3+1],pos[debugId*3+2]);
             this.splatSize = this.objBody.length;
             this.workgroupSize = Math.ceil(this.splatSize / 256);
-            console.log("loc ", pos.length, this.splatSize*3, this.workgroupSize);
+            //console.log("loc ", pos.length, this.splatSize*3, this.workgroupSize);
+            //console.log("loc2", new Float32Array(pos))
             this.locBuffer = createGPUBuffer(device, new Float32Array(pos), GPUBufferUsage.STORAGE);
             this.colorBuffer = createGPUBuffer(device, new Float32Array(col), GPUBufferUsage.STORAGE);
             this.rotationBuffer = createGPUBuffer(device, new Float32Array(rot), GPUBufferUsage.STORAGE);
             this.scaleBuffer = createGPUBuffer(device, new Float32Array(scal), GPUBufferUsage.STORAGE);
-            this.covarianceBuffer = createGPUBuffer(device, new Float32Array(this.splatSize * 6), GPUBufferUsage.STORAGE);
+            this.covarianceBuffer = createGPUBuffer(device, new Float32Array(this.splatSize * 8), GPUBufferUsage.STORAGE);
             this.splatSizeBuffer = createGPUBuffer(device, new Float32Array([this.splatSize]), GPUBufferUsage.UNIFORM);
 
             let covarianceShaderModule = shaderModuleFromCode(device, 'covariance_shader');
@@ -934,8 +934,10 @@
 
 
             this.basisBuffer = createGPUBuffer(device, new Float32Array(4 * this.splatSize), GPUBufferUsage.STORAGE);
-            this.distanceBuffer = createGPUBuffer(device, new Float32Array(this.splatSize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
+            this.distanceBuffer = createGPUBuffer(device, new Uint32Array(this.splatSize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
             this.idBuffer = createGPUBuffer(device, new Uint32Array(this.splatSize), GPUBufferUsage.STORAGE);
+
+
 
 
 
@@ -1054,13 +1056,15 @@
             let tempBuffer0 = createGPUBuffer(device, new Uint32Array(this.splatSize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
             let tempBuffer1 = createGPUBuffer(device, new Uint32Array(this.splatSize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
 
-            this.chunkCount = this.splatSize / 512;
+            this.chunkCount = Math.ceil(this.splatSize / 512);
 
-            let sumSize = roundUpToNearestPowOf2(this.chunkCount);
+            this.sumSize = roundUpToNearestPowOf2(this.chunkCount);
 
-            let sumArrayBuffer = createGPUBuffer(device, new Uint32Array(sumSize * 4), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
-            let outputSumArrayBuffer = createGPUBuffer(device, new Uint32Array(sumSize * 4), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
-            let sumSizeBuffer = createGPUBuffer(device, new Uint32Array([sumSize]), GPUBufferUsage.UNIFORM);
+            console.log("sumsize", this.chunkCount, this.sumSize)
+
+            this.sumArrayBuffer = createGPUBuffer(device, new Uint32Array(this.sumSize * 4), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
+            let outputSumArrayBuffer = createGPUBuffer(device, new Uint32Array(this.sumSize * 4), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
+            let sumSizeBuffer = createGPUBuffer(device, new Uint32Array([this.sumSize]), GPUBufferUsage.UNIFORM);
 
             this.distanceBuffer2 = createGPUBuffer(device, new Uint32Array(this.splatSize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
 
@@ -1090,7 +1094,7 @@
                     {
                         binding: 3,
                         resource: {
-                            buffer: sumArrayBuffer
+                            buffer: this.sumArrayBuffer
                         }
                     }
                 ]
@@ -1120,7 +1124,7 @@
                     {
                         binding: 3,
                         resource: {
-                            buffer: sumArrayBuffer
+                            buffer: this.sumArrayBuffer
                         }
                     }
                 ]
@@ -1196,7 +1200,7 @@
                     {
                         binding: 0,
                         resource: {
-                            buffer: sumArrayBuffer
+                            buffer: this.sumArrayBuffer
                         }
                     },
                     {
@@ -1367,23 +1371,23 @@
             const computePassDescriptor = {};
             const commandEncoder = device.createCommandEncoder();
 
-            const passEncoder = commandEncoder.beginComputePass(
-                computePassDescriptor
-            );
-
-            passEncoder.setPipeline(this.covariancePipeline);
-            passEncoder.setBindGroup(0, this.covarianceUniformBindGroup);
-            passEncoder.dispatchWorkgroups(this.workgroupSize);
-            passEncoder.end();
+            /*  const passEncoder = commandEncoder.beginComputePass(
+                  computePassDescriptor
+              );
+  
+              passEncoder.setPipeline(this.covariancePipeline);
+              passEncoder.setBindGroup(0, this.covarianceUniformBindGroup);
+              passEncoder.dispatchWorkgroups(this.workgroupSize);
+              passEncoder.end();*/
 
             const passEncoder2 = commandEncoder.beginComputePass(computePassDescriptor);
             passEncoder2.setPipeline(this.basisPipeline);
             passEncoder2.setBindGroup(0, this.basisUniformBindGroup1);
             passEncoder2.setBindGroup(1, this.basisUniformBindGroup2);
-            passEncoder2.dispatchWorkgroups(1);
+            passEncoder2.dispatchWorkgroups(this.workgroupSize);
             passEncoder2.end();
 
-            /*for (let i = 0; i < 1; ++i) {
+            for (let i = 0; i < 16; ++i) {
                 const passEncoder = commandEncoder.beginComputePass(
                     computePassDescriptor
                 );
@@ -1399,40 +1403,42 @@
                 passEncoder.dispatchWorkgroups(this.chunkCount);
                 passEncoder.end();
 
-                const pass2Encoder = commandEncoder.beginComputePass(computePassDescriptor);
-                pass2Encoder.setPipeline(this.pass2ComputePipeline);
-                pass2Encoder.setBindGroup(0, this.pass2UniformBindGroup);
-                pass2Encoder.dispatchWorkgroups(1);
-                pass2Encoder.end();
+                 const pass2Encoder = commandEncoder.beginComputePass(computePassDescriptor);
+                 pass2Encoder.setPipeline(this.pass2ComputePipeline);
+                 pass2Encoder.setBindGroup(0, this.pass2UniformBindGroup);
+                 pass2Encoder.dispatchWorkgroups(1);
+                 pass2Encoder.end();
+ 
+                 const pass3Encoder = commandEncoder.beginComputePass(computePassDescriptor);
+                 pass3Encoder.setPipeline(this.pass3ComputePipeline);
+                 if (i % 2 == 0) {
+                     pass3Encoder.setBindGroup(0, this.pass3UniformBindGroup0);
+                 } else {
+                     pass3Encoder.setBindGroup(0, this.pass3UniformBindGroup1);
+                 }
+                 pass3Encoder.setBindGroup(1, this.pass1UniformBindGroupRadixIds[i]);
+                 pass3Encoder.dispatchWorkgroups(this.chunkCount);
+                 pass3Encoder.end();
+            }
 
 
-                const pass3Encoder = commandEncoder.beginComputePass(computePassDescriptor);
-                pass3Encoder.setPipeline(this.pass3ComputePipeline);
-                if (i % 2 == 0) {
-                    pass3Encoder.setBindGroup(0, this.pass3UniformBindGroup0);
-                } else {
-                    pass3Encoder.setBindGroup(0, this.pass3UniformBindGroup1);
-                }
-                pass3Encoder.setBindGroup(1, this.pass1UniformBindGroupRadixIds[i]);
-                pass3Encoder.dispatchWorkgroups(this.chunkCount);
-                pass3Encoder.end();
-            }*/
-
-
-            const copiedBuffer = createGPUBuffer(device, new Float32Array(this.splatSize), GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
+            const copiedBuffer = createGPUBuffer(device, new Uint32Array(this.splatSize), GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
 
             commandEncoder.copyBufferToBuffer(this.distanceBuffer, 0,
-                copiedBuffer, 0, this.splatSize * 4);
+                copiedBuffer, 0, this.splatSize  * 4);
             device.queue.submit([commandEncoder.finish()]);
 
             await device.queue.onSubmittedWorkDone();
 
-            await copiedBuffer.mapAsync(GPUMapMode.READ, 0, this.splatSize * 4);
+            await copiedBuffer.mapAsync(GPUMapMode.READ, 0, this.splatSize  * 4);
 
-            const d = new Float32Array(copiedBuffer.getMappedRange());
-           
-               console.log("cal d", d[0], d[1], d[2] );
-          
+            const d = new Uint32Array(copiedBuffer.getMappedRange());
+
+            for (let i = 0; i < this.splatSize ; ++i) {
+                console.log(d[i] );
+
+            }
+            console.log(d)
 
             copiedBuffer.unmap();
 
