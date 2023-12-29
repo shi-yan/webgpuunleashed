@@ -184,6 +184,7 @@
                 var dis:vec4<f32> = m * center;
                 distance[gid] = u32(dis.z / dis.w * f32(0xFFFFFFFF >> 8));         
           }
+          id[GlobalInvocationID.x] = GlobalInvocationID.x;
     }
 
 </script>
@@ -418,11 +419,13 @@
 
 <script id="shuffle_shader" type="wgsl">
     @binding(0) @group(0) var<storage, read> input :array<u32>;
-    @binding(1) @group(0) var<storage, read> temp0 :array<u32>;
-    @binding(2) @group(0) var<storage, read> temp1 :array<u32>;
-    @binding(3) @group(0) var<storage, read> sums: array<u32>;
-    @binding(4) @group(0) var<uniform> sumSize: u32;
-    @binding(5) @group(0) var<storage, read_write> output :array<u32>;
+    @binding(1) @group(0) var<storage, read> inputId :array<u32>;
+    @binding(2) @group(0) var<storage, read> temp0 :array<u32>;
+    @binding(3) @group(0) var<storage, read> temp1 :array<u32>;
+    @binding(4) @group(0) var<storage, read> sums: array<u32>;
+    @binding(5) @group(0) var<uniform> sumSize: u32;
+    @binding(6) @group(0) var<storage, read_write> output :array<u32>;
+    @binding(7) @group(0) var<storage, read_write> outputId :array<u32>;
     const n:u32 = 512;
 
     @binding(0) @group(1) var<uniform> radixMaskId:u32;
@@ -477,6 +480,7 @@
             }
 
             output[id] = input[2*globalThid]; 
+            outputId[id] = inputId[2*globalThid];
             //output[2*globalThid] = id;
 
             id = 0;
@@ -503,6 +507,7 @@
             }
 
             output[id] = input[2*globalThid+1];
+            outputId[id] = inputId[2*globalThid+1];
             //output[2*globalThid+1] = id;
         }
     }
@@ -749,6 +754,7 @@
             this.distanceBuffer = null;
             this.distanceBuffer2 = null;
             this.idBuffer = null;
+            this.idBuffer2 = null;
 
             this.basisUniformBindGroup1 = null;
             this.basisUniformBindGroup2 = null;
@@ -932,14 +938,10 @@
                 ]
             });
 
-
             this.basisBuffer = createGPUBuffer(device, new Float32Array(4 * this.splatSize), GPUBufferUsage.STORAGE);
             this.distanceBuffer = createGPUBuffer(device, new Uint32Array(this.splatSize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
-            this.idBuffer = createGPUBuffer(device, new Uint32Array(this.splatSize), GPUBufferUsage.STORAGE);
-
-
-
-
+            this.idBuffer = createGPUBuffer(device, new Uint32Array(this.splatSize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
+            this.idBuffer2 = createGPUBuffer(device, new Uint32Array(this.splatSize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
 
             this.basisUniformBindGroup1 = device.createBindGroup({
                 layout: basisUniformBindGroupLayout1,
@@ -1256,10 +1258,21 @@
                     {
                         binding: 4,
                         visibility: GPUShaderStage.COMPUTE,
-                        buffer: {}
+                        buffer: { type: 'read-only-storage' }
                     },
                     {
                         binding: 5,
+                        visibility: GPUShaderStage.COMPUTE,
+                        buffer: {}
+                    },
+                    {
+                        binding: 6,
+                        visibility: GPUShaderStage.COMPUTE,
+                        buffer: { type: 'storage' }
+
+                    },
+                    {
+                        binding: 7,
                         visibility: GPUShaderStage.COMPUTE,
                         buffer: { type: 'storage' }
 
@@ -1281,31 +1294,43 @@
                     {
                         binding: 1,
                         resource: {
-                            buffer: tempBuffer0
+                            buffer: this.idBuffer
                         }
                     },
                     {
                         binding: 2,
                         resource: {
-                            buffer: tempBuffer1
+                            buffer: tempBuffer0
                         }
                     },
                     {
                         binding: 3,
                         resource: {
-                            buffer: outputSumArrayBuffer
+                            buffer: tempBuffer1
                         }
                     },
                     {
                         binding: 4,
                         resource: {
-                            buffer: sumSizeBuffer
+                            buffer: outputSumArrayBuffer
                         }
                     },
                     {
                         binding: 5,
                         resource: {
+                            buffer: sumSizeBuffer
+                        }
+                    },
+                    {
+                        binding: 6,
+                        resource: {
                             buffer: this.distanceBuffer2
+                        }
+                    },
+                    {
+                        binding: 7,
+                        resource: {
+                            buffer: this.idBuffer2
                         }
                     }
                 ]
@@ -1323,31 +1348,43 @@
                     {
                         binding: 1,
                         resource: {
-                            buffer: tempBuffer0
+                            buffer: this.idBuffer2
                         }
                     },
                     {
                         binding: 2,
                         resource: {
-                            buffer: tempBuffer1
+                            buffer: tempBuffer0
                         }
                     },
                     {
                         binding: 3,
                         resource: {
-                            buffer: outputSumArrayBuffer
+                            buffer: tempBuffer1
                         }
                     },
                     {
                         binding: 4,
                         resource: {
-                            buffer: sumSizeBuffer
+                            buffer: outputSumArrayBuffer
                         }
                     },
                     {
                         binding: 5,
                         resource: {
+                            buffer: sumSizeBuffer
+                        }
+                    },
+                    {
+                        binding: 6,
+                        resource: {
                             buffer: this.distanceBuffer
+                        }
+                    },
+                    {
+                        binding: 7,
+                        resource: {
+                            buffer: this.idBuffer
                         }
                     }
                 ]
@@ -1387,7 +1424,7 @@
             passEncoder2.dispatchWorkgroups(this.workgroupSize);
             passEncoder2.end();
 
-            for (let i = 0; i < 16; ++i) {
+            for (let i = 0; i < 1; ++i) {
                 const passEncoder = commandEncoder.beginComputePass(
                     computePassDescriptor
                 );
@@ -1403,42 +1440,46 @@
                 passEncoder.dispatchWorkgroups(this.chunkCount);
                 passEncoder.end();
 
-                 const pass2Encoder = commandEncoder.beginComputePass(computePassDescriptor);
-                 pass2Encoder.setPipeline(this.pass2ComputePipeline);
-                 pass2Encoder.setBindGroup(0, this.pass2UniformBindGroup);
-                 pass2Encoder.dispatchWorkgroups(1);
-                 pass2Encoder.end();
- 
-                 const pass3Encoder = commandEncoder.beginComputePass(computePassDescriptor);
-                 pass3Encoder.setPipeline(this.pass3ComputePipeline);
-                 if (i % 2 == 0) {
-                     pass3Encoder.setBindGroup(0, this.pass3UniformBindGroup0);
-                 } else {
-                     pass3Encoder.setBindGroup(0, this.pass3UniformBindGroup1);
-                 }
-                 pass3Encoder.setBindGroup(1, this.pass1UniformBindGroupRadixIds[i]);
-                 pass3Encoder.dispatchWorkgroups(this.chunkCount);
-                 pass3Encoder.end();
+                const pass2Encoder = commandEncoder.beginComputePass(computePassDescriptor);
+                pass2Encoder.setPipeline(this.pass2ComputePipeline);
+                pass2Encoder.setBindGroup(0, this.pass2UniformBindGroup);
+                pass2Encoder.dispatchWorkgroups(1);
+                pass2Encoder.end();
+
+                const pass3Encoder = commandEncoder.beginComputePass(computePassDescriptor);
+                pass3Encoder.setPipeline(this.pass3ComputePipeline);
+                if (i % 2 == 0) {
+                    pass3Encoder.setBindGroup(0, this.pass3UniformBindGroup0);
+                } else {
+                    pass3Encoder.setBindGroup(0, this.pass3UniformBindGroup1);
+                }
+                pass3Encoder.setBindGroup(1, this.pass1UniformBindGroupRadixIds[i]);
+                pass3Encoder.dispatchWorkgroups(this.chunkCount);
+                pass3Encoder.end();
+                
             }
 
 
             const copiedBuffer = createGPUBuffer(device, new Uint32Array(this.splatSize), GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
 
-            commandEncoder.copyBufferToBuffer(this.distanceBuffer, 0,
-                copiedBuffer, 0, this.splatSize  * 4);
+            commandEncoder.copyBufferToBuffer(this.idBuffer2, 0,
+                copiedBuffer, 0, this.splatSize * 4);
             device.queue.submit([commandEncoder.finish()]);
 
             await device.queue.onSubmittedWorkDone();
 
-            await copiedBuffer.mapAsync(GPUMapMode.READ, 0, this.splatSize  * 4);
+            await copiedBuffer.mapAsync(GPUMapMode.READ, 0, this.splatSize * 4);
 
             const d = new Uint32Array(copiedBuffer.getMappedRange());
+            const ds = d.sort();
 
-            for (let i = 0; i < this.splatSize ; ++i) {
-                console.log(d[i] );
-
+            for (let i = 0; i < this.splatSize; ++i) {
+                if (ds[i] != i) {
+                    console.log("wrong", ds[i] , i);
+                }
             }
-            console.log(d)
+           // console.log(ds)
+
 
             copiedBuffer.unmap();
 
