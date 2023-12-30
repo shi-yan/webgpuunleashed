@@ -272,7 +272,6 @@
     @binding(4) @group(0) var<uniform> sumSize: u32;
     @binding(5) @group(0) var<storage, read_write> output :array<u32>;
     @binding(6) @group(0) var<storage, read_write> outputId :array<u32>;
-    @binding(7) @group(0) var<storage, read_write> debug: vec4<u32>;
     const n:u32 = 512;
 
     @binding(0) @group(1) var<uniform> radixMaskId:u32;
@@ -329,9 +328,7 @@
             output[id] = input[2*globalThid]; 
             outputId[id] = inputId[2*globalThid];
             //output[2*globalThid] = id;
-            if (id == 43 && radixMaskId == 11) {
-                debug.x=43;
-            }
+
             id = 0;
 
             val = (input[2*globalThid+1] & mask) >> (radixMaskId << 1);
@@ -357,9 +354,7 @@
 
             output[id] = input[2*globalThid+1];
             outputId[id] = inputId[2*globalThid+1];
-            if (id == 43 && radixMaskId == 11) {
-                debug.y=43;
-            }
+
             //output[2*globalThid+1] = id;
         }
     }
@@ -523,11 +518,6 @@
                     binding: 6,
                     visibility: GPUShaderStage.COMPUTE,
                     buffer: { type: 'storage' }
-                },
-                {
-                    binding: 7,
-                    visibility: GPUShaderStage.COMPUTE,
-                    buffer: { type: 'storage' }
                 }
             ]
         });
@@ -567,7 +557,6 @@
         let tempBuffer = createGPUBuffer(device, new Uint32Array(paddedArraySize*4), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
         let outputArrayBuffer = createGPUBuffer(device, new Uint32Array(paddedArraySize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
         let outputIdArrayBuffer = createGPUBuffer(device, new Uint32Array(testIdArray), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
-        let debugBuffer = createGPUBuffer(device, new Uint32Array(4), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
 
         let sumArrayBuffer = createGPUBuffer(device, new Uint32Array(sumSize * 4), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
         let outputSumArrayBuffer = createGPUBuffer(device, new Uint32Array(sumSize * 4), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
@@ -575,7 +564,6 @@
 
         let readOutputArrayBuffer = createGPUBuffer(device, new Uint32Array(paddedArraySize), GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
         let readOutputIdArrayBuffer = createGPUBuffer(device, new Uint32Array(paddedArraySize), GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
-        let readDebugBuffer = createGPUBuffer(device, new Uint32Array(4), GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
         let sumSizeBuffer = createGPUBuffer(device, new Uint32Array([sumSize]), GPUBufferUsage.UNIFORM);
         let radixIdUniformBuffers = [];
 
@@ -719,12 +707,6 @@
                     resource: {
                         buffer: outputIdArrayBuffer
                     }
-                },
-                {
-                    binding: 7,
-                    resource: {
-                        buffer: debugBuffer
-                    }
                 }
             ]
         });
@@ -773,12 +755,6 @@
                     binding: 6,
                     resource: {
                         buffer: inputIdArrayBuffer
-                    }
-                },
-                {
-                    binding: 7,
-                    resource: {
-                        buffer: debugBuffer
                     }
                 }
             ]
@@ -884,9 +860,6 @@
         commandEncoder.copyBufferToBuffer(outputSumArrayBuffer, 0,
             readOutputSumArrayBuffer, 0, sumSize * 4 * 4);
 
-        commandEncoder.copyBufferToBuffer(debugBuffer, 0,
-            readDebugBuffer, 0, 4 * 4);
-
 
         device.queue.submit([commandEncoder.finish()]);
         await device.queue.onSubmittedWorkDone();
@@ -924,12 +897,6 @@
 
         console.log(s);
         readOutputSumArrayBuffer.unmap();
-
-        await readDebugBuffer.mapAsync(GPUMapMode.READ, 0, 4 * 4);
-
-        const debug = new Uint32Array(readDebugBuffer.getMappedRange());
-        console.log(debug);
-        readDebugBuffer.unmap();
 
         if (hasTimestampQuery) {
             const gpuReadBuffer = device.createBuffer({ size: queryBuffer.size, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
