@@ -566,7 +566,8 @@
             var basis2 = normalize( vec2<f32>(adjust.y, -adjust.x) * vec2<f32>(screen.y/screen.x,1.0));
             out.coord = inPos;
             out.color = inColor[inId];
-            out.clip_position = vec4<f32>( pos.xy/pos.w + (inPos.x * inBasis[inId].xy * inBasis[inId].z * 1.6 + inPos.y * basis2 *  inBasis[inId].w  * 1.6) , pos.z/pos.w, 1)  ;
+            const scale = 1.8;
+            out.clip_position = vec4<f32>( pos.xy/pos.w + (inPos.x * inBasis[inId].xy * inBasis[inId].z * scale + inPos.y * basis2 *  inBasis[inId].w  * scale) , pos.z/pos.w, 1)  ;
     
          return out;
     }
@@ -575,8 +576,8 @@
     
     @fragment
     fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-        var a = 1.0/(0.25 * sqrt(2.0*3.14))*exp(-0.5 * (in.coord.x*in.coord.x+in.coord.y*in.coord.y)/(0.25*0.25));
-        return vec4<f32>(in.color ,0.0);
+        var a = 0.4/(0.25 * sqrt(2.0*3.14))*exp(-0.5 * (in.coord.x*in.coord.x+in.coord.y*in.coord.y)/(0.25*0.25));
+        return vec4<f32>(in.color ,a);
     }
 </script>
 
@@ -1371,29 +1372,17 @@
             const colorState = {
                 format: 'bgra8unorm',
                 blend: {
-                    color: {
-                        operation: "add",
-                        srcFactor: 'dst-alpha',
-                        dstFactor: 'one',
-                    },
                     alpha: {
                         operation: "add",
-                        srcFactor: 'zero',
+                        srcFactor: 'one',
+                        dstFactor: 'src-alpha',
+                    },
+                    color: {
+                        operation: "add",
+                        srcFactor: 'src-alpha',
                         dstFactor: 'one-minus-src-alpha',
                     }
                 }
-                /*blend: {
-                    alpha: {
-                        operation: "add",
-                        srcFactor: 'src-alpha',
-                        dstFactor: 'one-minus-src-alpha',
-                    },
-                    color: {
-                        operation: "add",
-                        srcFactor: 'src-alpha',
-                        dstFactor: 'one-minus-src-alpha',
-                    }
-                }*/
             };
 
             const splatPipelineLayoutDesc = { bindGroupLayouts: [splatUniformBindGroupLayout0, splatUniformBindGroupLayout1] };
@@ -1420,9 +1409,7 @@
             };
 
             this.splatPipeline = device.createRenderPipeline(splatPipelineDesc);
-        }
 
-        async calculateCovariance(device) {
             const computePassDescriptor = {};
             const commandEncoder = device.createCommandEncoder();
 
@@ -1434,6 +1421,15 @@
             passEncoder.setBindGroup(0, this.covarianceUniformBindGroup);
             passEncoder.dispatchWorkgroups(this.workgroupSize);
             passEncoder.end();
+
+            device.queue.submit([commandEncoder.finish()]);
+            await device.queue.onSubmittedWorkDone();
+        }
+
+        async calculateCovariance(device) {
+            const computePassDescriptor = {};
+
+            const commandEncoder = device.createCommandEncoder();
 
             const passEncoder2 = commandEncoder.beginComputePass(computePassDescriptor);
             passEncoder2.setPipeline(this.basisPipeline);
@@ -1487,7 +1483,9 @@
             encoder.setBindGroup(1, this.splatUniformBindGroup1)
             encoder.setVertexBuffer(0, this.splatPositionBuffer);
             encoder.setVertexBuffer(1, this.idBuffer);
-            encoder.draw(4, this.actualSplatSize);
+            for(let i = this.actualSplatSize-1; i>=0;--i){
+                encoder.draw(4, 1,0,i);
+            }
         }
     }
 
@@ -1567,17 +1565,8 @@
 
         let device = await adapter.requestDevice();
 
-        let context = canvas.getContext('webgpu');
+        let context = configContext(device, canvas);
 
-        const canvasConfig = {
-            device: device,
-            format: navigator.gpu.getPreferredCanvasFormat(),
-            usage:
-                GPUTextureUsage.RENDER_ATTACHMENT,
-            alphaMode: 'premultiplied'
-        };
-
-        context.configure(canvasConfig);
         let arcball = new Arcball();
 
         let modelViewMatrix = arcball.getMatrices();
@@ -1594,7 +1583,6 @@
         let splat = new Splat();
         await splat.setup(device, projectionMatrix, modelViewMatrix, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, screenUniformBuffer);
 
-
         async function render() {
             const devicePixelRatio = window.devicePixelRatio || 1;
             let currentCanvasWidth = canvas.clientWidth * devicePixelRatio;
@@ -1603,7 +1591,7 @@
             let projectionMatrixUniformBufferUpdate = null;
             let screenUniformBufferUpdate = null;
 
-            if (currentCanvasWidth != canvas.width || currentCanvasHeight != canvas.height) {
+            if ( currentCanvasWidth != canvas.width || currentCanvasHeight != canvas.height) {
                 canvas.width = currentCanvasWidth;
                 canvas.height = currentCanvasHeight;
 
@@ -1654,6 +1642,7 @@
             device.queue.submit([commandEncoder.finish()]);
 
             await device.queue.onSubmittedWorkDone();
+
             if (projectionMatrixUniformBufferUpdate) {
                 projectionMatrixUniformBufferUpdate.destroy();
             }
