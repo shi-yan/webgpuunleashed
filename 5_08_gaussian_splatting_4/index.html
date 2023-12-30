@@ -179,7 +179,7 @@
             this.screenUniformBuffer = null;
             this.baseUniformBufferUpdate = null;
             this.screenUniformBufferUpdate = null;
-            this.uniformBindGroupSplate = null;
+            this.uniformBindGroupSplat = null;
             this.splatPipeline = null;
             this.splatPositionBuffer = null;
 
@@ -215,7 +215,7 @@
 
             let translation = glMatrix.mat4.fromTranslation(glMatrix.mat4.create(), glMatrix.vec3.fromValues(10,10,10));
             //translation[15] = 0;
-            //console.log("translation", translation)
+            console.log("covariance", this.covariance)
 
             const translation_transpose = glMatrix.mat4.transpose(glMatrix.mat4.create(), translation);
 
@@ -235,7 +235,7 @@
             this.baseUniformBuffer = createGPUBuffer(device, glMatrix.vec4.create(), GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
             this.screenUniformBuffer = createGPUBuffer(device, glMatrix.vec2.create(), GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
-            let uniformBindGroupLayoutSplate = device.createBindGroupLayout({
+            let uniformBindGroupLayoutSplat = device.createBindGroupLayout({
                 entries: [
                     {
                         binding: 0,
@@ -262,8 +262,8 @@
                 ]
             });
 
-            this.uniformBindGroupSplate = device.createBindGroup({
-                layout: uniformBindGroupLayoutSplate,
+            this.uniformBindGroupSplat = device.createBindGroup({
+                layout: uniformBindGroupLayoutSplat,
                 entries: [
                     {
                         binding: 0,
@@ -330,11 +330,11 @@
                 }
             };
 
-            const splatePipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayoutSplate] };
-            const splateLayout = device.createPipelineLayout(splatePipelineLayoutDesc);
+            const splatPipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayoutSplat] };
+            const splatLayout = device.createPipelineLayout(splatPipelineLayoutDesc);
 
             const splatPipelineDesc = {
-                layout: splateLayout,
+                layout: splatLayout,
                 vertex: {
                     module: splatShaderModule,
                     entryPoint: 'vs_main',
@@ -549,7 +549,7 @@
             encoder.drawIndexed(this.indexSize);
 
             encoder.setPipeline(this.splatPipeline);
-            encoder.setBindGroup(0, this.uniformBindGroupSplate);
+            encoder.setBindGroup(0, this.uniformBindGroupSplat);
             encoder.setVertexBuffer(0, this.splatPositionBuffer);
             encoder.draw(4, 1);
         }

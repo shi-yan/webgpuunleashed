@@ -131,7 +131,7 @@
         var adjust = normalize( basis.xy * vec2<f32>(screen.x/screen.y, 1.0));
         var basis2 = normalize( vec2<f32>(adjust.y, -adjust.x) * vec2<f32>(screen.y/screen.x,1.0));
         out.coord = inPos;
-        out.clip_position = vec4<f32>( pos.xy/pos.w + (inPos.x * basis.xy * basis.z * 0.0003 + inPos.y * basis2 *  basis.w  * 0.0003) , pos.z/pos.w, 1)  ;
+        out.clip_position = vec4<f32>( pos.xy/pos.w + (inPos.x * basis.xy * basis.z * 0.0008 + inPos.y * basis2 *  basis.w  * 0.0008) , pos.z/pos.w, 1)  ;
         
          //   out.clip_position = vec4<f32>( + inPos*0.1 , 0, 1)  ;
         
@@ -188,7 +188,7 @@
             this.screenUniformBuffer = null;
             this.baseUniformBufferUpdate = null;
             this.screenUniformBufferUpdate = null;
-            this.uniformBindGroupSplate = null;
+            this.uniformBindGroupSplat = null;
             this.splatPipeline = null;
             this.splatPositionBuffer = null;
 
@@ -245,7 +245,7 @@
             this.baseUniformBuffer = createGPUBuffer(device, glMatrix.vec4.create(), GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
             this.screenUniformBuffer = createGPUBuffer(device, glMatrix.vec2.create(), GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
-            let uniformBindGroupLayoutSplate = device.createBindGroupLayout({
+            let uniformBindGroupLayoutSplat = device.createBindGroupLayout({
                 entries: [
                     {
                         binding: 0,
@@ -272,8 +272,8 @@
                 ]
             });
 
-            this.uniformBindGroupSplate = device.createBindGroup({
-                layout: uniformBindGroupLayoutSplate,
+            this.uniformBindGroupSplat = device.createBindGroup({
+                layout: uniformBindGroupLayoutSplat,
                 entries: [
                     {
                         binding: 0,
@@ -340,11 +340,11 @@
                 }
             };
 
-            const splatePipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayoutSplate] };
-            const splateLayout = device.createPipelineLayout(splatePipelineLayoutDesc);
+            const splatPipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayoutSplat] };
+            const splatLayout = device.createPipelineLayout(splatPipelineLayoutDesc);
 
             const splatPipelineDesc = {
-                layout: splateLayout,
+                layout: splatLayout,
                 vertex: {
                     module: splatShaderModule,
                     entryPoint: 'vs_main',
@@ -360,11 +360,11 @@
                     frontFace: 'ccw',
                     cullMode: 'none'
                 },
-                depthStencil: {
+              /*  depthStencil: {
                     depthWriteEnabled: true,
                     depthCompare: 'less',
                     format: 'depth24plus-stencil8'
-                }
+                }*/
             };
 
             this.splatPipeline = device.createRenderPipeline(splatPipelineDesc);
@@ -479,11 +479,11 @@
                     frontFace: 'ccw',
                     cullMode: 'none'
                 },
-                depthStencil: {
+              /*  depthStencil: {
                     depthWriteEnabled: true,
                     depthCompare: 'less',
                     format: 'depth24plus-stencil8'
-                }
+                }*/
             };
 
             this.pipeline = device.createRenderPipeline(pipelineDesc);
@@ -506,12 +506,10 @@
             const s = 1.0 / (viewCenter[2] * viewCenter[2]);
 
             const J = glMatrix.mat3.fromValues(
-                cameraFocalLengthX / viewCenter[2], 0., 0,
-                0., cameraFocalLengthY / viewCenter[2], 0,
-                -(cameraFocalLengthX * viewCenter[0]) * s, -(cameraFocalLengthY * viewCenter[1]) * s, 0.
+                cameraFocalLengthX / viewCenter[2], 0.,  -(cameraFocalLengthX * viewCenter[0]) * s,
+                0., cameraFocalLengthY / viewCenter[2], -(cameraFocalLengthY * viewCenter[1]) * s,
+               0, 0, 0.
             );
-
-
 
             console.log("projection j ", J);
             //console.log(glMatrix.mat4.create())
@@ -591,7 +589,7 @@
             encoder.drawIndexed(this.indexSize);
 
             encoder.setPipeline(this.splatPipeline);
-            encoder.setBindGroup(0, this.uniformBindGroupSplate);
+            encoder.setBindGroup(0, this.uniformBindGroupSplat);
             encoder.setVertexBuffer(0, this.splatPositionBuffer);
             encoder.draw(4, 1);
         }
@@ -788,7 +786,7 @@
 
             const renderPassDesc = {
                 colorAttachments: [colorAttachment],
-                depthStencilAttachment: depthAttachment
+             //   depthStencilAttachment: depthAttachment
             };
 
             const renderPassDesc2 = {
