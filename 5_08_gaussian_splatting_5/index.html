@@ -183,7 +183,8 @@
     
                 var center:vec4<f32> = vec4(centroid[gid], 1.0);
                 var dis:vec4<f32> = m * center;
-                distance[gid] = u32(dis.z / dis.w * f32(0xFFFFFFFF >> 8));         
+                distance[gid] = u32(dis.z / dis.w * f32(0xFFFFFFFF >> 8));     
+                basis[gid] = vec4<f32>(eigenVector1.x, eigenVector1.y, scale1, scale2);
           }
           else {
             distance[gid] = 0xFFFFFFFF;
@@ -354,8 +355,6 @@
     }
 </script>
 
-
-
 <script id="scan_sum_shader" type="wgsl">
 
     @binding(0) @group(0) var<storage, read> input :array<u32>;
@@ -438,7 +437,6 @@
     }
 
 </script>
-
 
 <script id="shuffle_shader" type="wgsl">
     @binding(0) @group(0) var<storage, read> input :array<u32>;
@@ -535,89 +533,7 @@
     }
 </script>
 
-
-<script id="shader" type="wgsl">
-
-    @binding(0) @group(0) var<storage, read> input :array<f32>;
-    @binding(1) @group(0) var<storage, read_write> output :array<f32>;
-    @binding(2) @group(0) var<storage, read_write> sums: array<f32>;
-    const n:u32 = 512;
-
-    const bank_size:u32 = 32;
-    var<workgroup> temp: array<f32,532>; //workgroup array must have a fixed size;
-
-    fn bank_conflict_free_idx( idx:u32) -> u32 {
-      var chunk_id:u32 = idx / bank_size;
-      return idx + chunk_id;
-    }
-
-    /*fn bank_conflict_free_idx( idx:u32) -> u32 { // fake
-      return idx;
-    }*/
-
-    @compute @workgroup_size(256)
-    fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>,
-      @builtin(local_invocation_id) LocalInvocationID: vec3<u32>,
-      @builtin(workgroup_id) WorkgroupID: vec3<u32>) {
-          var thid:u32 = LocalInvocationID.x;
-          var globalThid:u32 = GlobalInvocationID.x;
-          if (thid < (n>>1)){
-              temp[bank_conflict_free_idx(2*thid)] = input[2*globalThid]; // load input into shared memory 
-              temp[bank_conflict_free_idx(2*thid+1)] = input[2*globalThid+1];
-          }
-
-          workgroupBarrier();
-          var offset:u32 = 1;
-
-          for (var d:u32 = n>>1; d > 0; d >>= 1)
-          { 
-              if (thid < d)    
-              {
-                  var ai:u32 = offset*(2*thid+1)-1;     
-                  var bi:u32 = offset*(2*thid+2)-1;  
-                  temp[bank_conflict_free_idx(bi)] += temp[bank_conflict_free_idx(ai)];    
-              }    
-              offset *= 2; 
-
-              workgroupBarrier();   
-          }
-
-          if (thid == 0) 
-          { 
-              temp[bank_conflict_free_idx(n - 1)] = 0; 
-          } // clear the last element  
-          workgroupBarrier();      
-
-          for (var d:u32 = 1; d < n; d *= 2) // traverse down tree & build scan 
-          {      
-              offset >>= 1;      
-              if (thid < d)      
-              { 
-                  var ai:u32 = offset*(2*thid+1)-1;     
-                  var bi:u32 = offset*(2*thid+2)-1; 
-                  var t:f32 = temp[bank_conflict_free_idx(ai)]; 
-                  temp[bank_conflict_free_idx(ai)] = temp[bank_conflict_free_idx(bi)]; 
-                  temp[bank_conflict_free_idx(bi)] += t;       
-              } 
-              workgroupBarrier();      
-          }
-          
-          if (thid < (n>>1)){
-              output[2*globalThid] = temp[bank_conflict_free_idx(2*thid)]; 
-              output[2*globalThid+1] = temp[bank_conflict_free_idx(2*thid+1)]; 
-          }
-
-          storageBarrier();
-
-          if (thid == 0) {
-              sums[WorkgroupID.x] = output[512 * WorkgroupID.x + 511] + input[512 * WorkgroupID.x + 511];
-          }
-    }
-
-</script>
-
-
-<script id="sphere_shader" type="wgsl">
+<script id="splat_shader" type="wgsl">
     // Vertex shader
     
     @group(0) @binding(0)
@@ -625,110 +541,40 @@
     @group(0) @binding(1)
     var<uniform> projection: mat4x4<f32>;
     @group(0) @binding(2)
-    var<uniform> normalMatrix: mat4x4<f32>;
-    @group(0) @binding(3) 
-    var<uniform> lightDirection: vec3<f32>;
-    @group(0) @binding(4)
-    var<uniform> viewDirection: vec3<f32>;
-        
-    const ambientColor:vec4<f32> = vec4<f32>(0.15, 0.0, 0.0, 1.0);
-    const diffuseColor:vec4<f32> = vec4<f32>(0.25, 0.25, 0.25, 1.0);
-    const specularColor:vec4<f32> = vec4<f32>(1.0, 1.0, 1.0, 1.0);
-        
-    const shininess:f32 = 20.0;
-        
-    const diffuseConstant:f32 = 1.0;
-    const specularConstant:f32 = 1.0;
-    const ambientConstant: f32 = 0.0;
-    
-    fn specular(lightDir:vec3<f32>, viewDir:vec3<f32>, normal:vec3<f32>,  specularColor:vec3<f32>, 
-         shininess:f32) -> vec3<f32> {
-        let reflectDir:vec3<f32> = reflect(-lightDir, normal);
-        let specDot:f32 = max(dot(reflectDir, viewDir), 0.0);
-        return pow(specDot, shininess) * specularColor;
-    }
-    
-    fn diffuse(lightDir:vec3<f32>, normal:vec3<f32>,  diffuseColor:vec3<f32>) -> vec3<f32>{
-        return max(dot(lightDir, normal), 0.0) * diffuseColor;
-    }
-    
+    var<uniform> screen: vec2<f32>;
+
     struct VertexOutput {
         @builtin(position) clip_position: vec4<f32>,
-        @location(0) viewDir: vec3<f32>,
-        @location(1) normal: vec3<f32>,
-        @location(2) lightDir: vec3<f32>,
-        @location(3) color: vec3<f32>
+        @location(0) coord: vec2<f32>,
+        @location(1) color: vec3<f32>
     };
-
-    fn quat2mat(quat:vec4<f32>) -> mat4x4<f32> {
-        return mat4x4<f32>(
-            vec4<f32>(1 - 2*quat.y*quat.y - 2*quat.z*quat.z, 
-                2*quat.x*quat.y + 2*quat.z*quat.w, 
-                2*quat.x*quat.z - 2*quat.y*quat.w, 0.0),
-                vec4<f32>(2*quat.x*quat.y - 2*quat.z*quat.w,
-                    1 - 2*quat.x*quat.x - 2*quat.z*quat.z,
-                    2*quat.y*quat.z + 2*quat.x*quat.w, 0.0),
-                    vec4<f32>(2*quat.x*quat.z + 2*quat.y*quat.w, 
-                        2*quat.y*quat.z - 2*quat.x*quat.w,
-                        1 - 2*quat.x*quat.x - 2*quat.y*quat.y, 0.0),
-                        vec4<f32>(0.0,0.0,0.0,1.0)
-            );
-    }
-
-    fn scale2mat(scale:vec3<f32>) -> mat4x4<f32> {
-        
-        return mat4x4<f32> (scale.x,0.0,0.0,0.0,
-             0.0, scale.y,0.0,0.0,
-             0.0,0.0,scale.z,0.0,
-        0.0, 0.0, 0.0, 1.0);
-    }
-
-    fn translation2mat(translation:vec3<f32>) -> mat4x4<f32> {
-        return mat4x4<f32> (1.0,
-        0.0,
-        0.0,
-        0.0,
-        0.0,
-        1.0,
-       0.0,
-         0.0,
-         0.0,
-       0.0,
-        1.0,
-        0.0,
-      translation.x,
-        translation.y,
-     translation.z,
-       1.0);
-    }
     
     @vertex
     fn vs_main(
-        @location(0) inPos: vec3<f32>,
-        @location(1) inNormal: vec3<f32>,
-        @location(2) scale:vec3<f32>,
-        @location(3) rotation:vec4<f32>,
-        @location(4) translation:vec3<f32>,
-        @location(5) color:vec3<f32>
+        @location(0) inPos: vec2<f32>,
+        @location(1) inCentroid: vec4<f32>,
+        @location(2) inBasis: vec4<f32>,
+        @location(3) inColor:vec3<f32>,
     ) -> VertexOutput {
         var out: VertexOutput;
 
-        var scaleM = scale2mat(scale);
-        var rotationM = quat2mat(rotation);
-        var translationM = translation2mat(translation);
-        out.color = color;
-
-        out.clip_position = projection * modelView * translationM * rotationM * scaleM* vec4<f32>(inPos, 1.0);
-        return out;
+           var pos:vec4<f32> = projection * modelView * vec4<f32>(inCentroid.xyz,1.0);
+    
+            var adjust = normalize( inBasis.xy * vec2<f32>(screen.x/screen.y, 1.0));
+            var basis2 = normalize( vec2<f32>(adjust.y, -adjust.x) * vec2<f32>(screen.y/screen.x,1.0));
+            out.coord = inPos;
+            out.color = inColor;
+            out.clip_position = vec4<f32>( pos.xy/pos.w + (inPos.x * inBasis.xy * inBasis.z * 0.3 + inPos.y * basis2 *  inBasis.w  * 0.3) , pos.z/pos.w, 1)  ;
+    
+         return out;
     }
     
     // Fragment shader
     
     @fragment
     fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    
-          
-        return vec4<f32>(in.color ,1.0);
+        var a = 1.0/(0.25 * sqrt(2.0*3.14))*exp(-0.5 * (in.coord.x*in.coord.x+in.coord.y*in.coord.y)/(0.25*0.25));
+        return vec4<f32>(in.color ,a);
     }
 </script>
 
@@ -798,9 +644,12 @@
             this.sumArrayBuffer = null;
             this.sumSize = 0;
 
+            this.splatUniformBindGroup = null;
+            this.splatPipeline = null;
+            this.splatPositionBuffer = null;
         }
 
-        async setup(device, projectionMatrix, modelViewMatrix, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer) {
+        async setup(device, projectionMatrix, modelViewMatrix, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, screenUniformBuffer) {
 
             const objResponse = await fetch('../data/food.json');
             this.objBody = await objResponse.json();
@@ -812,7 +661,7 @@
 
             for (let p of this.objBody) {
                 col.push(...p.c);
-                col.push(0.0); // padding
+               // col.push(0.0); // padding
                 rot.push(...p.r);
                 pos.push(...p.p);
                 pos.push(0.0);
@@ -829,8 +678,8 @@
             this.workgroupSize = Math.ceil(this.paddedSplatSize / 256);
             //console.log("loc ", pos.length, this.splatSize*3, this.workgroupSize);
             //console.log("loc2", new Float32Array(pos))
-            this.locBuffer = createGPUBuffer(device, new Float32Array(pos), GPUBufferUsage.STORAGE);
-            this.colorBuffer = createGPUBuffer(device, new Float32Array(col), GPUBufferUsage.STORAGE);
+            this.locBuffer = createGPUBuffer(device, new Float32Array(pos), GPUBufferUsage.STORAGE|GPUBufferUsage.VERTEX);
+            this.colorBuffer = createGPUBuffer(device, new Float32Array(col), GPUBufferUsage.VERTEX);
             this.rotationBuffer = createGPUBuffer(device, new Float32Array(rot), GPUBufferUsage.STORAGE);
             this.scaleBuffer = createGPUBuffer(device, new Float32Array(scal), GPUBufferUsage.STORAGE);
             this.covarianceBuffer = createGPUBuffer(device, new Float32Array(this.actualSplatSize * 8), GPUBufferUsage.STORAGE);
@@ -904,8 +753,6 @@
                 }
             });
 
-
-
             //@binding(0) @group(1) var<uniform> modelView: mat4x4<f32>;
             //@binding(1) @group(1) var<uniform> projection: mat4x4<f32>;
 
@@ -962,7 +809,7 @@
                 ]
             });
 
-            this.basisBuffer = createGPUBuffer(device, new Float32Array(4 * this.actualSplatSize), GPUBufferUsage.STORAGE);
+            this.basisBuffer = createGPUBuffer(device, new Float32Array(4 * this.actualSplatSize), GPUBufferUsage.STORAGE | GPUBufferUsage.VERTEX);
             this.distanceBuffer = createGPUBuffer(device, new Uint32Array(this.paddedSplatSize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
             this.idBuffer = createGPUBuffer(device, new Uint32Array(this.paddedSplatSize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
             this.idBuffer2 = createGPUBuffer(device, new Uint32Array(this.paddedSplatSize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
@@ -1074,7 +921,7 @@
                 ]
             });
 
-            let tempBuffer = createGPUBuffer(device, new Uint32Array(this.paddedSplatSize*4), GPUBufferUsage.STORAGE );
+            let tempBuffer = createGPUBuffer(device, new Uint32Array(this.paddedSplatSize * 4), GPUBufferUsage.STORAGE);
 
             this.chunkCount = Math.ceil(this.paddedSplatSize / 512);
 
@@ -1087,8 +934,6 @@
             let sumSizeBuffer = createGPUBuffer(device, new Uint32Array([this.sumSize]), GPUBufferUsage.UNIFORM);
 
             this.distanceBuffer2 = createGPUBuffer(device, new Uint32Array(this.paddedSplatSize), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
-
-
 
             this.pass1UniformBindGroupInputOutput0 = device.createBindGroup({
                 layout: scanUniformBindGroupLayoutInputOutput,
@@ -1390,20 +1235,172 @@
                     entryPoint: 'main',
                 }
             });
+
+
+            let splatShaderModule = shaderModuleFromCode(device, 'splat_shader');
+    
+
+            let splatUniformBindGroupLayout = device.createBindGroupLayout({
+                entries: [
+                    {
+                        binding: 0,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: { }
+                    },
+                    {
+                        binding: 1,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: { }
+                    },
+                    {
+                        binding: 2,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {  }
+                    }
+                ]
+            });
+
+
+            this.splatUniformBindGroup = device.createBindGroup({
+                layout: splatUniformBindGroupLayout,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: {
+                            buffer: modelViewMatrixUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 1,
+                        resource: {
+                            buffer: projectionMatrixUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 2,
+                        resource: {
+                            buffer: screenUniformBuffer
+                        }
+                    }
+                ]
+            });
+
+
+
+            let splatPos = new Float32Array([
+                1, 1,
+                -1, 1,
+                1, -1,
+                -1, -1
+            ]);
+
+            this.splatPositionBuffer = createGPUBuffer(device, splatPos, GPUBufferUsage.VERTEX);
+   
+            const splatPositionAttribDesc = {
+                shaderLocation: 0, // @location(0)
+                offset: 0,
+                format: 'float32x2'
+            };
+
+            const splatPositionBufferLayoutDesc = {
+                attributes: [splatPositionAttribDesc],
+                arrayStride: 4 * 2, // sizeof(float) * 2
+                stepMode: 'vertex'
+            };
+
+            const splatCentroidAttribDesc = {
+                shaderLocation: 1, // @location(1)
+                offset: 0,
+                format: 'float32x4'
+            };
+
+            const splatCentroidBufferLayoutDesc = {
+                attributes: [splatCentroidAttribDesc],
+                arrayStride: 4 * 4, // sizeof(float) * 4
+                stepMode: 'instance'
+            };
+
+            const splatBasisAttribDesc = {
+                shaderLocation: 2, // @location(2)
+                offset: 0,
+                format: 'float32x4'
+            };
+
+            const splatBasisBufferLayoutDesc = {
+                attributes: [splatBasisAttribDesc],
+                arrayStride: 4 * 4, // sizeof(float) * 4
+                stepMode: 'instance'
+            };
+
+
+            const splatColorAttribDesc = {
+                shaderLocation: 3, // @location(3)
+                offset: 0,
+                format: 'float32x3'
+            };
+
+            const splatColorBufferLayoutDesc = {
+                attributes: [splatColorAttribDesc],
+                arrayStride: 4 * 3, // sizeof(float) * 3
+                stepMode: 'instance'
+            };
+
+            const colorState = {
+                format: 'bgra8unorm',
+                blend: {
+                    color: {
+                        operation: "add",
+                        srcFactor: 'dst-alpha',
+                        dstFactor: 'one',
+                    },
+                    alpha: {
+                        operation: "add",
+                        srcFactor: 'zero',
+                        dstFactor: 'one-minus-src-alpha',
+                    }
+                }
+            };
+
+            const splatPipelineLayoutDesc = { bindGroupLayouts: [splatUniformBindGroupLayout] };
+            const splatLayout = device.createPipelineLayout(splatPipelineLayoutDesc);
+
+            const splatPipelineDesc = {
+                layout: splatLayout,
+                vertex: {
+                    module: splatShaderModule,
+                    entryPoint: 'vs_main',
+                    buffers: [splatPositionBufferLayoutDesc,
+                    splatCentroidBufferLayoutDesc, splatBasisBufferLayoutDesc,
+                    splatColorBufferLayoutDesc
+                ]
+                },
+                fragment: {
+                    module: splatShaderModule,
+                    entryPoint: 'fs_main',
+                    targets: [colorState]
+                },
+                primitive: {
+                    topology: 'triangle-strip',
+                    frontFace: 'ccw',
+                    cullMode: 'none'
+                }
+            };
+
+            this.splatPipeline = device.createRenderPipeline(splatPipelineDesc);
         }
 
         async calculateCovariance(device) {
             const computePassDescriptor = {};
             const commandEncoder = device.createCommandEncoder();
 
-            /*  const passEncoder = commandEncoder.beginComputePass(
-                  computePassDescriptor
-              );
-  
-              passEncoder.setPipeline(this.covariancePipeline);
-              passEncoder.setBindGroup(0, this.covarianceUniformBindGroup);
-              passEncoder.dispatchWorkgroups(this.workgroupSize);
-              passEncoder.end();*/
+            const passEncoder = commandEncoder.beginComputePass(
+                computePassDescriptor
+            );
+
+            passEncoder.setPipeline(this.covariancePipeline);
+            passEncoder.setBindGroup(0, this.covarianceUniformBindGroup);
+            passEncoder.dispatchWorkgroups(this.workgroupSize);
+            passEncoder.end();
 
             const passEncoder2 = commandEncoder.beginComputePass(computePassDescriptor);
             passEncoder2.setPipeline(this.basisPipeline);
@@ -1447,63 +1444,24 @@
 
             }
 
-
-            const copiedBuffer = createGPUBuffer(device, new Uint32Array(this.paddedSplatSize), GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
-
-            commandEncoder.copyBufferToBuffer(this.idBuffer, 0,
-                copiedBuffer, 0, this.paddedSplatSize * 4);
             device.queue.submit([commandEncoder.finish()]);
-
             await device.queue.onSubmittedWorkDone();
-
-            await copiedBuffer.mapAsync(GPUMapMode.READ, 0, this.paddedSplatSize * 4);
-
-            const d = new Uint32Array(copiedBuffer.getMappedRange());
-           const ds = d.sort();
-
-            for (let i = 0; i < this.paddedSplatSize; ++i) {
-               // if (ds[i] != i) {
-                    console.log(ds[i], i);
-               // }
-            }
-
-           // let dumpData = [];
-
-
-           // for(const dd of d) {
-               // console.log(dd & 0b1111111111111111111111111111);
-             //  dumpData.push(dd);
-           // }
-
-          //  const data = "data:application/octet-stream;charset=utf-8," + encodeURIComponent(JSON.stringify(dumpData)); 
-           // window.open(data);
-
-            console.log(this.chunkCount,"actual splat size", this.actualSplatSize, this.paddedSplatSize, this.paddedSplatSize-this.actualSplatSize );
-            
-            // console.log(ds)
-
-
-            copiedBuffer.unmap();
-
         }
 
-        /* encode(encoder) {
-             encoder.setPipeline(this.pipeline);
-             encoder.setBindGroup(0, this.uniformBindGroup);
-             encoder.setVertexBuffer(0, this.positionBuffer);
-             encoder.setVertexBuffer(1, this.normalBuffer);
-             encoder.setVertexBuffer(2, this.scaleBuffer);
-             encoder.setVertexBuffer(3, this.rotationBuffer);
-             encoder.setVertexBuffer(4, this.locBuffer);
-             encoder.setVertexBuffer(5, this.colorBuffer);
-             encoder.setIndexBuffer(this.indexBuffer, 'uint16');
-             encoder.drawIndexed(this.indexSize, this.pointSize);
-         }*/
+         encode(encoder) {
+             encoder.setPipeline(this.splatPipeline);
+             encoder.setBindGroup(0, this.splatUniformBindGroup);
+             encoder.setVertexBuffer(0, this.splatPositionBuffer);
+             encoder.setVertexBuffer(1, this.locBuffer);
+             encoder.setVertexBuffer(2, this.basisBuffer);
+             encoder.setVertexBuffer(3, this.colorBuffer);
+             encoder.draw(4, this.actualSplatSize);
+         }
     }
 
     class Arcball {
         constructor() {
-            this.radius = 1.0;
+            this.radius = 0.5;
             this.forwardVector = glMatrix.vec4.fromValues(this.radius, 0.0, 0.0, 0.0);
             this.upVector = glMatrix.vec4.fromValues(0.0, 0.0, 1.0, 0.0);
             this.currentRotation = glMatrix.mat4.create();
@@ -1585,34 +1543,17 @@
 
         let modelViewMatrixUniformBuffer = createGPUBuffer(device, modelViewMatrix, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
-        let viewDir = glMatrix.vec3.fromValues(10.0, 10.0, 10.0);
-
-        let viewDirectionUniformBuffer = createGPUBuffer(device, viewDir, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
-
-        let lightDirectionUniformBuffer = createGPUBuffer(device, viewDir, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
-
-
-        let modelViewMatrixInverse = glMatrix.mat4.invert(glMatrix.mat4.create(), modelViewMatrix);
-
-        let normalMatrix = glMatrix.mat4.transpose(glMatrix.mat4.create(), modelViewMatrixInverse);
-
-        let normalMatrixUniformBuffer = createGPUBuffer(device, normalMatrix, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
-
         let projectionMatrix = glMatrix.mat4.perspective(glMatrix.mat4.create(),
             1.4, 640.0 / 480.0, 0.1, 1000.0);
 
         let projectionMatrixUniformBuffer = createGPUBuffer(device, projectionMatrix, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
-        // let axis = new Axis();
-        // await axis.setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer);
+        let screenUniformBuffer = createGPUBuffer(device, new Float32Array([canvas.width, canvas.height]), GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
         let splat = new Splat();
-        await splat.setup(device, projectionMatrix, modelViewMatrix, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer);
-
-        let depthTexture = null;
+        await splat.setup(device, projectionMatrix, modelViewMatrix, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer,screenUniformBuffer);
 
         await splat.calculateCovariance(device);
-
 
         async function render() {
             const devicePixelRatio = window.devicePixelRatio || 1;
@@ -1620,34 +1561,13 @@
             let currentCanvasHeight = canvas.clientHeight * devicePixelRatio;
 
             let projectionMatrixUniformBufferUpdate = null;
+            let screenUniformBufferUpdate = null;
 
-            if (depthTexture === null || currentCanvasWidth != canvas.width || currentCanvasHeight != canvas.height) {
+            if ( currentCanvasWidth != canvas.width || currentCanvasHeight != canvas.height) {
                 canvas.width = currentCanvasWidth;
                 canvas.height = currentCanvasHeight;
 
-                if (depthTexture !== null) {
-                    depthTexture.destroy();
-                }
-
-                const depthTextureDesc = {
-                    size: [canvas.width, canvas.height, 1],
-                    dimension: '2d',
-                    format: 'depth24plus-stencil8',
-                    usage: GPUTextureUsage.RENDER_ATTACHMENT
-                };
-
-                depthTexture = device.createTexture(depthTextureDesc);
-                let depthTextureView = depthTexture.createView();
-
-                depthAttachment = {
-                    view: depthTextureView,
-                    depthClearValue: 1,
-                    depthLoadOp: 'clear',
-                    depthStoreOp: 'store',
-                    stencilClearValue: 0,
-                    stencilLoadOp: 'clear',
-                    stencilStoreOp: 'store'
-                };
+                screenUniformBufferUpdate = createGPUBuffer(device, new Float32Array([canvas.width, canvas.height]), GPUBufferUsage.COPY_SRC);
 
                 let projectionMatrix = glMatrix.mat4.perspective(glMatrix.mat4.create(),
                     1.4, canvas.width / canvas.height, 0.1, 1000.0);
@@ -1658,19 +1578,7 @@
 
             let modelViewMatrix = arcball.getMatrices();
 
-
-
             let modelViewMatrixUniformBufferUpdate = createGPUBuffer(device, modelViewMatrix, GPUBufferUsage.COPY_SRC);
-
-            let modelViewMatrixInverse = glMatrix.mat4.invert(glMatrix.mat4.create(), modelViewMatrix);
-
-            let normalMatrix = glMatrix.mat4.transpose(glMatrix.mat4.create(), modelViewMatrixInverse);
-
-            let normalMatrixUniformBufferUpdate = createGPUBuffer(device, normalMatrix, GPUBufferUsage.COPY_SRC);
-
-            let viewDir = glMatrix.vec3.fromValues(-arcball.forwardVector[0], -arcball.forwardVector[1], -arcball.forwardVector[2]);
-            let viewDirectionUniformBufferUpdate = createGPUBuffer(device, viewDir, GPUBufferUsage.COPY_SRC);
-
 
             let colorTexture = context.getCurrentTexture();
             let colorTextureView = colorTexture.createView();
@@ -1682,20 +1590,8 @@
                 storeOp: 'store'
             };
 
-            let colorAttachment2 = {
-                view: colorTextureView,
-                clearValue: { r: 0.3, g: 0.3, b: 0.3, a: 1 },
-                loadOp: "load",
-                storeOp: 'store'
-            }
-
             const renderPassDesc = {
-                colorAttachments: [colorAttachment],
-                depthStencilAttachment: depthAttachment
-            };
-
-            const renderPassDesc2 = {
-                colorAttachments: [colorAttachment2]
+                colorAttachments: [colorAttachment]
             };
 
             commandEncoder = device.createCommandEncoder();
@@ -1706,20 +1602,12 @@
 
             commandEncoder.copyBufferToBuffer(modelViewMatrixUniformBufferUpdate, 0,
                 modelViewMatrixUniformBuffer, 0, modelViewMatrix.byteLength);
-            commandEncoder.copyBufferToBuffer(normalMatrixUniformBufferUpdate, 0,
-                normalMatrixUniformBuffer, 0, normalMatrix.byteLength);
-            commandEncoder.copyBufferToBuffer(viewDirectionUniformBufferUpdate, 0,
-                viewDirectionUniformBuffer, 0, viewDir.byteLength);
-            commandEncoder.copyBufferToBuffer(viewDirectionUniformBufferUpdate, 0,
-                lightDirectionUniformBuffer, 0, viewDir.byteLength);
-
+    
             passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
             passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
-            //sphere.encode(passEncoder);
+            splat.encode(passEncoder);
             passEncoder.end();
-            /*passEncoder2 = commandEncoder.beginRenderPass(renderPassDesc2);
-            axis.encode(passEncoder2);
-            passEncoder2.end();*/
+       
             device.queue.submit([commandEncoder.finish()]);
 
             await device.queue.onSubmittedWorkDone();
@@ -1727,9 +1615,11 @@
                 projectionMatrixUniformBufferUpdate.destroy();
             }
 
+            if (screenUniformBufferUpdate) {
+                screenUniformBufferUpdate.destroy();
+            }
+
             modelViewMatrixUniformBufferUpdate.destroy();
-            normalMatrixUniformBufferUpdate.destroy();
-            viewDirectionUniformBufferUpdate.destroy();
         }
 
         let timeId = null;
