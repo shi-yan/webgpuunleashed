@@ -188,7 +188,7 @@
               "files": [
                 {
                   "filename": "index.html",
-                  "is_readonly": true
+                  "is_readonly": false
                 }
               ]
             },
@@ -198,7 +198,7 @@
               "files": [
                 {
                   "filename": "index.html",
-                  "is_readonly": true
+                  "is_readonly": false
                 }
               ]
             }
@@ -223,7 +223,7 @@
               "files": [
                 {
                   "filename": "index.html",
-                  "is_readonly": true
+                  "is_readonly": false
                 }
               ]
             },
@@ -233,7 +233,7 @@
               "files": [
                 {
                   "filename": "index.html",
-                  "is_readonly": true
+                  "is_readonly": false
                 }
               ]
             }
@@ -273,7 +273,7 @@
               "files": [
                 {
                   "filename": "index.html",
-                  "is_readonly": true
+                  "is_readonly": false
                 }
               ]
             },
@@ -283,7 +283,7 @@
               "files": [
                 {
                   "filename": "index.html",
-                  "is_readonly": true
+                  "is_readonly": false
                 }
               ]
             },
@@ -293,7 +293,7 @@
               "files": [
                 {
                   "filename": "index.html",
-                  "is_readonly": true
+                  "is_readonly": false
                 }
               ]
             },
@@ -303,7 +303,7 @@
               "files": [
                 {
                   "filename": "index.html",
-                  "is_readonly": true
+                  "is_readonly": false
                 }
               ]
             },
@@ -313,7 +313,7 @@
               "files": [
                 {
                   "filename": "index.html",
-                  "is_readonly": true
+                  "is_readonly": false
                 }
               ]
             }
@@ -328,7 +328,7 @@
               "files": [
                 {
                   "filename": "index.html",
-                  "is_readonly": true
+                  "is_readonly": false
                 }
               ]
             },
@@ -338,7 +338,7 @@
               "files": [
                 {
                   "filename": "index.html",
-                  "is_readonly": true
+                  "is_readonly": false
                 }
               ]
             }
@@ -408,7 +408,7 @@
               "files": [
                 {
                   "filename": "index.html",
-                  "is_readonly": true
+                  "is_readonly": false
                 }
               ]
             },
@@ -418,7 +418,7 @@
               "files": [
                 {
                   "filename": "index.html",
-                  "is_readonly": true
+                  "is_readonly": false
                 }
               ]
             }
@@ -575,6 +575,41 @@
             {
               "filename": "index.html",
               "is_readonly": false
+            }
+          ]
+        },
+        {
+          "title": "5.8 Gaussian Splatting",
+          "sub_chapters": [
+            {
+              "folder": "5_08_gaussian_splatting_4",
+              "title": "5.8.1 4x4 covariance",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": false
+                }
+              ]
+            },
+            {
+              "folder": "5_08_gaussian_splatting_5",
+              "title": "5.8.2 3x3 covariance",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": false
+                }
+              ]
+            },
+            {
+              "folder": "5_08_gaussian_splatting_6",
+              "title": "5.8.3 4x4 + Radix sort + rendering",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": false
+                }
+              ]
             }
           ]
         }

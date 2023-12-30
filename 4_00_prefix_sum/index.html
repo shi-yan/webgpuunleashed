@@ -335,7 +335,7 @@
         });
 
         const arraySize = 1024;
-        const chunkCount = arraySize / 512;
+        const chunkCount = Math.ceil( arraySize / 512);
 
         const testArray = [];
         for (let i = 0; i < arraySize; ++i) {
