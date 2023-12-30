@@ -134,14 +134,14 @@ title = "1.16.1 Per-vertex Lighting"
 folder = "1_16_1_lighting"
 [[content.sub_chapters.sub_chapters.files]]
 filename = "index.html"
-is_readonly = true
+is_readonly = false
 
 [[content.sub_chapters.sub_chapters]]
 title = "1.16.2 Per-fragment Lighting"
 folder = "1_16_2_lighting"
 [[content.sub_chapters.sub_chapters.files]]
 filename = "index.html"
-is_readonly = true
+is_readonly = false
 
 [[content.sub_chapters]]
 title = "1.17 MSAA"
@@ -158,14 +158,14 @@ title = "1.18.1 Mipmaps 1"
 folder = "1_18_1_mipmaps"
 [[content.sub_chapters.sub_chapters.files]]
 filename = "index.html"
-is_readonly = true
+is_readonly = false
 
 [[content.sub_chapters.sub_chapters]]
 title = "1.18.2 Mipmaps 2"
 folder = "1_18_2_mipmaps"
 [[content.sub_chapters.sub_chapters.files]]
 filename = "index.html"
-is_readonly = true
+is_readonly = false
 
 [[content]]
 title = "2. 2D Techniques"
@@ -192,35 +192,35 @@ title = "2.2.1 Blur 1"
 folder = "2_02_1_blur_1"
 [[content.sub_chapters.sub_chapters.files]]
 filename = "index.html"
-is_readonly = true
+is_readonly = false
 
 [[content.sub_chapters.sub_chapters]]
 title = "2.2.2 Blur 2"
 folder = "2_02_2_blur_2"
 [[content.sub_chapters.sub_chapters.files]]
 filename = "index.html"
-is_readonly = true
+is_readonly = false
 
 [[content.sub_chapters.sub_chapters]]
 title = "2.2.3 Blur 3"
 folder = "2_02_3_blur_3"
 [[content.sub_chapters.sub_chapters.files]]
 filename = "index.html"
-is_readonly = true
+is_readonly = false
 
 [[content.sub_chapters.sub_chapters]]
 title = "2.2.4 Blur 4"
 folder = "2_02_4_blur_4"
 [[content.sub_chapters.sub_chapters.files]]
 filename = "index.html"
-is_readonly = true
+is_readonly = false
 
 [[content.sub_chapters.sub_chapters]]
 title = "2.2.5 Blur 5"
 folder = "2_02_5_blur_5"
 [[content.sub_chapters.sub_chapters.files]]
 filename = "index.html"
-is_readonly = true
+is_readonly = false
 
 [[content.sub_chapters]]
 title = "2.3 Video"
@@ -230,14 +230,14 @@ title = "2.3.1 Video 1"
 folder = "2_03_1_video_1"
 [[content.sub_chapters.sub_chapters.files]]
 filename = "index.html"
-is_readonly = true
+is_readonly = false
 
 [[content.sub_chapters.sub_chapters]]
 title = "2.3.2 Video 2"
 folder = "2_03_2_video_2"
 [[content.sub_chapters.sub_chapters.files]]
 filename = "index.html"
-is_readonly = true
+is_readonly = false
 
 [[content.sub_chapters]]
 title = "2.4 Text"
@@ -285,14 +285,14 @@ title = "3.2.1 Ray Casting"
 folder = "3_02_1_picking_ray_casting"
 [[content.sub_chapters.sub_chapters.files]]
 filename = "index.html"
-is_readonly = true
+is_readonly = false
 
 [[content.sub_chapters.sub_chapters]]
 title = "3.2.2 Color Coding"
 folder = "3_02_2_picking_color_coding"
 [[content.sub_chapters.sub_chapters.files]]
 filename = "index.html"
-is_readonly = true
+is_readonly = false
 
 [[content.sub_chapters]]
 title = "3.3 Save Image and Video"
@@ -398,5 +398,29 @@ is_readonly = false
 title = "5.7 Bump Map"
 folder = "5_07_bump_map"
 [[content.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
+
+[[content.sub_chapters]]
+title = "5.8 Gaussian Splatting"
+
+[[content.sub_chapters.sub_chapters]]
+title = "5.8.1 4x4 covariance"
+folder = "5_08_gaussian_splatting_4"
+[[content.sub_chapters.sub_chapters.files]]
+filename = "index.html"
+is_readonly = false
+
+[[content.sub_chapters.sub_chapters]]
+title = "5.8.2 3x3 covariance"
+folder = "5_08_gaussian_splatting_6"
+[[content.sub_chapters.sub_chapters.files]]
+filename = "exp.html"
+is_readonly = false
+
+[[content.sub_chapters.sub_chapters]]
+title = "5.8.3 4x4 + Radix sort + rendering"
+folder = "5_08_gaussian_splatting_5"
+[[content.sub_chapters.sub_chapters.files]]
 filename = "index.html"
 is_readonly = false
