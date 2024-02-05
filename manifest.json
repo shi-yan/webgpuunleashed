@@ -592,7 +592,7 @@
               ]
             },
             {
-              "folder": "5_08_gaussian_splatting_5",
+              "folder": "5_08_gaussian_splatting_6",
               "title": "5.8.2 3x3 covariance",
               "files": [
                 {
@@ -602,7 +602,7 @@
               ]
             },
             {
-              "folder": "5_08_gaussian_splatting_6",
+              "folder": "5_08_gaussian_splatting_5",
               "title": "5.8.3 4x4 + Radix sort + rendering",
               "files": [
                 {

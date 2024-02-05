@@ -15,6 +15,7 @@
     //https://www.khronos.org/opengl/wiki/Sampler_(GLSL)#Non-uniform_flow_control
     //https://github.com/KhronosGroup/GLSL/issues/52
     //https://xol.io/blah/the-trouble-with-spirv/
+    //https://developer.nvidia.com/gpugems/gpugems3/part-vi-gpu-computing/chapter-39-parallel-prefix-sum-scan-cuda
 </script>
 <script id="shader" type="wgsl">
 
@@ -69,7 +70,8 @@
 
             if (thid == 0) 
             { 
-                temp[bank_conflict_free_idx(n - 1)] = 0; 
+                sums[WorkgroupID.x] = temp[bank_conflict_free_idx(n - 1)];
+                temp[bank_conflict_free_idx(n - 1)] = 0;
             } // clear the last element  
             workgroupBarrier();      
 
@@ -90,12 +92,6 @@
             if (thid < (n>>1)){
                 output[2*globalThid] = temp[bank_conflict_free_idx(2*thid)]; 
                 output[2*globalThid+1] = temp[bank_conflict_free_idx(2*thid+1)]; 
-            }
-
-            storageBarrier();
-
-            if (thid == 0) {
-                sums[WorkgroupID.x] = output[512 * WorkgroupID.x + 511] + input[512 * WorkgroupID.x + 511];
             }
       }
 

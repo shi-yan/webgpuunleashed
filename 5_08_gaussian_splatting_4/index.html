@@ -24,6 +24,40 @@
 <script src="../utils/OBJFile.js"> </script>
 <script src="../utils/utils.js"></script>
 <script src="../utils/helper.js"></script>
+
+
+
+<script id="points_shader" type="wgsl">
+    // Vertex shader
+    
+    @group(0) @binding(0)
+    var<uniform> modelView: mat4x4<f32>;
+    @group(0) @binding(1)
+    var<uniform> projection: mat4x4<f32>;
+
+    
+    struct VertexOutput {
+        @builtin(position) clip_position: vec4<f32>,
+    };
+    
+    @vertex
+    fn vs_main(
+        @location(0) inPos: vec3<f32>,
+    ) -> VertexOutput {
+        var out: VertexOutput; 
+        out.clip_position = projection * modelView * vec4<f32>(inPos, 1.0);
+        return out;
+    }
+    
+    // Fragment shader
+    
+    @fragment
+    fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+     
+        return vec4<f32>(1.0,1.0,1.0 ,0.8);
+    }
+</script>
+
 <script id="sphere_shader" type="wgsl">
     // Vertex shader
     
@@ -157,6 +191,124 @@
         console.log(m[2],"|", m[6], "|", m[10], "|",m[14]);
         console.log(m[3],"|", m[7], "|", m[11], "|",m[15]);
     }
+
+
+    class Points {
+        constructor() {
+            this.pipeline = null;
+            this.positionBuffer = null;
+            this.pointCount = 0;
+        }
+
+        async setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer) {
+            const objResponse = await fetch('../data/points.json');
+            const testArray = await objResponse.json();
+            let pos = []
+            this.pointCount = testArray.length;
+            for (const t of testArray) {
+                pos.push(...t);
+            }
+
+            this.positionBuffer = createGPUBuffer(device, new Float32Array(pos), GPUBufferUsage.VERTEX);
+
+            let uniformBindGroupLayout = device.createBindGroupLayout({
+                entries: [
+                    {
+                        binding: 0,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    },
+                    {
+                        binding: 1,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    }]
+            });
+
+            this.uniformBindGroup = device.createBindGroup({
+                layout: uniformBindGroupLayout,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: {
+                            buffer: modelViewMatrixUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 1,
+                        resource: {
+                            buffer: projectionMatrixUniformBuffer
+                        }
+                    }]
+            });
+
+            const positionAttribDesc = {
+                shaderLocation: 0, // @location(0)
+                offset: 0,
+                format: 'float32x3'
+            };
+
+            const positionBufferLayoutDesc = {
+                attributes: [positionAttribDesc],
+                arrayStride: 4 * 3, // sizeof(float) * 2
+                stepMode: 'vertex'
+            };
+
+            const colorState = {
+                format: 'bgra8unorm',
+                blend: {
+                    alpha: {
+                        operation: "add",
+                        srcFactor: 'src-alpha',
+                        dstFactor: 'one-minus-src-alpha',
+                    },
+                    color: {
+                        operation: "add",
+                        srcFactor: 'src-alpha',
+                        dstFactor: 'one-minus-src-alpha',
+                    }
+                }
+            };
+
+
+            const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout] };
+            const layout = device.createPipelineLayout(pipelineLayoutDesc);
+            let shaderModule = shaderModuleFromCode(device, 'points_shader')
+
+            const pipelineDesc = {
+                layout,
+                vertex: {
+                    module: shaderModule,
+                    entryPoint: 'vs_main',
+                    buffers: [positionBufferLayoutDesc]
+                },
+                fragment: {
+                    module: shaderModule,
+                    entryPoint: 'fs_main',
+                    targets: [colorState]
+                },
+                primitive: {
+                    topology: 'point-list'
+                },
+                /*  depthStencil: {
+                      depthWriteEnabled: true,
+                      depthCompare: 'less',
+                      format: 'depth24plus-stencil8'
+                  }*/
+            };
+
+            this.pipeline = device.createRenderPipeline(pipelineDesc);
+        }
+
+
+        encode(encoder) {
+            encoder.setPipeline(this.pipeline);
+            encoder.setBindGroup(0, this.uniformBindGroup);
+            encoder.setVertexBuffer(0, this.positionBuffer);
+            encoder.draw(this.pointCount, 1);
+        }
+    }
+
 
     class Sphere {
         constructor() {
@@ -541,12 +693,12 @@
         }
 
         encode(encoder) {
-            encoder.setPipeline(this.pipeline);
+           /* encoder.setPipeline(this.pipeline);
             encoder.setBindGroup(0, this.uniformBindGroup);
             encoder.setVertexBuffer(0, this.positionBuffer);
             encoder.setVertexBuffer(1, this.normalBuffer);
             encoder.setIndexBuffer(this.indexBuffer, 'uint16');
-            encoder.drawIndexed(this.indexSize);
+            encoder.drawIndexed(this.indexSize);*/
 
             encoder.setPipeline(this.splatPipeline);
             encoder.setBindGroup(0, this.uniformBindGroupSplat);
@@ -663,6 +815,10 @@
         let sphere = new Sphere();
         await sphere.setup(device, projectionMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer);
 
+        let points=new Points();
+        await points.setup(device,modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer);
+
+
         let depthTexture = null;
 
         async function render() {
@@ -777,6 +933,7 @@
             passEncoder.end();
             passEncoder2 = commandEncoder.beginRenderPass(renderPassDesc2);
             axis.encode(passEncoder2);
+            points.encode(passEncoder2)
             passEncoder2.end();
             device.queue.submit([commandEncoder.finish()]);
 
