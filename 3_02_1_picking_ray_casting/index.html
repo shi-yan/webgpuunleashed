@@ -807,14 +807,14 @@
                 //https://gamedev.stackexchange.com/questions/153078/what-can-i-do-with-the-4th-component-of-gl-position
                 let projectionMatrixInverse = glMatrix.mat4.invert(glMatrix.mat4.create(), projectionMatrix);
 
-                let clipSpacePosition = glMatrix.vec4.fromValues(currX, currY, -1.0, 1.0);
+                let clipSpacePosition = glMatrix.vec4.fromValues(currX, currY, 0.0, 1.0);
 
-                clipSpacePosition = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), clipSpacePosition, projectionMatrixInverse);
+                let camSpacePosition = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), clipSpacePosition, projectionMatrixInverse);
 
-                clipSpacePosition[2] = -1;
-                clipSpacePosition[3] = 0;
+                //clipSpacePosition[2] = -1;
+                camSpacePosition[3] = 0;
 
-                let dir = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), clipSpacePosition, modelViewMatrixInverse);
+                let dir = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), camSpacePosition, modelViewMatrixInverse);
 
                 dir = glMatrix.vec3.normalize(glMatrix.vec3.create(), dir);
 
