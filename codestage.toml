@@ -415,7 +415,7 @@ is_readonly = false
 title = "5.8.2 3x3 covariance"
 folder = "5_08_gaussian_splatting_6"
 [[content.sub_chapters.sub_chapters.files]]
-filename = "exp.html"
+filename = "index.html"
 is_readonly = false
 
 [[content.sub_chapters.sub_chapters]]
