@@ -3,8 +3,8 @@
 <body>
     <canvas id="canvas" width="640" height="480"></canvas>
 </body>
-<script src="../utils/gl-matrix.js">
-    //video
+<script src="../utils/gl-matrix.js"> 
+//video
 </script>
 <script src="../utils/utils.js"></script>
 <script id="shader" type="wgsl">
@@ -34,24 +34,24 @@ fn vs_main(
 // Fragment shader
 
 @group(0) @binding(2)
-var t_diffuse: texture_2d<f32>;
+var t_diffuse: texture_external;
 @group(0) @binding(3)
 var s_diffuse: sampler;
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    return textureSampleLevel(t_diffuse, s_diffuse, in.tex_coords, 0);
+    return textureSampleBaseClampToEdge(t_diffuse, s_diffuse, in.tex_coords);
 }
 
 </script>
 
 <script>
 
-    //video 2 manual upload
+    //video
     //https://github.com/mdn/dom-examples/blob/main/webgl-examples/tutorial/sample8/Firefox.mp4
     //https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Tutorial/Animating_textures_in_WebGL
     //https://github.com/toji/webgpu-best-practices/blob/main/img-textures.md
-
+    // talk about the external texture lifetime
     let copyVideo = false;
     let videoTag = null;
 
@@ -90,7 +90,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         return video;
     }
 
-
     async function webgpu() {
         if (!navigator.gpu) {
             showWarning("WebGPU support is not available. A WebGPU capable browser is required to run this sample.");
@@ -103,24 +102,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         console.log(device);
 
         const context = configContext(device, canvas);
-
-        // create shaders
-
-        const textureDescriptor = {
-            size: { width: videoTag.videoWidth, height: videoTag.videoHeight },
-            format: 'rgba8unorm',
-            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
-        };
-        const texture = device.createTexture(textureDescriptor);
-
-        const waveGridStagingBuffers = [];
-
-        videoTag.ontimeupdate = async (event) => {
-            let imageData = await createImageBitmap(videoTag);
-            //console.log(imageData)
-            device.queue.copyExternalImageToTexture({ source: imageData }, { texture }, textureDescriptor.size);
-        };
-
         const sampler = device.createSampler({
             addressModeU: 'repeat',
             addressModeV: 'repeat',
@@ -188,7 +169,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             1.4, 640.0 / 480.0, 0.1, 1000.0);
 
         let translateMatrixUniformBuffer = createGPUBuffer(device, translateMatrix, GPUBufferUsage.UNIFORM);
-
         let projectionMatrixUniformBuffer = createGPUBuffer(device, projectionMatrix, GPUBufferUsage.UNIFORM);
 
         let uniformBindGroupLayout = device.createBindGroupLayout({
@@ -206,7 +186,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 {
                     binding: 2,
                     visibility: GPUShaderStage.FRAGMENT,
-                    texture: {}
+                    externalTexture: {}
                 },
                 {
                     binding: 3,
@@ -215,8 +195,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 }
             ]
         });
-
-
 
         const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout] };
         const layout = device.createPipelineLayout(pipelineLayoutDesc);
@@ -246,40 +224,12 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
         pipeline = device.createRenderPipeline(pipelineDesc);
 
-        let uniformBindGroup = device.createBindGroup({
-            layout: uniformBindGroupLayout,
-            entries: [
-                {
-                    binding: 0,
-                    resource: {
-                        buffer: translateMatrixUniformBuffer
-                    }
-                },
-                {
-                    binding: 1,
-                    resource: {
-                        buffer: projectionMatrixUniformBuffer
-                    }
-                },
-                {
-                    binding: 2,
-                    resource: texture.createView()
-                },
-                {
-                    binding: 3,
-                    resource:
-                        sampler
-                }
-            ]
-        });
-
-
         function render() {
             requestAnimationFrame(render);
 
             if (copyVideo) {
 
-                //const externalTexture = device.importExternalTexture({ source: videoTag });
+                const externalTexture = device.importExternalTexture({ source: videoTag });
 
                 let colorTexture = context.getCurrentTexture();
                 let colorTextureView = colorTexture.createView();
@@ -294,6 +244,34 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 const renderPassDesc = {
                     colorAttachments: [colorAttachment]
                 };
+
+                let uniformBindGroup = device.createBindGroup({
+                    layout: uniformBindGroupLayout,
+                    entries: [
+                        {
+                            binding: 0,
+                            resource: {
+                                buffer: translateMatrixUniformBuffer
+                            }
+                        },
+                        {
+                            binding: 1,
+                            resource: {
+                                buffer: projectionMatrixUniformBuffer
+                            }
+                        },
+                        {
+                            binding: 2,
+                            resource: externalTexture
+                        },
+                        {
+                            binding: 3,
+                            resource:
+                                sampler
+                        }
+                    ]
+                });
+
 
                 commandEncoder = device.createCommandEncoder();
 
@@ -313,20 +291,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         requestAnimationFrame(render);
     }
     videoTag = setupVideo('../data/Firefox.mp4');
-
-    (async () => {
-        return new Promise(resolve => {
-            let timer = setInterval(() => {
-                if (copyVideo) {
-                    clearInterval(timer);
-                    resolve();
-                }
-            }, 300);
-        })
-    })().then(() => {
-        webgpu();
-    });
-
+    webgpu();
 </script>
 
 </html>

@@ -93,7 +93,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         const textureDescriptor = {
             size: { width: imgBitmap.width, height: imgBitmap.height },
             format: 'rgba8unorm',
-            mipLevelCount: Math.floor(Math.log2(Math.max(imgBitmap.width, imgBitmap.height))) + 1,
+            mipLevelCount: Math.ceil(Math.log2(Math.max(imgBitmap.width, imgBitmap.height))),
             usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
         };
         const texture = device.createTexture(textureDescriptor);
