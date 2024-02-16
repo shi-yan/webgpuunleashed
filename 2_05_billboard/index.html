@@ -170,8 +170,8 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
             const positions = new Float32Array([
                 10.0, -10.0, 0.0,
-                10.0, 10.0, 0.0,
                 -10.0, -10.0, 0.0,
+                10.0, 10.0, 0.0,
                 -10.0, 10.0, 0.0
             ]);
 
@@ -232,8 +232,8 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 },
                 primitive: {
                     topology: 'triangle-strip',
-                    frontFace: 'ccw',
-                    cullMode: 'none'
+                    frontFace: 'cw',
+                    cullMode: 'back'
                 },
                 depthStencil: {
                     depthWriteEnabled: true,
