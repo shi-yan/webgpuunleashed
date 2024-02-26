@@ -137,13 +137,15 @@
     // Vertex shader
     
     @group(0) @binding(0)
-    var<uniform> basis: vec4<f32>;
+    var<uniform> basisVector1: vec2<f32>;
     @group(0) @binding(1)
-    var<uniform> screen: vec2<f32>;
-     
+    var<uniform> basisVector2: vec2<f32>;
     @group(0) @binding(2)
-    var<uniform> modelView: mat4x4<f32>;
+    var<uniform> basisViewport: vec2<f32>;
+     
     @group(0) @binding(3)
+    var<uniform> modelView: mat4x4<f32>;
+    @group(0) @binding(4)
     var<uniform> projection: mat4x4<f32>;
 
     struct VertexOutput {
@@ -159,12 +161,13 @@
 
         var pos:vec4<f32> = vec4<f32>(10.0,10.0,10.0,1.0);
 
-        pos = projection * modelView * pos;
+        var clipCenter:vec4<f32> = projection * modelView * pos;
 
-        var basis1 =  basis.xy * basis.z;
-        var basis2 =  vec2<f32>(basis1.y, -basis1.x) * basis.w;
-        out.coord = inPos;
-        out.clip_position = vec4<f32>( pos.xy/pos.w + (inPos.x * basis1.xy  + inPos.y * basis2) *100.0* vec2<f32>(2.0/screen.x,2.0/screen.y), pos.z/pos.w, 1.0)  ;        
+        var ndcCenter:vec3<f32> = clipCenter.xyz / clipCenter.w;
+
+        var ndcOffset:vec2<f32> = vec2(inPos.x * basisVector1 + inPos.y * basisVector2) * basisViewport;
+
+        out.clip_position = vec4<f32>(ndcCenter.xy + ndcOffset, ndcCenter.z, 1.0)  ;        
         return out;
     }
     
@@ -172,9 +175,9 @@
     
     @fragment
     fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-        var a = 1.0/(0.25 * sqrt(2.0*3.14))*exp(-0.5 * (in.coord.x*in.coord.x+in.coord.y*in.coord.y)/(0.25*0.25));
+        //var a = 1.0/(0.25 * sqrt(2.0*3.14))*exp(-0.5 * (in.coord.x*in.coord.x+in.coord.y*in.coord.y)/(0.25*0.25));
 
-        return vec4<f32>(1.0,1.0,1.0 ,a);
+        return vec4<f32>(1.0,1.0,1.0 ,1.0);
     }
 </script>
 
@@ -324,10 +327,14 @@
 
             this.covariance = null;
 
-            this.baseUniformBuffer = null;
-            this.screenUniformBuffer = null;
-            this.baseUniformBufferUpdate = null;
-            this.screenUniformBufferUpdate = null;
+            this.basisVector1UniformBuffer = null;
+            this.basisVector2UniformBuffer = null;
+
+            this.basisViewportUniformBuffer = null;
+
+            this.basisVector1UniformBufferUpdate = null;
+            this.basisVector2UniformBufferUpdate = null;
+            this.basisViewportUniformBufferUpdate = null;
             this.uniformBindGroupSplat = null;
             this.splatPipeline = null;
             this.splatPositionBuffer = null;
@@ -347,32 +354,31 @@
             this.indexSize = indexSize;
 
             const rot = glMatrix.quat.fromValues(0.601, 0.576, 0.554, 0.01);
-            const scale = glMatrix.mat4.fromScaling(glMatrix.mat4.create(), glMatrix.vec3.fromValues(2.0, 0.3, 0.5));
-            const rotation = glMatrix.mat4.fromQuat(glMatrix.mat4.create(), rot);
+            const scale = glMatrix.mat3.fromScaling(glMatrix.mat3.create(), glMatrix.vec3.fromValues(2.0, 0.3, 0.5));
+            const rotation = glMatrix.mat3.fromQuat(glMatrix.mat3.create(), rot);
 
 
 
 
-            const T = glMatrix.mat4.multiply(glMatrix.mat4.create(), rotation, scale);
-
+            const T = glMatrix.mat3.multiply(glMatrix.mat3.create(), rotation, scale);
 
             console.log("T", T);
 
-            const T_transpose = glMatrix.mat4.transpose(glMatrix.mat4.create(), T);
+            const T_transpose = glMatrix.mat3.transpose(glMatrix.mat3.create(), T);
 
-            this.covariance = glMatrix.mat4.multiply(glMatrix.mat4.create(), T, T_transpose);
+            this.covariance = glMatrix.mat3.multiply(glMatrix.mat3.create(), T, T_transpose);
 
-            let translation = glMatrix.mat4.fromTranslation(glMatrix.mat4.create(), glMatrix.vec3.fromValues(10, 10, 10));
-            //translation[15] = 0;
-            console.log("covariance", this.covariance)
+            const scale4x4 = glMatrix.mat4.fromScaling(glMatrix.mat4.create(), glMatrix.vec4.fromValues(2.0, 0.3, 0.5));
+            const rotation4x4 = glMatrix.mat4.fromQuat(glMatrix.mat4.create(), rot);
 
-            const translation_transpose = glMatrix.mat4.transpose(glMatrix.mat4.create(), translation);
 
-            // this.covariance = glMatrix.mat4.multiply(glMatrix.mat4.create(), this.covariance, translation_transpose);
+            const translation = glMatrix.mat4.fromTranslation(glMatrix.mat4.create(), glMatrix.vec3.fromValues(10, 10, 10));
+            // const translation3x3 = glMatrix.mat3.fromMat4(glMatrix.mat3.create(), translation);
 
-            // this.covariance = glMatrix.mat4.multiply(glMatrix.mat4.create(), translation, this.covariance);
+            // const translation_transpose3x3 = glMatrix.mat3.transpose(glMatrix.mat3.create(), translation3x3);
 
-            this.transformation = glMatrix.mat4.multiply(glMatrix.mat4.create(), rotation, scale);
+
+            this.transformation = glMatrix.mat4.multiply(glMatrix.mat4.create(), rotation4x4, scale4x4);
             this.transformation = glMatrix.mat4.multiply(glMatrix.mat4.create(), translation, this.transformation);
 
             console.log(this.transformation)
@@ -381,8 +387,9 @@
             this.normalMatrixUniformBuffer = createGPUBuffer(device, this.transformation, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
             this.splatModelViewMatrixUniformBuffer = createGPUBuffer(device, this.transformation, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
-            this.baseUniformBuffer = createGPUBuffer(device, glMatrix.vec4.create(), GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
-            this.screenUniformBuffer = createGPUBuffer(device, glMatrix.vec2.create(), GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+            this.basisVector1UniformBuffer = createGPUBuffer(device, glMatrix.vec2.create(), GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+            this.basisVector2UniformBuffer = createGPUBuffer(device, glMatrix.vec2.create(), GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+            this.basisViewportUniformBuffer = createGPUBuffer(device, glMatrix.vec2.create(), GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
             let uniformBindGroupLayoutSplat = device.createBindGroupLayout({
                 entries: [
@@ -407,6 +414,11 @@
                         binding: 3,
                         visibility: GPUShaderStage.VERTEX,
                         buffer: {}
+                    },
+                    {
+                        binding: 4,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
                     }
                 ]
             });
@@ -417,23 +429,29 @@
                     {
                         binding: 0,
                         resource: {
-                            buffer: this.baseUniformBuffer
+                            buffer: this.basisVector1UniformBuffer
                         }
                     },
                     {
                         binding: 1,
                         resource: {
-                            buffer: this.screenUniformBuffer
+                            buffer: this.basisVector2UniformBuffer
                         }
                     },
                     {
                         binding: 2,
                         resource: {
-                            buffer: this.splatModelViewMatrixUniformBuffer
+                            buffer: this.basisViewportUniformBuffer
                         }
                     },
                     {
                         binding: 3,
+                        resource: {
+                            buffer: this.splatModelViewMatrixUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 4,
                         resource: {
                             buffer: projectionMatrixUniformBuffer
                         }
@@ -629,8 +647,10 @@
         }
 
         setArcballModelView(device, arcballModelViewMatrix, projectionMatrix, width, height) {
-            printM(arcballModelViewMatrix);
+            //   printM(arcballModelViewMatrix);
             //console.log(glMatrix.mat4.create())
+
+            this.transformation = glMatrix.mat4.create();
             let modelViewMatrix = glMatrix.mat4.multiply(glMatrix.mat4.create(), arcballModelViewMatrix, this.transformation);
 
             //let modelViewMatrix = arcballModelViewMatrix;
@@ -652,13 +672,34 @@
 
             //console.log("covariance", this.covariance);
 
-            let new_c = glMatrix.mat4.multiply(glMatrix.mat4.create(), this.covariance, m_t);
+            const devicePixelRatio = window.devicePixelRatio || 1;
+            const renderDimension = { x: canvas.clientWidth, y: canvas.clientHeight };
 
-            new_c = glMatrix.mat4.multiply(glMatrix.mat4.create(), m, new_c);
+            const focal = {
+                x: projectionMatrix[0] * devicePixelRatio * renderDimension.x * 0.5,
+                y: projectionMatrix[5] * devicePixelRatio * renderDimension.y * 0.5
+            }
 
-            printM(new_c)
+            const viewCenter = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), glMatrix.vec4.fromValues(10, 10, 10, 1.0), arcballModelViewMatrix);
 
-            const cov2Dv = glMatrix.vec3.fromValues(new_c[0], new_c[1], new_c[5]);
+            const s = 1.0 / (viewCenter[2] * viewCenter[2]);
+
+            const J = glMatrix.mat3.fromValues(
+                focal.x / viewCenter[2], 0., -(focal.x * viewCenter[0]) * s,
+                0., focal.y / viewCenter[2], -(focal.y * viewCenter[1]) * s,
+                0., 0., 0.
+            );
+
+            const W = glMatrix.mat3.transpose(glMatrix.mat3.create(), glMatrix.mat3.fromMat4(glMatrix.mat3.create(), arcballModelViewMatrix));
+            const T = glMatrix.mat3.multiply(glMatrix.mat3.create(), W, J);
+
+
+
+            let new_c = glMatrix.mat3.multiply(glMatrix.mat3.create(), glMatrix.mat3.transpose(glMatrix.mat3.create(), T), glMatrix.mat3.multiply(glMatrix.mat3.create(), this.covariance, T));
+
+            console.log(new_c)
+
+            const cov2Dv = glMatrix.vec3.fromValues(new_c[0], new_c[1], new_c[4]);
 
             let a = cov2Dv[0];
             let b = cov2Dv[1];
@@ -677,16 +718,16 @@
             let eigenVector1 = glMatrix.vec2.normalize(glMatrix.vec2.create(), glMatrix.vec2.fromValues(b, eigenValue1 - a));
             // since the eigen vectors are orthogonal, we derive the second one from the first
             let eigenVector2 = glMatrix.vec2.fromValues(eigenVector1[1], -eigenVector1[0]);
-            let scale1 = Math.min(Math.sqrt(eigenValue1) * 4, maxSplatSize);
-            let scale2 = Math.min(Math.sqrt(eigenValue2) * 4, maxSplatSize);
 
-            console.log('eigen v', scale1, scale2);
+            let basisVector1 = glMatrix.vec2.scale(glMatrix.vec2.create(), eigenVector1, Math.min(Math.sqrt(eigenValue1) * 4, maxSplatSize));
+            let basisVector2 = glMatrix.vec2.scale(glMatrix.vec2.create(), eigenVector2, Math.min(Math.sqrt(eigenValue2) * 4, maxSplatSize));
+            console.log( basisVector1, basisVector2);
 
-            console.log(width, height);
-            this.baseUniformBufferUpdate = createGPUBuffer(device, new Float32Array([eigenVector1[0], eigenVector1[1],
-                scale1, scale2]), GPUBufferUsage.COPY_SRC);
+            this.basisVector1UniformBufferUpdate = createGPUBuffer(device, new Float32Array([basisVector1[0], basisVector1[1]]), GPUBufferUsage.COPY_SRC);
 
-            this.screenUniformBufferUpdate = createGPUBuffer(device, new Float32Array([width, height]), GPUBufferUsage.COPY_SRC);
+            this.basisVector2UniformBufferUpdate = createGPUBuffer(device, new Float32Array([basisVector2[0], basisVector2[1]]), GPUBufferUsage.COPY_SRC);
+
+            this.basisViewportUniformBufferUpdate = createGPUBuffer(device, new Float32Array([2.0 / canvas.width, 2.0 / canvas.height]), GPUBufferUsage.COPY_SRC);
         }
 
         encode(encoder) {
@@ -920,10 +961,12 @@
                 sphere.splatModelViewMatrixUniformBuffer, 0, modelViewMatrix.byteLength);
 
             sphere.setArcballModelView(device, modelViewMatrix, projectionMatrix, canvas.width, canvas.height);
-            commandEncoder.copyBufferToBuffer(sphere.baseUniformBufferUpdate, 0,
-                sphere.baseUniformBuffer, 0, 4 * 4);
-            commandEncoder.copyBufferToBuffer(sphere.screenUniformBufferUpdate, 0,
-                sphere.screenUniformBuffer, 0, 4 * 2);
+            commandEncoder.copyBufferToBuffer(sphere.basisVector1UniformBufferUpdate, 0,
+                sphere.basisVector1UniformBuffer, 0, 4 * 2);
+            commandEncoder.copyBufferToBuffer(sphere.basisVector2UniformBufferUpdate, 0,
+                sphere.basisVector2UniformBuffer, 0, 4 * 2);
+            commandEncoder.copyBufferToBuffer(sphere.basisViewportUniformBufferUpdate, 0,
+                sphere.basisViewportUniformBuffer, 0, 4 * 2);
             passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
             passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
             sphere.encode(passEncoder);
@@ -951,12 +994,16 @@
                 sphere.modelViewMatrixUniformBufferUpdate.destroy();
             }
 
-            if (sphere.baseUniformBufferUpdate) {
-                sphere.baseUniformBufferUpdate.destroy();
+            if (sphere.basisVector1UniformBufferUpdate) {
+                sphere.basisVector1UniformBufferUpdate.destroy();
             }
 
-            if (sphere.screenUniformBufferUpdate) {
-                sphere.screenUniformBufferUpdate.destroy()
+            if (sphere.basisVector2UniformBufferUpdate) {
+                sphere.basisVector2UniformBufferUpdate.destroy();
+            }
+
+            if (sphere.basisViewportUniformBufferUpdate) {
+                sphere.basisViewportUniformBufferUpdate.destroy()
             }
         }
 
