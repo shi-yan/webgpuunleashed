@@ -355,19 +355,17 @@
             this.indexSize = indexSize;
 
             const rot = glMatrix.quat.fromValues(0.601, 0.576, 0.554, 0.01);
-            const scale = glMatrix.mat3.fromScaling(glMatrix.mat3.create(), glMatrix.vec3.fromValues(2.0, 0.3, 0.5));
+            let scale = glMatrix.mat4.fromScaling(glMatrix.mat4.create(), glMatrix.vec4.fromValues(2.0, 0.3, 0.5));
+            scale = glMatrix.mat3.fromMat4(glMatrix.mat3.create(), scale);
             const rotation = glMatrix.mat3.fromQuat(glMatrix.mat3.create(), rot);
 
-
-
-
             const T = glMatrix.mat3.multiply(glMatrix.mat3.create(), rotation, scale);
-
-            console.log("T", T);
 
             const T_transpose = glMatrix.mat3.transpose(glMatrix.mat3.create(), T);
 
             this.covariance = glMatrix.mat3.multiply(glMatrix.mat3.create(), T, T_transpose);
+
+            console.log("covariance:", this.covariance);
 
             const scale4x4 = glMatrix.mat4.fromScaling(glMatrix.mat4.create(), glMatrix.vec4.fromValues(2.0, 0.3, 0.5));
             const rotation4x4 = glMatrix.mat4.fromQuat(glMatrix.mat4.create(), rot);
@@ -698,9 +696,10 @@
 
             let new_c = glMatrix.mat3.multiply(glMatrix.mat3.create(), glMatrix.mat3.transpose(glMatrix.mat3.create(), T), glMatrix.mat3.multiply(glMatrix.mat3.create(), this.covariance, T));
 
-            console.log(new_c)
+     
 
             const cov2Dv = glMatrix.vec3.fromValues(new_c[0], new_c[1], new_c[4]);
+
 
             let a = cov2Dv[0];
             let b = cov2Dv[1];
@@ -722,7 +721,7 @@
 
             let basisVector1 = glMatrix.vec2.scale(glMatrix.vec2.create(), eigenVector1, Math.min(Math.sqrt(eigenValue1) * 4, maxSplatSize));
             let basisVector2 = glMatrix.vec2.scale(glMatrix.vec2.create(), eigenVector2, Math.min(Math.sqrt(eigenValue2) * 4, maxSplatSize));
-            console.log( basisVector1, basisVector2);
+            console.log("basis", basisVector1, basisVector2);
 
             this.basisVector1UniformBufferUpdate = createGPUBuffer(device, new Float32Array([basisVector1[0], basisVector1[1]]), GPUBufferUsage.COPY_SRC);
 

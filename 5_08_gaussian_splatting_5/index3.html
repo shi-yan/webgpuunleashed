@@ -125,8 +125,6 @@
     
     @binding(0) @group(1) var<uniform> modelView: mat4x4<f32>;
     @binding(1) @group(1) var<uniform> projection: mat4x4<f32>;
-    @binding(2) @group(1) var<uniform> screen: vec2<f32>;
-    
 
     @compute @workgroup_size(256)
     fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>,
@@ -149,31 +147,11 @@
                 covarianceSecond.y,
                 covarianceSecond.z);
 
-            var modelView3x3:mat3x3<f32> = mat3x3<f32>(modelView[0].xyz, modelView[1].xyz, modelView[2].xyz);
+            var m:mat4x4<f32> =  projection * modelView;
 
-            var cameraFocalLengthX:f32 = projection[0][0] *
-            screen.x * 0.45;
-            var cameraFocalLengthY:f32 = projection[1][1] *
-            screen.y * 0.45;
-
-            var center:vec4<f32> = vec4(centroid[gid], 1.0);
-
-            var viewCenter:vec4<f32> =   modelView * center;
-            var s:f32 = 1.0 / (viewCenter.z * viewCenter.z);
-
-            var J = mat3x3<f32>(
-                cameraFocalLengthX / viewCenter.z, 0.0, -(cameraFocalLengthX * viewCenter.x) * s,
-                0.0, cameraFocalLengthY / viewCenter.z, -(cameraFocalLengthY * viewCenter.y) * s,
-                0.0, 0.0, 0.0
-            );
-
-
-            var T:mat3x3<f32> =  modelView3x3 * J ;
-
-            var T_t:mat3x3<f32> = transpose(T);
-
+            var m_t:mat4x4<f32> = transpose(m);
         
-            var new_c:mat3x3<f32> =  T_t * covarianceMatrix * T;
+            var new_c:mat4x4<f32> =  m * covarianceMatrix * m_t;
             
                 var cov2Dv:vec3<f32> = vec3<f32>(new_c[0][0] , new_c[0][1], new_c[1][1]);
 
@@ -192,15 +170,13 @@
                 const maxSplatSize:f32 = 1024.0;
                 var eigenVector1:vec2<f32> = normalize(vec2<f32>(b, eigenValue1 - a));
                 var eigenVector2:vec2<f32> = vec2<f32>(eigenVector1.y, -eigenVector1.x);
-                //var scale1:f32 = min(sqrt( eigenValue1)*4.0, maxSplatSize);
-               // var scale2:f32 = min(sqrt( eigenValue2)*4.0, maxSplatSize);
-
-                var basisVector1:vec2<f32> = eigenVector1 * min(sqrt(2.0 * eigenValue1), maxSplatSize);
-                var basisVector2:vec2<f32> = eigenVector2 * min(sqrt(2.0 * eigenValue2), maxSplatSize);
-
-                var dis:vec4<f32> = projection * modelView * center;
+                var scale1:f32 = min(sqrt( eigenValue1)*4.0, maxSplatSize);
+                var scale2:f32 = min(sqrt( eigenValue2)*4.0, maxSplatSize);
+    
+                var center:vec4<f32> = vec4(centroid[gid], 1.0);
+                var dis:vec4<f32> = m * center;
                 distance[gid] = u32(dis.z / dis.w * f32(0xFFFFFFFF >> 8));     
-                basis[gid] = vec4<f32>(basisVector1, basisVector2);
+                basis[gid] = vec4<f32>(eigenVector1.x, eigenVector1.y, scale1, scale2);
           }
           else {
             distance[gid] = 0xFFFFFFFF;
@@ -578,12 +554,12 @@
 
            var pos:vec4<f32> = projection * modelView * vec4<f32>(inCentroid[inId],1.0);
     
-          //  var adjust = normalize( inBasis[inId].xy * vec2<f32>(screen.x/screen.y, 1.0));
-           // var basis2 = normalize( vec2<f32>(adjust.y, -adjust.x) * vec2<f32>(screen.y/screen.x,1.0));
+            var adjust = normalize( inBasis[inId].xy * vec2<f32>(screen.x/screen.y, 1.0));
+            var basis2 = normalize( vec2<f32>(adjust.y, -adjust.x) * vec2<f32>(screen.y/screen.x,1.0));
             out.coord = inPos;
             out.color = inColor[inId];
-            const scale = 0.01;
-            out.clip_position = vec4<f32>( pos.xy/pos.w + (inPos.x * inBasis[inId].xy*scale + inPos.y * inBasis[inId].zw *scale) , pos.z/pos.w, 1)  ;
+            const scale = 2.9;
+            out.clip_position = vec4<f32>( pos.xy/pos.w + (inPos.x * inBasis[inId].xy * inBasis[inId].z * scale + inPos.y * basis2 *  inBasis[inId].w  * scale) , pos.z/pos.w, 1)  ;
     
          return out;
     }
@@ -828,11 +804,7 @@
                         binding: 1,
                         visibility: GPUShaderStage.COMPUTE,
                         buffer: {}
-                    } ,{
-                        binding: 2,
-                        visibility: GPUShaderStage.COMPUTE,
-                        buffer: {}
-                    },
+                    }
                 ]
             });
 
@@ -895,11 +867,6 @@
                         binding: 1,
                         resource: {
                             buffer: projectionMatrixUniformBuffer
-                        }
-                    }, {
-                        binding: 2,
-                        resource: {
-                            buffer: screenUniformBuffer
                         }
                     },
                 ]
@@ -1605,7 +1572,7 @@
 
         let projectionMatrixUniformBuffer = createGPUBuffer(device, projectionMatrix, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
-        const screenUniformBuffer = createGPUBuffer(device, new Float32Array([canvas.width, canvas.height]), GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+        let screenUniformBuffer = createGPUBuffer(device, new Float32Array([canvas.width, canvas.height]), GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
         let splat = new Splat();
         await splat.setup(device, projectionMatrix, modelViewMatrix, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, screenUniformBuffer);
