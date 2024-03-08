@@ -589,8 +589,8 @@
         if (A < -4.0) {discard;}
         A = exp(A) * in.color.a;
       //  gl_FragColor = vec4(color.rgb, A);
-       // var a = 1.0/(0.25 * sqrt(2.0*3.14))*exp(-0.5 * (in.coord.x*in.coord.x+in.coord.y*in.coord.y)/(0.25*0.25));
-        return vec4<f32>(in.color.rgb ,A);
+        var a = 1.0/(0.25 * sqrt(2.0*3.14))*exp(-0.5 * (in.coord.x*in.coord.x+in.coord.y*in.coord.y)/(0.25*0.25));
+        return vec4<f32>(in.color.rgb ,a * in.color.a);
     }
 </script>
 
