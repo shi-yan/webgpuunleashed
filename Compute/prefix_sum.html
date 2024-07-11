@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <!-- Primary Meta Tags -->
+    <title>: WebGPU Unleashed: A Practical Tutorial</title>
+    <meta name="title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta name="description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://shi-yan.github.io/WebGPUUnleashed/Compute/prefix_sum.html" />
+    <meta property="og:title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta property="og:description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+    <meta property="og:image" content="/WebGPUUnleashed/meta.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://shi-yan.github.io/WebGPUUnleashed/Compute/prefix_sum.html" />
+    <meta property="twitter:title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta property="twitter:description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+    <meta property="twitter:image" content="/WebGPUUnleashed/meta.png" />
+
+    <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+
+
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/default-dark.min.css"
+        integrity="sha512-EF2rc4QyBiRAGUMVm+EjFPBbdVGaN/pwZhtuKyrC/dM+hcwTxI5BsEDUkrMRI77z4VlDAt/qVopePXB5+ZZ8Gw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="
+        https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js
+        "></script>
+    <link href="
+        https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css
+        " rel="stylesheet" />
+
+    <script>
+        function fold(e) {
+            const sub = e.currentTarget.parentElement.getElementsByTagName("ul")[0];
+            console.log("sub", e.currentTarget, sub);
+            if (sub.style.display === "block") {
+                sub.style.display = "none";
+            } else {
+                sub.style.display = "block";
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <nav role="navigation">
+        <div id="menuToggle">
+            <input type="checkbox" />
+            <span></span>
+            <span></span>
+            <span></span>
+            <ul id="menu">
+                <!--<li><a href="#">Home</a></li>
+                <li><a href="#">About</a></li>
+                <li><a id="test" href="#" onclick="fold(event)">Info</a>
+                    <ul class="sub-menu">
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                    </ul>
+                </li>
+                <li><a href="#">Contact</a></li>
+                <li><a href="https://erikterwan.com/" target="_blank">Show me more</a></li>-->
+                <li><a href="#" onclick="fold(event)">Intro</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Introduction/the_gpu_driver.html">The GPU Driver</a></li>
+                        <li><a href="/WebGPUUnleashed/Introduction/the_gpu_pipeline.html">The GPU Pipeline</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Basics</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Basics/creating_an_empty_canvas.html">Creating an Empty Canvas</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_triangle.html">Drawing a Triangle</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_triangle_with_defined_vertices.html">Drawing a Triangle with Defined Vertices</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/applying_hardcoded_vertex_colors.html">Applying Hardcoded Vertex Colors</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/using_different_vertex_colors.html">Using Different Vertex Colors</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_colored_triangle_with_a_single_buffer.html">Drawing a Colored Triangle with a Single Buffer</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/understanding_uniforms.html">Understanding Uniforms</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/working_with_textures.html">Working with Textures</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/utilizing_transformation_matrices.html">Utilizing Transformation Matrices</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/implementing_cameras.html">Implementing Cameras</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/triangle_strips.html">Triangle Strips</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/front_and_back_face_culling.html">Front and Back Face Culling</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/depth_testing.html">Depth Testing</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/index_buffers.html">Index Buffers</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/loading_3d_models.html">Loading 3D Models</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/understanding_normals.html">Understanding Normals</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/lighting.html">Lighting</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/multi_sample_anti_aliasing.html">Multi-Sample Anti-Aliasing</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/mipmapping_and_anisotropic_filtering.html">Mipmapping and Anisotropic Filtering</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">2D Techniques</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/rendering_to_textures.html">Rendering to Textures</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/orthogonal_cameras.html">Orthogonal Cameras</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/implementing_gaussian_blur.html">Implementing Gaussian Blur</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/video_rendering.html">Video Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/text_rendering.html">Text Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/billboarding.html">Billboarding</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/implementing_fake_3d.html">Implementing Fake 3D</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Control</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Control/canvas_resizing.html">Canvas Resizing</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/arcball_camera_control.html">Arcball Camera Control</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/object_picking.html">Object Picking</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/saving_images_and_videos.html">Saving Images and Videos</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/using_web_workers.html">Using Web Workers</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/error_handling_and_limits.html">Error Handling and Limits</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Compute</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Compute/prefix_sum.html">Prefix Sum</a></li>
+                        <li><a href="/WebGPUUnleashed/Compute/radix_sort.html">Radix Sort</a></li>
+                        <li><a href="/WebGPUUnleashed/Compute/reaction_diffusion.html">Reaction Diffusion</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Advanced</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Advanced/stencil_buffer.html">Stencil Buffer</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/shadow_mapping.html">Shadow Mapping</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/toon_shading.html">Toon Shading</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/equirectangular_rendering.html">Equirectangular Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/mega_texture.html">Mega Texture</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/transparency_with_depth_peeling.html">Transparency with Depth Peeling</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/skeleton_animation.html">Skeleton Animation</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/normal_mapping_and_bump_mapping.html">Normal Mapping and Bump Mapping</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/gaussian_splatting.html">Gaussian Splatting</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div id="article-container">
+        <article>
+            <h2 >4.0 Prefix Sum</h2><p>The first tutorial will cover calculating the prefix sum (also known as scan), a fundamental component of numerous parallel algorithms. Subsequently, the second tutorial will leverage the prefix sum technique for sorting, another critical algorithmic operation. Finally, the third tutorial will showcase the integration of a compute shader for simulation alongside a rendering shader to craft an animated demonstration called "reaction diffusion".</p><p>Through these tutorials, we aim to illustrate the versatility and practicality of compute shaders, elucidating their significance in enhancing both computational and graphical capabilities within the realm of WebGPU.</p><p>The prefix sum algorithm, when applied to an array of integers, generates a new array of the same length. Each element in this new array represents the summation of all elements preceding its position in the original array. For instance, considering the array [1, 2, 3], its prefix sum would be [0, 1, 3].</p><p>Prefix sums come in two variations: exclusive and inclusive. In exclusive prefix sums, each entry represents the summation of all elements before its position, excluding the element itself. On the other hand, inclusive prefix sums incorporate the value at the current position within the summation. In this tutorial, our focus will be on implementing the exclusive prefix sum algorithm.</p><p>Implementing prefix sum on a CPU using a for loop is straightforward. However, achieving efficiency in a parallel manner on the GPU presents a challenge. This challenge arises from the inherently sequential nature of the prefix sum operation. To calculate the value of an entry, it necessitates examining all its preceding entries, which inherently seems like a sequential operation. On the GPU, leveraging the massively parallel architecture for such an operation isn’t immediately intuitive due to the apparent dependency of each element's calculation on its predecessors.</p><p>Before delving into the intricacies of the prefix sum algorithm, let's begin by understanding the general structure of setting up a compute shader and juxtapose it with a rendering shader. Initially examining the shader code, the differences may not seem extensive, but distinct nuances exist.</p><p>Firstly, our reliance shifts towards the storage buffer to input data, a facet less explored in rendering tasks. Utilizing a storage buffer over uniforms offers notable advantages. Notably, while uniforms aren't suitable for handling large data, storage buffers excel in this regard. While uniform buffer bindings are constrained to sizes up to 64KB (maxUniformBufferBindingSize), a storage buffer binding in WebGPU boasts a capacity of at least 128MB (maxStorageBufferBindingSize). Furthermore, storage buffers can be writable, proving particularly useful for reading back substantial data or preparing data for subsequent stages.</p><p>Additionally, our main function now bears the decoration @compute @workgroup_size(256). This introduces the concept of a "workgroup," which is unique to compute shaders. When invoking a compute shader, specifying the number of groups to invoke becomes necessary. Each group comprises multiple threads, and the exact number of threads is defined by the @workgroup_size decoration. For instance, specifying 256 threads per group, the maximum allowed (maxComputeInvocationsPerWorkgroup), is exemplified here.</p><p>Despite sharing the term "threads," GPU threads differ from their CPU counterparts. In a CPU program, multiple threads can execute different programs concurrently. However, for GPU threads within the same workgroup, uniformity is mandatory—they must execute the same program.</p><p>The thread count and group size can be specified in up to three dimensions for convenience. The choice of dimensionality hinges on the nature of the problem. For instance, in image processing scenarios, employing 2D workgroups and threads might be most intuitive, allowing parallel computation for each pixel. Conversely, for tasks like the prefix sum, operating on a 1D array, utilizing 1D threads and groups proves to be the optimal choice.</p><p>The dimensionality of both groups and threads serves a purely convenience-driven purpose. Irrespective of the chosen dimensionality, their fundamental nature remains identical. In essence, a compute shader invocation follows a two-tier structure: the top tier comprises groups, and within each group reside individual threads. While the group count can be specified at runtime, the number of threads within each group remains static.</p><p>A key distinction between compute shaders and rendering shaders is the absence of typical vertex attributes for inputs in compute shaders. However, compute shaders introduce specific built-ins that provide information to identify threads and groups. While compute shaders primarily rely on data input via storage buffers, these built-in IDs can effectively serve as indices to access data within these buffers.</p><p>Let's explore the concept of thread IDs and group IDs, supplied to a compute shader via built-in parameters of the main function. Each thread within a workgroup possesses an ID. If, for example, 256 threads are allocated within each group, the thread IDs range from 0 to 255. Importantly, launching multiple groups does not alter the range of thread IDs within each group; they continue to span from 0 to 255. These are referred to as the local_invocation_id. Additionally, we have the workgroup_id, which, in the scenario of launching three groups, spans from 0 to 2. To acquire a thread's ID among all threads in all launched workgroups, or the global ID, a simple formula applies: workgroup_id * workgroup_size + local_invocation_id. For convenience, WebGPU furnishes another built-in parameter called global_invocation_id.</p><p>It's crucial to note that both groups and threads can be organized in various dimensional configurations. Consequently, instead of a single number serving as an ID, an ID can manifest as a vector with x, y, and z components. How, then, do we compute a 2D or 3D global_invocation_id? We simply view groups and threads as matrices. Each group represents an entry within this matrix, while its threads form another matrix within that group.</p><p>Now that we've introduced the concept of workgroups, let's explore a new allocation type: var<workgroup>. Buffers with this allocation type are exclusively accessible by threads within the same workgroup. Leveraging a workgroup allocation can significantly enhance shader program efficiency compared to storage buffers. However, there's an aspect to consider: bank conflict, a challenge that can be managed through optimization strategies, which we'll discuss in detail later.</p><p>The key aspect to note is that a workgroup buffer is confined to a specific group, restricting access for threads outside their respective groups. Usually, a workgroup buffer serves as a swift, localized storage solution—primarily designed for temporary data storage.</p><p>Let's explore setting up a compute shader in JavaScript. The initial step involves configuring the bind group layouts. Given the frequent use of storage buffers in compute shaders, when setting up bind group layouts for storage buffers, it's crucial to designate the buffer type as the storage type—specifically 'storage' for read and write operations and 'read-only-storage' for read-only access. Additionally, for buffer visibility, the setting now shifts to GPUShaderStage.COMPUTE.</p><p>Using storage buffers introduces a caveat, especially with certain data types like 'array<vec3<f32>>,' which carry specific memory alignment requirements. Although this might not impact the examples covered in this chapter, neglecting alignment can lead to bugs and issues.</p><p>Consider 'array<vec3<f32>>' as an example, where the memory alignment requirement stands at 16 bytes. This necessitates padding each array element to meet this requirement. Given that 3 32-bit floats account for only 12 bytes, an additional 4 bytes are needed. For instance, an array such as [[1,2,3],[4,5,6]] intended for use in a compute shader as an 'array<vec3<f32>>' would require preparation in the format [1,2,3,0,4,5,6,0].</p><p>It's crucial to note that the memory alignment requirement applies solely to the host-side memory preparation. Within the shader code, this additional padding remains transparent to the programmer, such that an 'array<vec3<f32>>' appears densely packed despite the padding introduced for alignment.</p><p>Moving forward, our next step involves creating GPU buffers to contain both input and output data. The process mirrors that of creating a uniform data buffer, with the primary distinction being the GPUBufferUsage, set as GPUBufferUsage.STORAGE to designate its use for storage buffer. Subsequently, creating bind groups remains analogous to those in a rendering pipeline.</p><p>Following that, configuring the compute pipeline bears resemblance to previous procedures. The notable difference lies in calling device.createComputePipeline and specifying a compute entry within its input. This entry delineates the entry point and the associated shader module for the compute pipeline.</p><p>The final step involves invoking the compute shader. Firstly, we initiate a compute pass by calling commandEncoder.beginComputePass. Once the compute pass is initiated, we set the pipeline and bind group as we did previously. However, instead of using functions like draw or drawIndexed, we utilize dispatchWorkgroups, specifying the desired group count. For instance, dispatchWorkgroups(2) launches 2 groups. It's important to remember that each group encompasses multiple threads. For example, configuring a group with 256 threads and launching 2 groups means deploying a total of 512 threads.</p><p>The group stands as the minimal unit for launching a compute shader. But what if the required number of threads isn't a multiple of 256? For instance, needing 600 threads would still entail launching 2 groups, resulting in extra threads. In the compute shader, it's crucial to inspect the global_invocation_id to identify these surplus threads, effectively managing them by assigning no operations ('doing nothing').</p><p>Having discussed how to configure a program involving compute shaders, let's now examine the prefix sum algorithm. Writing a naive prefix sum implementation isn't challenging — assigning each thread the task of computing the summation of all elements up to its global_invocation_id seems straightforward. However, this approach leads to redundant calculations, compromising efficiency.</p><p>An optimal parallel algorithm strives for 'work efficiency,' ensuring it doesn't perform excess work compared to a serialized version. Yet, if each thread is tasked with incorporating the summation computed by its preceding thread, it essentially necessitates every thread to wait for its predecessors to conclude their calculations. This sequentializes the entire process, negating the parallel benefits we seek to leverage.</p><p>Now, let's dive into our work-efficient parallel prefix sum. I'll begin by illustrating the concept using a tree structure. It's worth noting that I refer to this as an illustration, because in the actual code, we don't explicitly create a tree data structure. Constructing complex data structures involving pointers is challenging within shader code. Instead, the algorithm cleverly sidesteps this by exclusively using arrays. Yet, to grasp the underlying concept, envisioning a tree proves helpful.</p><p>The fundamental principle behind converting serialized algorithms into parallel ones involves breaking down the problem into smaller segments. Each thread then handles one of these segments, aggregating the results to form a smaller-sized problem. This process iterates until arriving at the final global result. Alternatively, another approach involves starting with a small problem and generating more results to create a larger set of independent problems. Parallel threads are then assigned to solve these, generating an even larger set of independent problems. Our prefix sum algorithm adeptly harnesses both of these techniques.</p><p>The algorithm's initial step involves a bottom-up process, constructing a binary tree where each node's value represents the summation of its subtrees. This aligns with the first approach mentioned earlier, where we commence by dividing the input array of size n into n/2 two-element arrays, aiming to compute the summation of each pair independently. This independent computation generates n/2 new values, effectively halving the problem size. This iterative process continues until reaching a single sum, representing the summation of all elements within the input array.</p><p>To demonstrate this process with a concrete example, consider an input array [1,2,3,4]. Initially, we divide this array into two two-element arrays: [1,2] and [3,4]. Simultaneously, we compute their summations in parallel, resulting in a new smaller array [3,7]. Continuing this process once more, we arrive at the final answer: 10.</p><p>Having established the binary tree, the second step involves a top-down approach, moving from the root to the leaf nodes. We initialize the root node with zero. Then, progressing from the root towards the leaves, we apply the following operations in a layered manner: Each node computes the summation of its own value and its left child's value, assigning this result to the right child. Subsequently, the left child's value is updated with the current node's value. This process can be demonstrated using the illustration below.</p><p>Understanding the intuition behind this process might pose a challenge. Personally, I perceive it as a depth-first traversal of the binary tree, where, before visiting each leaf node, we've computed its prefix sum. The process described above primarily serves as an optimization for a straightforward and efficient GPU implementation. Implementing an actual binary tree and performing tree traversal on the GPU presents significant challenges due to complexities involved.</p><p>What we've described can be executed within a single group. Considering the largest thread size for a single group as 256, a thread's ability to calculate the summation of two values enables us to process an array as large as 512 within a single group. However, when the input array surpasses 512 elements, we partition it into multiple 512-sized chunks, padding extra entries with zeros if needed. Multiple groups are then assigned to independently conduct the group-wise prefix sum in one pass, writing the total summation of each group into an intermediary output array.</p><p>In a subsequent pass, we perform another prefix sum of this intermediary output, assuming that the number of sums from the first step won't exceed 512. This assumption restricts the largest input array size to 512^2. To handle even larger arrays, we can continue this hierarchical scheme multiple times.</p><p>I'd like to clarify what I mean by a 'pass.' In the context of our implementation, a pass typically represents an isolated logic segment executed by a single compute shader through a dispatchWorkgroups function call. Consequently, the aforementioned two passes necessitate the creation of two separate shader codes and the encoding of two distinct compute shader passes.</p><p>Now, why can't we treat multiple groups, say 2 groups, as a single entity and execute all calculations within a single pass using a single shader code? The answer lies in the synchronization of groups. To utilize the summation derived by a group and seamlessly transition it to behave akin to a thread for the second prefix sum process, each group must wait until all other groups have finished the initial step. However, there's no mechanism for groups to synchronize with each other; only threads within the same group possess this capability, as we'll discuss shortly.</p><p>Ensuring all groups finish their work in the initial process requires enclosing it within a dedicated pass. By the completion of this pass, we can be certain that all groups have concluded their tasks. Subsequently, we proceed with the second pass.</p><p>After deriving the prefix sum of sums, we initiate the third pass. Each group possesses access to the prefix sum of sums and can identify its group ID to access the sum of groups preceding it. When computing the final answer, each group simply augments the values by this sum.</p><p>Let's examine the actual code for pass 1:</p><pre><code>@binding(0) @group(0) var&lt;storage, read&gt; input :array&lt;f32&gt;;
+@binding(1) @group(0) var&lt;storage, read_write&gt; output :array&lt;f32&gt;;
+@binding(2) @group(0) var&lt;storage, read_write&gt; sums: array&lt;f32&gt;;
+const n:u32 = 512;
+...
+var&lt;workgroup&gt; temp: array&lt;f32,512&gt;; //workgroup array must have a fixed size;</code></pre><p>Initially, we set up the input and output arrays. The output array saves the intermediate output by this group during the first pass, while the 'sums' houses the sums derived by all groups. 'n' represents the maximum array size this group can process.</p><p>Additionally, we introduce 'temp' as a temporary buffer used for calculations. It's defined as a workgroup allocation, which means it's confined within each group without global accessibility by other groups. Leveraging workgroup allocations enhances performance, making it advisable to use them wherever feasible to maximize performance."</p><p>Moving on to the main function, it receives the IDs specific to this group:</p><pre><code>@compute @workgroup_size(256)
+fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3&lt;u32&gt;,
+        @builtin(local_invocation_id) LocalInvocationID: vec3&lt;u32&gt;,
+        @builtin(workgroup_id) WorkgroupID: vec3&lt;u32&gt;) {
+    var thid:u32 = LocalInvocationID.x;
+    var globalThid:u32 = GlobalInvocationID.x;
+    if (thid &lt; (n&gt;&gt;1)){
+        temp[2*thid] = input[2*globalThid]; // load input into shared memory 
+        temp[2*thid+1] = input[2*globalThid+1];
+    }
+    ...</code></pre><p>The 'workgroup_size' is set to 256, the maximum thread size we can request. Different ID types serve distinct purposes, and here, 'thid' represents the local thread ID, ranging from 0 to 255. On the other hand, 'globalThid' denotes the global ID.</p><p>Initially, the primary task involves loading input data into the 'temp' array. Each thread loads 2 consecutive values. Although it might seem unnecessary to check the boundary condition here since 'thid' is guaranteed to be smaller than (n >> 1) = 256, it's a good practice to implement boundary checks in shaders. Accessing indices out of range results in undefined behavior. Some implementations perform a clamp on accessing indices, leading to unexpected behavior, such as the last entry being consistently incorrect. In contrast, other implementations might treat out-of-range accesses as void operations. To mitigate these uncertainties or potential issues like incorrect values, implementing boundary checks before array access is advisable.</p><p>Next, we proceed with the bottom-up process:</p><pre><code>workgroupBarrier();
+var offset:u32 = 1;
+
+for (var d:u32 = n&gt;&gt;1; d &gt; 0; d &gt;&gt;= 1)
+{ 
+    if (thid &lt; d)    
+    {
+        var ai:u32 = offset*(2*thid+1)-1;     
+        var bi:u32 = offset*(2*thid+2)-1;  
+        temp[bi] += temp[ai];    
+    }    
+    offset *= 2; 
+
+    workgroupBarrier();   
+}</code></pre><p>In this process, we loop log(512) times to cover the log(512) levels. At each level, a single thread is assigned to execute one summation of two entries in place. The resulting sum is then written to the second entry. An 'offset' variable indicates the interval between two entries at each level. Initially set to 1, this interval doubles as we halve the size of the problem in each layer.</p><p>An essential function to comprehend is workgroupBarrier(). This invokes a memory barrier that halts all threads at a specific point. Termed a workgroup barrier, it ensures that all previous writes to workgroup allocations (such as the temporary buffer) have completed before proceeding with reads. This precautionary step mitigates issues like read-before-write bugs.</p><p>Distinct from workgroup barriers, there are other memory barriers, such as storage barriers. While a storage buffer can be accessed by multiple groups (unlike a workgroup buffer), a storage barrier lacks the capability to synchronize these groups. For group synchronization, we rely on passes.</p><p>To conceptualize barriers, consider the analogy of a semaphore, a synchronization tool often studied in computer science courses. Though semaphores may not directly relate to GPU memory barriers, they aid in forming a mental model for understanding barriers.</p><p>Semaphores are employed to manage limited resources, analogous to a parking lot with finite spaces. A semaphore includes a counter indicating available resources. Upon resource utilization, a semaphore acquire operation decreases the counter. When the counter hits zero, signifying resource exhaustion, a thread attempting semaphore acquire halts until other threads execute semaphore release to increment the counter.</p><p>Similarly, envisioning a barrier, it also operates around a counter initialized to zero. When a thread triggers the barrier function, it effectively increments the counter. The barrier function only unblocks threads when the counter equals the total number of threads.</p><p>An essential aspect to bear in mind when dealing with synchronization-related operations is the crucial uniformity requirement. As specified in the spec: 'A collective operation necessitates coordination among concurrently running invocations on the GPU.' For an operation to execute correctly and consistently across different invocations, it must occur concurrently, adhering to uniform control flow. Collective operations encompass more than just barriers; they also encompass texture sampling functions. They too have the uniformity requirement, as we'll explain in subsequent chapters.</p><p>Conversely, encountering non-uniform control flow leads to incorrect or non-portable behavior. This occurs when only a subset of invocations executes the operation or when they execute it non-concurrently due to non-uniform control dependencies. Such dependencies arise from control flow statements relying on non-uniform values.</p><p>In simpler terms, regardless of the inputs received by shader code, a collective operation must be executed uniformly by all threads. For instance, the code snippet below is invalid and won't compile because only threads with an ID < 3 trigger workgroupBarrier(), while others won't. This conditional execution based on thread inputs violates uniformity as the operation must be executed by all threads irrespective of their inputs.</p><pre><code>if (LocalInvocationID.x &lt; 3) {
+    workgroupBarrier();
+}</code></pre><p>Our conceptualization of a barrier with an internal thread counter makes it clear why non-uniform execution can cause issues. If only a subset of threads executes the barrier, the internal counter won't reach the total thread count, leading to indefinite blocking of threads that call it. Fortunately, this isn't a runtime scenario we'd encounter; the compiler will catch synchronization functions that violate the uniformity rule.</p><p>The following code segments involve dumping the sum to the 'sum' array and resetting the sum in the 'temp' array to zero, priming it for the top-down process. As this operation is needed only once for the entire group, we designate the thread with ID zero to handle it.</p><pre><code>if (thid == 0) 
+{ 
+    sums[WorkgroupID.x] = temp[bank_conflict_free_idx(n - 1)];
+    temp[bank_conflict_free_idx(n - 1)] = 0;
+}
+workgroupBarrier();</code></pre><p>The final step entails the top-down process and final output writing:</p><pre><code>for (var d:u32 = 1; d &lt; n; d *= 2) // traverse down tree &amp; build scan 
+{      
+    offset &gt;&gt;= 1;      
+    if (thid &lt; d)      
+    { 
+        var ai:u32 = offset*(2*thid+1)-1;     
+        var bi:u32 = offset*(2*thid+2)-1; 
+        var t:f32 = temp[bank_conflict_free_idx(ai)]; 
+        temp[bank_conflict_free_idx(ai)] = temp[bank_conflict_free_idx(bi)]; 
+        temp[bank_conflict_free_idx(bi)] += t;       
+    } 
+    workgroupBarrier();      
+}
+            
+if (thid &lt; (n&gt;&gt;1)){
+    output[2*globalThid] = temp[bank_conflict_free_idx(2*thid)]; 
+    output[2*globalThid+1] = temp[bank_conflict_free_idx(2*thid+1)]; 
+}</code></pre><p>This concludes the first pass. By the end of this phase, we generate an output array containing the prefix sums of all groups, along with a sum array containing the total sum of all groups.</p><p>The second pass, akin to the first, is simpler as it only computes the prefix sum of sums without outputting the total sum. Details of this stage have been omitted.</p><p>The third pass is a straightforward process of augmenting each group's prefix sum with the sum of all preceding groups' sums.</p><pre><code>var thid:u32 = LocalInvocationID.x;
+var globalThid:u32 = GlobalInvocationID.x;
+if (thid &lt; (n&gt;&gt;1)){
+    output[2*globalThid]= output[2*globalThid] + sums[WorkgroupID.x]; // load input into shared memory 
+    output[2*globalThid+1] = output[2*globalThid+1] + sums[WorkgroupID.x];
+}</code></pre><p>Now, let's explore the JavaScript code to observe the invocation of these three passes. For both the first and third passes, we initiate a number of workgroups equal to chunkCount. Calculating chunkCount involves utilizing the expression Math.ceil(arraySize / 512);, ensuring it represents the smallest multiple of 512 capable of accommodating the problem size. Conversely, the second pass is executed with just a single group, consequently limiting the maximum problem size to 512^2.</p><pre><code>const passEncoder = commandEncoder.beginComputePass(computePassDescriptor);
+passEncoder.setPipeline(pass1ComputePipeline);
+passEncoder.setBindGroup(0, pass1UniformBindGroup);
+passEncoder.dispatchWorkgroups(chunkCount);
+passEncoder.end();
+
+const pass2Encoder = commandEncoder.beginComputePass(computePassDescriptor);
+pass2Encoder.setPipeline(pass2ComputePipeline);
+pass2Encoder.setBindGroup(0, pass2UniformBindGroup);
+pass2Encoder.dispatchWorkgroups(1);
+pass2Encoder.end();
+
+const pass3Encoder = commandEncoder.beginComputePass(computePassDescriptor);
+pass3Encoder.setPipeline(pass3ComputePipeline);
+pass3Encoder.setBindGroup(0, pass3UniformBindGroup);
+pass3Encoder.dispatchWorkgroups(chunkCount);
+pass3Encoder.end();</code></pre><p>Before concluding this tutorial, it's important to address benchmarking for our GPU code. Since GPU code executes on a separate device, assessing GPU execution solely on the CPU side may not yield accurate results. Fortunately, WebGPU offers an extension that facilitates performance measurement.</p><p>The extension is called 'timestamp-query,' an experimental feature in Chrome that requires special enabling via the <code>--enable-dawn-features=allow_unsafe_apis</code> command line option:</p><pre><code class="language-bash code-block">/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --enable-dawn-features=allow_unsafe_apis</code></pre><p>To request this feature from the adapter, follow this JavaScript snippet:</p><pre><code class="language-javascript code-block">const adapter = await navigator.gpu.requestAdapter();
+
+const hasTimestampQuery = adapter.features.has('timestamp-query');
+
+let device = await adapter.requestDevice({
+    requiredFeatures: hasTimestampQuery ? ["timestamp-query"] : [],
+});</code></pre><p>For better cross-browser compatibility, consider safeguarding benchmark-related code within the hasTimestampQuery condition. This ensures that in cases where the browser flag isn't provided or the extension isn't supported, it won't cause any runtime errors.</p><p>The 'timestamp-query' functionality operates by allowing you to request a temporary storage termed a query set. During command buffer encoding, you can instruct the GPU to record the current timestamp into this query set. Once the timing process is complete, you can transfer the query set to a buffer. After the command buffer finishes, the timestamps can be accessed by copying the buffer to the host. As the timing occurs entirely on the GPU, it ensures accuracy.</p><pre><code>const capacity = 3;//Max number of timestamps we can store
+const querySet = hasTimestampQuery ? device.createQuerySet({
+    type: "timestamp",
+    count: capacity,
+}) : null;
+
+const queryBuffer = hasTimestampQuery ? device.createBuffer({
+    size: 8 * capacity,
+    usage: GPUBufferUsage.QUERY_RESOLVE
+        | GPUBufferUsage.STORAGE
+        | GPUBufferUsage.COPY_SRC
+        | GPUBufferUsage.COPY_DST,
+}) : null;</code></pre><p>In this example, the 'capacity' is set to 3, allowing the storage of up to 3 timestamps in the buffer. Given that each timestamp is a 64-bit integer, the 'queryBuffer' size is requested to be 8 times the 'capacity' to accommodate these integers.</p><p>Here is how we perform timing:</p><pre><code class="language-javascript code-block">if (hasTimestampQuery) {
+    commandEncoder.writeTimestamp(querySet, 0);// Initial timestamp
+}
+
+... // perform the compute passes
+
+if (hasTimestampQuery) {
+    commandEncoder.writeTimestamp(querySet, 1);// Second timestamp
+    commandEncoder.resolveQuerySet(
+        querySet,
+        0,// index of first query to resolve 
+        capacity,//number of queries to resolve
+        queryBuffer,
+    0);// destination offset
+}</code></pre><p>When we wish to extract the data from the query set, the resolveQuerySet function is called to achieve this. After the command buffer completes its execution, we proceed to retrieve the buffer's data, following a similar process to what we previously employed for handling different buffer types:</p><pre><code class="language-javascript code-block">if (hasTimestampQuery) {
+    const gpuReadBuffer = device.createBuffer({ size: queryBuffer.size, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
+    const copyEncoder = device.createCommandEncoder();
+    copyEncoder.copyBufferToBuffer(queryBuffer, 0, gpuReadBuffer, 0, queryBuffer.size);
+    const copyCommands = copyEncoder.finish();
+    device.queue.submit([copyCommands]);
+    await gpuReadBuffer.mapAsync(GPUMapMode.READ);
+    let result = new BigInt64Array(gpuReadBuffer.getMappedRange());
+    console.log("run time: ", (result[1] - result[0]));
+    gpuReadBuffer.unmap();
+    gpuReadBuffer.destroy();
+}</code></pre><p>Notice that due to the timestamp being of type int64, we employ buffer mapping to a BigInt64Array, allowing us to measure time in nanoseconds.</p><p>Another crucial consideration is bank conflict within the workgroup memory. Unlike other memory types, workgroup memory is organized into banks. If multiple threads attempt to access the same bank simultaneously, their execution becomes serialized. In other words, one thread must wait for another to finish accessing the bank before it can proceed. This phenomenon is known as bank conflict, a critical aspect that GPU programmers need to optimize for. It's important to note that memory organization is hardware-dependent.</p><p>The information presented here is based on NVIDIA's documentation and is commonly treated as the default configuration. However, when dealing with Apple's silicon, detailed information regarding memory organization may be lacking. In such cases, optimization strategies need to be derived from benchmarks and experiments rather than relying on explicit documentation.</p><p>For most hardware, continuous workgroup allocation advances one bank every 32 bits. As an example, if we have an array<u32, 4>, the allocation will span across 4 banks. Understanding and addressing bank conflict is essential for maximizing the efficiency of GPU programming.</p>
+        </article>
+    </div>
+    <!-- The Modal -->
+    <div id="img-modal" class="modal">
+        <!-- The Close Button -->
+        <span class="close" id="img-close">&times;</span>
+        <!-- Modal Content (The Image) -->
+        <img class="modal-content" id="img01">
+
+        <!-- Modal Caption (Image Text) -->
+        <div id="caption"></div>
+    </div>
+    <script>
+        function openImage(img) {
+            let modal = document.getElementById("img-modal");
+            let modalImg = document.getElementById("img01");
+            modal.style.display = "block";
+            if (img.getAttribute("original_src")) {
+                modalImg.src = img.getAttribute("original_src");
+            } else {
+                modalImg.src = img.src;
+            }
+            let captionText = document.getElementById("caption");
+
+            captionText.innerText = img.alt;
+
+            let sources = JSON.parse(img.getAttribute("sources"));
+
+            for (let i = 0; i < sources.length; ++i) {
+                if (sources.length == 1) {
+                    captionText.innerHTML += "<a href='" + sources[i] + "' target='_blank' class='img-source'>SOURCE</a>";
+                } else {
+                    captionText.innerHTML += "<a href='" + sources[i] + "' target='_blank' class='img-source'>SOURCE " + (i + 1) + "</a>";
+                }
+            }
+        }
+        // Get the <span> element that closes the modal
+        var closeButton = document.getElementById("img-close");
+
+        // When the user clicks on <span> (x), close the modal
+        closeButton.onclick = function () {
+            var modal = document.getElementById("img-modal");
+            modal.style.display = "none";
+        }
+    </script>
+
+<script type="module">
+    const macros = {};
+    const mathElementsBlock = document.getElementsByClassName("math-block");
+    for (let element of mathElementsBlock) {
+        katex.render(element.textContent, element, {
+            throwOnError: false,
+            displayMode: true,
+            macros
+        });
+    }
+
+    const mathElementsInline = document.getElementsByClassName("math-inline");
+    for (let element of mathElementsInline) {
+        katex.render(element.textContent, element, {
+            throwOnError: false,
+            macros
+        });
+    }
+
+    hljs.highlightAll();
+
+</script>
+</body>
+
+</html>

@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <!-- Primary Meta Tags -->
+    <title>: WebGPU Unleashed: A Practical Tutorial</title>
+    <meta name="title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta name="description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://shi-yan.github.io/WebGPUUnleashed/Advanced/toon_shading.html" />
+    <meta property="og:title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta property="og:description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+    <meta property="og:image" content="/WebGPUUnleashed/meta.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://shi-yan.github.io/WebGPUUnleashed/Advanced/toon_shading.html" />
+    <meta property="twitter:title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta property="twitter:description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+    <meta property="twitter:image" content="/WebGPUUnleashed/meta.png" />
+
+    <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+
+
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/default-dark.min.css"
+        integrity="sha512-EF2rc4QyBiRAGUMVm+EjFPBbdVGaN/pwZhtuKyrC/dM+hcwTxI5BsEDUkrMRI77z4VlDAt/qVopePXB5+ZZ8Gw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="
+        https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js
+        "></script>
+    <link href="
+        https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css
+        " rel="stylesheet" />
+
+    <script>
+        function fold(e) {
+            const sub = e.currentTarget.parentElement.getElementsByTagName("ul")[0];
+            console.log("sub", e.currentTarget, sub);
+            if (sub.style.display === "block") {
+                sub.style.display = "none";
+            } else {
+                sub.style.display = "block";
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <nav role="navigation">
+        <div id="menuToggle">
+            <input type="checkbox" />
+            <span></span>
+            <span></span>
+            <span></span>
+            <ul id="menu">
+                <!--<li><a href="#">Home</a></li>
+                <li><a href="#">About</a></li>
+                <li><a id="test" href="#" onclick="fold(event)">Info</a>
+                    <ul class="sub-menu">
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                    </ul>
+                </li>
+                <li><a href="#">Contact</a></li>
+                <li><a href="https://erikterwan.com/" target="_blank">Show me more</a></li>-->
+                <li><a href="#" onclick="fold(event)">Intro</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Introduction/the_gpu_driver.html">The GPU Driver</a></li>
+                        <li><a href="/WebGPUUnleashed/Introduction/the_gpu_pipeline.html">The GPU Pipeline</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Basics</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Basics/creating_an_empty_canvas.html">Creating an Empty Canvas</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_triangle.html">Drawing a Triangle</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_triangle_with_defined_vertices.html">Drawing a Triangle with Defined Vertices</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/applying_hardcoded_vertex_colors.html">Applying Hardcoded Vertex Colors</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/using_different_vertex_colors.html">Using Different Vertex Colors</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_colored_triangle_with_a_single_buffer.html">Drawing a Colored Triangle with a Single Buffer</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/understanding_uniforms.html">Understanding Uniforms</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/working_with_textures.html">Working with Textures</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/utilizing_transformation_matrices.html">Utilizing Transformation Matrices</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/implementing_cameras.html">Implementing Cameras</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/triangle_strips.html">Triangle Strips</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/front_and_back_face_culling.html">Front and Back Face Culling</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/depth_testing.html">Depth Testing</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/index_buffers.html">Index Buffers</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/loading_3d_models.html">Loading 3D Models</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/understanding_normals.html">Understanding Normals</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/lighting.html">Lighting</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/multi_sample_anti_aliasing.html">Multi-Sample Anti-Aliasing</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/mipmapping_and_anisotropic_filtering.html">Mipmapping and Anisotropic Filtering</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">2D Techniques</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/rendering_to_textures.html">Rendering to Textures</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/orthogonal_cameras.html">Orthogonal Cameras</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/implementing_gaussian_blur.html">Implementing Gaussian Blur</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/video_rendering.html">Video Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/text_rendering.html">Text Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/billboarding.html">Billboarding</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/implementing_fake_3d.html">Implementing Fake 3D</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Control</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Control/canvas_resizing.html">Canvas Resizing</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/arcball_camera_control.html">Arcball Camera Control</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/object_picking.html">Object Picking</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/saving_images_and_videos.html">Saving Images and Videos</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/using_web_workers.html">Using Web Workers</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/error_handling_and_limits.html">Error Handling and Limits</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Compute</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Compute/prefix_sum.html">Prefix Sum</a></li>
+                        <li><a href="/WebGPUUnleashed/Compute/radix_sort.html">Radix Sort</a></li>
+                        <li><a href="/WebGPUUnleashed/Compute/reaction_diffusion.html">Reaction Diffusion</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Advanced</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Advanced/stencil_buffer.html">Stencil Buffer</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/shadow_mapping.html">Shadow Mapping</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/toon_shading.html">Toon Shading</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/equirectangular_rendering.html">Equirectangular Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/mega_texture.html">Mega Texture</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/transparency_with_depth_peeling.html">Transparency with Depth Peeling</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/skeleton_animation.html">Skeleton Animation</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/normal_mapping_and_bump_mapping.html">Normal Mapping and Bump Mapping</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/gaussian_splatting.html">Gaussian Splatting</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div id="article-container">
+        <article>
+            <h2 >5.2 Toon Shading</h2><p>achieving realistisity is not the only goal of rendering. in fact, there are many rendering styles favor artistic styles instead of realistic, such as painting or cartoon. We see them in games. In this tutorial, we will see a simple cartoon style rendering.</p><p>in particular, we will look at implementing two effects. first, we will see how to add silhouette to our model. And second, how can we adjust the shader so that the color doesn't change gradually to simulate a painterly style.</p><p>let's talk about the silhouette first. There are multiple ways of achieving silhouette. Each has pros and cons. One idea is based on detecting discontinuity in the screen space. This requires us to render the scene first with extra meta data, such as surface normals, depth, colors etc. Then in a second pass, we will detect the discontinuity of these properties. The discontinued area are considered as the separation of two or more objects. we hence make the area darker (the silhouette).</p><p>The drawback of this approach is that it requires costly image space post processing, and is sensitive to the object size in the image space.</p><p>in this tutorial, we will look at another approach, which is simpler. by simply enlarging the object a little bit and flip the enlarged object from inside out. the enlarged object will be shaded as pure black (the silhouette color).</p><p>Since this approach doesn't require screen space post processing, it doesn't suffer major performance issue, and is more commonly used in games.</p><p>enlarging an object can be as simple as offsetting each vertex away from the object's center by a fixed percentage.. But this simple approach doesn't always produces good result. if the object is close to a round shape, this approach may work fine. but if the object is very long, certain area that are further from the center will be stretched more than other parts that are closer. for complex shapes, this simple formula may fail too.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Image to Show Two Artifacts, One a Sphere, a Pole, and a Sheep Swivel Horn" sources='[]' /><div class="img-title">Image to Show Two Artifacts, One a Sphere, a Pole, and a Sheep Swivel Horn</div></div></p><p>A better approach is inflating the object at each vertex along the vertex normal. notice that here we want to use the vertex normal, not the surface normal. because for sharp features, surfaces that share a same vertex may not agree at the vertex. simply offsetting the vertex using surface normals will introduce artifacts. hence we have to calculate a vertex normal by averaging the adjacent surface normals. using the normal also removes the artifacts shown in the above image(c).</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Image to Show the Artifact of Using the Surface Normal" sources='[]' /><div class="img-title">Image to Show the Artifact of Using the Surface Normal</div></div></p><p>But this solution also suffers from another issue, the silhouette is sensitive to the viewing distance. if we are close to the object, we might see thick silhouette, and if the object is far away, we will see the silhouette diminished.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Image to Show the Artifact of Viewing Closely" sources='[]' /><div class="img-title">Image to Show the Artifact of Viewing Closely</div></div></p><p>What we what is uniformly widthed silhouette that is not sensitive to viewing angle and direction. This can be achieved in the clip space. Out algorithm project the vertex normals onto the clip plane first, then in the clip space, we offset the vertex positions according to vertex normals. notice that in the clip space, both the vertex normal and the vertex position are in 2D. since this step is carried out after the perspective projection, the silhouette thickness won't be affected by viewing angle and distance anymore.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Image to Illustrate the Process" sources='[]' /><div class="img-title">Image to Illustrate the Process</div></div></p><p>so far we have learned that to render a silhouette, we need to render an slightly inflated object in black or the silhouette color. And then on top of that, we render the object again normally. there are two ways to render them. The less ideal, but straightforward way is using two passes. During the first pass, we render the inflated object in solid silhouette color, but we don't write to the depth buffer. this is so that the inflated object won't occlude the normal object, given the inflated object is bigger. In the second pass, we render the object again normally on top of the first pass.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Image to Illustrate Method One" sources='[]' /><div class="img-title">Image to Illustrate Method One</div></div></p><p>The second version is simpler but not as intuitive. We flip the inflated object by only rendering its back faces in the silhouette color, not the front face and at the same time, we render the same object normally in a single pass with depth testing enabled. by flipping the inflated object inside out, we essentially pealed away the front side of the inflated object, so that it will not occlude the normally rendered object. This way, we can enable depth test and accomplish everything in one go.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Image to Illustrate Method Two" sources='[]' /><div class="img-title">Image to Illustrate Method Two</div></div></p><p>now let's look at the implementation:</p><pre><code class="language-javascript code-block">@group(0) @binding(0)
+var&lt;uniform&gt; modelView: mat4x4&lt;f32&gt;;
+@group(0) @binding(1)
+var&lt;uniform&gt; projection: mat4x4&lt;f32&gt;;
+@group(0) @binding(2)
+var&lt;uniform&gt; normalMatrix: mat4x4&lt;f32&gt;;
+@group(0) @binding(3)
+var&lt;uniform&gt; screenDim: vec2&lt;f32&gt;;
+
+struct VertexOutput {
+    @builtin(position) clip_position: vec4&lt;f32&gt;,
+};
+
+@vertex
+fn vs_main(
+    @location(0) inPos: vec3&lt;f32&gt;,
+    @location(1) inNormal: vec3&lt;f32&gt;
+) -&gt; VertexOutput {
+    var out: VertexOutput;
+    out.clip_position = projection * modelView * vec4&lt;f32&gt;(inPos, 1.0);
+    var clip_normal:vec4&lt;f32&gt; = projection * normalMatrix * vec4&lt;f32&gt;(inNormal, 0.0);
+
+    out.clip_position =vec4&lt;f32&gt;( out.clip_position.xy + normalize(clip_normal.xy)*6.4/screenDim * out.clip_position.w,out.clip_position.zw );
+    return out;
+}
+
+// Fragment shader
+
+@fragment
+fn fs_main(in: VertexOutput) -&gt; @location(0) vec4&lt;f32&gt; {
+    return vec4&lt;f32&gt;( 0.0,0.0,0.0,1.0);
+}</code></pre><p>The above shader does the inflation in the clip space. The two parameters passed into the vertex shader are the vertex position in 3D and the vertex's normal in 3D. We convert the position to the clip space position as always. For the normal vector, we apply the normal matrix and then projection. notice that the w component is set to 0.0 because it is a vector.</p><p>after that, we need to inflate the clip space position. again, since the silhouette is in 2D, we don't want to touch the zw components, we leave them as they are. for the xy axis, we offset them by  normalize(clip_normal.xy)*6.4/screenDim * out.clip_position.w. here, dividing the clip space normal by the screen dimension is to compensate for the screen size and aspect ratio. We want the silhouette width to be uniform regardless of the screen size and aspect ratio. timing it by out.clip_position is because the graphics pipeline will later divide the clip space position by the w component when converting it to the normalized device coordinates. to avoid further change to the silhouette thickness during this conversion, we premultiply it by the w.</p><p>the fragment shader is simple. we simply output pure black pixels. not let's examine the javascript code:</p><pre><code class="language-javascript code-block">let { positionBuffer, normalBuffer, indexBuffer, indexSize } = await loadObj(device, '../data/teapot.obj');
+this.positionBuffer = positionBuffer;
+// The normal buffer contains vertex normals calculated as averages of adjacent surface normals.
+this.normalBuffer = normalBuffer;
+this.indexBuffer = indexBuffer;
+this.indexSize = indexSize;</code></pre><p>\centerline{...}</p><pre><code class="language-javascript code-block">const outlinePipelineDesc = {
+    layout: device.createPipelineLayout(outlinePipelineLayoutDesc),
+    vertex: {
+        module: shaderModuleOutline,
+        entryPoint: 'vs_main',
+        buffers: [positionBufferLayoutDesc, normalBufferLayoutDesc]
+    },
+    fragment: {
+        module: shaderModuleOutline,
+        entryPoint: 'fs_main',
+        targets: [colorState]
+    },
+    primitive: {
+        topology: 'triangle-list',
+        frontFace: 'ccw',
+        cullMode: 'front'
+    },
+    depthStencil: {
+        depthWriteEnabled: true,
+        depthCompare: 'less',
+        format: 'depth32float'
+    }
+}</code></pre><p>when we load the obj file, we have already established the normal buffer containing the vertex normals calculated as an average of adjacent surface normals. When setting up the pipeline for rendering the outline, we set the cullMode to front to peal the front side of the inflated object. Also, notice that we enable the depth testing here.</p><p>in the second part of this tutorial, we will look at how to achieve the painterly shading effect. painterly styles don't usually have smooth color transition as we see on a physically accurate picture. the color transition is often discretized. also the color use is also false colors that can't be described by lighting equations attempt to achieve physical accuracy.</p><p>but it is not difficult to achieve this discretized false color effect. all we need to do is introducing another layer of indirection by using a look up table. We will still using the same phong shading algorithm to calculate lighting as before. The difference is, before, we directly calculate the final color. this time, we only calculate a light intensity as a single value. then, we use a prebuild lookup table to transfer the intensity into colors. our lookup table is in 1D, and is able to convert a value in the range [0,1] into an arbitrary RGB color. in our setup, our 1D texture contains a few bands of false colors, our final image will be rendered using these false colors.</p><p>let's look at the shader first. Again, this shader is modified from the shadow map shader.</p><pre><code class="language-javascript code-block">// Instead of setting colors as RGB, we use scalars here as we only want to calculate intensity.
+const diffuseConstant:f32 = 1.0;
+const specularConstant:f32 = 0.0;
+const ambientConstant:f32 = 0.0;</code></pre><p>\centerline{...}</p><pre><code class="language-javascript code-block">// We apply the same Phong shading, but instead of deriving the final color, we obtain an intensity.
+var intensity:f32 = max(dot(-lightDir, n), 0.0)* diffuseConstant + specular(-lightDir, viewDir, n, shininess) * specularConstant;
+// With the light intensity, we look up the final color.
+var diffuse:vec3&lt;f32&gt; = textureSample(t_shade, s_shade, intensity * visibility).xyz;</code></pre><p>And finally, let's see, on the javascript side, how this 1D lookup texture is set up.</p><pre><code class="language-javascript code-block">// 1D texture, width is hardcoded to 128.
+const shadeTextureDesc = {
+    size: [128],
+    dimension: '1d',
+    format: "rgba8unorm",
+    usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
+};
+// Populate color data. This lookup table defines 4 color bands.
+let shadeTextureColors = [];
+for (let i = 0; i &lt; 128; ++i) {
+    if (i &lt; 40) {
+        shadeTextureColors.push(95);
+        shadeTextureColors.push(121);
+        shadeTextureColors.push(127);
+        shadeTextureColors.push(255);
+    }
+    else if (i &gt;= 40 &amp;&amp; i &lt; 80) {
+        shadeTextureColors.push(143);
+        shadeTextureColors.push(181);
+        shadeTextureColors.push(191);
+        shadeTextureColors.push(255);
+    }
+    else if (i &gt;= 80 &amp;&amp; i &lt; 124) {
+        shadeTextureColors.push(191);
+        shadeTextureColors.push(242);
+        shadeTextureColors.push(255);
+        shadeTextureColors.push(255);
+    }
+    else {
+        shadeTextureColors.push(255);
+        shadeTextureColors.push(255);
+        shadeTextureColors.push(255);
+        shadeTextureColors.push(255);
+    }
+}
+// Create a texture and copy data to it.
+let shadeTexture = device.createTexture(shadeTextureDesc);
+device.queue.writeTexture({ texture: shadeTexture }, new Uint8Array(shadeTextureColors), {
+    offset: 0,
+    bytesPerRow: 128 * 4,
+    rowsPerImage: 1
+}, { width: 128 });
+// Wait for completion.
+await device.queue.onSubmittedWorkDone();</code></pre><p>Together with the outline shader, we now have the toon shading effect:</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Image to Show the Result" sources='[]' /><div class="img-title">Image to Show the Result</div></div></p>
+        </article>
+    </div>
+    <!-- The Modal -->
+    <div id="img-modal" class="modal">
+        <!-- The Close Button -->
+        <span class="close" id="img-close">&times;</span>
+        <!-- Modal Content (The Image) -->
+        <img class="modal-content" id="img01">
+
+        <!-- Modal Caption (Image Text) -->
+        <div id="caption"></div>
+    </div>
+    <script>
+        function openImage(img) {
+            let modal = document.getElementById("img-modal");
+            let modalImg = document.getElementById("img01");
+            modal.style.display = "block";
+            if (img.getAttribute("original_src")) {
+                modalImg.src = img.getAttribute("original_src");
+            } else {
+                modalImg.src = img.src;
+            }
+            let captionText = document.getElementById("caption");
+
+            captionText.innerText = img.alt;
+
+            let sources = JSON.parse(img.getAttribute("sources"));
+
+            for (let i = 0; i < sources.length; ++i) {
+                if (sources.length == 1) {
+                    captionText.innerHTML += "<a href='" + sources[i] + "' target='_blank' class='img-source'>SOURCE</a>";
+                } else {
+                    captionText.innerHTML += "<a href='" + sources[i] + "' target='_blank' class='img-source'>SOURCE " + (i + 1) + "</a>";
+                }
+            }
+        }
+        // Get the <span> element that closes the modal
+        var closeButton = document.getElementById("img-close");
+
+        // When the user clicks on <span> (x), close the modal
+        closeButton.onclick = function () {
+            var modal = document.getElementById("img-modal");
+            modal.style.display = "none";
+        }
+    </script>
+
+<script type="module">
+    const macros = {};
+    const mathElementsBlock = document.getElementsByClassName("math-block");
+    for (let element of mathElementsBlock) {
+        katex.render(element.textContent, element, {
+            throwOnError: false,
+            displayMode: true,
+            macros
+        });
+    }
+
+    const mathElementsInline = document.getElementsByClassName("math-inline");
+    for (let element of mathElementsInline) {
+        katex.render(element.textContent, element, {
+            throwOnError: false,
+            macros
+        });
+    }
+
+    hljs.highlightAll();
+
+</script>
+</body>
+
+</html>

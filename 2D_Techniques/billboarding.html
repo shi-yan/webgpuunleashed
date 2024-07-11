@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <!-- Primary Meta Tags -->
+    <title>: WebGPU Unleashed: A Practical Tutorial</title>
+    <meta name="title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta name="description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://shi-yan.github.io/WebGPUUnleashed/2D_Techniques/billboarding.html" />
+    <meta property="og:title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta property="og:description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+    <meta property="og:image" content="/WebGPUUnleashed/meta.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://shi-yan.github.io/WebGPUUnleashed/2D_Techniques/billboarding.html" />
+    <meta property="twitter:title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta property="twitter:description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+    <meta property="twitter:image" content="/WebGPUUnleashed/meta.png" />
+
+    <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+
+
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/default-dark.min.css"
+        integrity="sha512-EF2rc4QyBiRAGUMVm+EjFPBbdVGaN/pwZhtuKyrC/dM+hcwTxI5BsEDUkrMRI77z4VlDAt/qVopePXB5+ZZ8Gw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="
+        https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js
+        "></script>
+    <link href="
+        https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css
+        " rel="stylesheet" />
+
+    <script>
+        function fold(e) {
+            const sub = e.currentTarget.parentElement.getElementsByTagName("ul")[0];
+            console.log("sub", e.currentTarget, sub);
+            if (sub.style.display === "block") {
+                sub.style.display = "none";
+            } else {
+                sub.style.display = "block";
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <nav role="navigation">
+        <div id="menuToggle">
+            <input type="checkbox" />
+            <span></span>
+            <span></span>
+            <span></span>
+            <ul id="menu">
+                <!--<li><a href="#">Home</a></li>
+                <li><a href="#">About</a></li>
+                <li><a id="test" href="#" onclick="fold(event)">Info</a>
+                    <ul class="sub-menu">
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                    </ul>
+                </li>
+                <li><a href="#">Contact</a></li>
+                <li><a href="https://erikterwan.com/" target="_blank">Show me more</a></li>-->
+                <li><a href="#" onclick="fold(event)">Intro</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Introduction/the_gpu_driver.html">The GPU Driver</a></li>
+                        <li><a href="/WebGPUUnleashed/Introduction/the_gpu_pipeline.html">The GPU Pipeline</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Basics</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Basics/creating_an_empty_canvas.html">Creating an Empty Canvas</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_triangle.html">Drawing a Triangle</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_triangle_with_defined_vertices.html">Drawing a Triangle with Defined Vertices</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/applying_hardcoded_vertex_colors.html">Applying Hardcoded Vertex Colors</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/using_different_vertex_colors.html">Using Different Vertex Colors</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_colored_triangle_with_a_single_buffer.html">Drawing a Colored Triangle with a Single Buffer</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/understanding_uniforms.html">Understanding Uniforms</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/working_with_textures.html">Working with Textures</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/utilizing_transformation_matrices.html">Utilizing Transformation Matrices</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/implementing_cameras.html">Implementing Cameras</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/triangle_strips.html">Triangle Strips</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/front_and_back_face_culling.html">Front and Back Face Culling</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/depth_testing.html">Depth Testing</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/index_buffers.html">Index Buffers</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/loading_3d_models.html">Loading 3D Models</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/understanding_normals.html">Understanding Normals</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/lighting.html">Lighting</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/multi_sample_anti_aliasing.html">Multi-Sample Anti-Aliasing</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/mipmapping_and_anisotropic_filtering.html">Mipmapping and Anisotropic Filtering</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">2D Techniques</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/rendering_to_textures.html">Rendering to Textures</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/orthogonal_cameras.html">Orthogonal Cameras</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/implementing_gaussian_blur.html">Implementing Gaussian Blur</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/video_rendering.html">Video Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/text_rendering.html">Text Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/billboarding.html">Billboarding</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/implementing_fake_3d.html">Implementing Fake 3D</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Control</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Control/canvas_resizing.html">Canvas Resizing</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/arcball_camera_control.html">Arcball Camera Control</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/object_picking.html">Object Picking</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/saving_images_and_videos.html">Saving Images and Videos</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/using_web_workers.html">Using Web Workers</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/error_handling_and_limits.html">Error Handling and Limits</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Compute</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Compute/prefix_sum.html">Prefix Sum</a></li>
+                        <li><a href="/WebGPUUnleashed/Compute/radix_sort.html">Radix Sort</a></li>
+                        <li><a href="/WebGPUUnleashed/Compute/reaction_diffusion.html">Reaction Diffusion</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Advanced</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Advanced/stencil_buffer.html">Stencil Buffer</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/shadow_mapping.html">Shadow Mapping</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/toon_shading.html">Toon Shading</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/equirectangular_rendering.html">Equirectangular Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/mega_texture.html">Mega Texture</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/transparency_with_depth_peeling.html">Transparency with Depth Peeling</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/skeleton_animation.html">Skeleton Animation</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/normal_mapping_and_bump_mapping.html">Normal Mapping and Bump Mapping</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/gaussian_splatting.html">Gaussian Splatting</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div id="article-container">
+        <article>
+            <h2 >2.5 Billboarding</h2><p>We will look at a technique called billboarding this tutorial. billboarding is a technique of rendering, such that a flat object always faces the viewer no matter viewed from which direction. it has application in games to show meta information, such as the health bar, or in visualizations to show labels. or in games to show grass and vegetation.</p><p>in the first two use cases, billboard is used to show 2D meta information, we want the information they show be always visible regardless of scene rotation. hence we want them to always face the viewer. in the last use case, rendering geometry accurate grass and vegetation is almost impossible due to complexity, hence we want to fake it by rendering screen facing 2D grass images. but as we rotate the scene, we don't want the viewer to discover that the grass is actually a 2D plane, hence we need to adjust the 2D plane's rotation to let it face the view at all time.</p><p>in this tutorial, we will render a rotating scene by rotating the camera. with a texture rendered in the background that doesn't rotate with the scene. The background is a billboard. The key aspect of this tutorial is to learn how to keep the background face the camera.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Show an Image of This Demo" sources='[]' /><div class="img-title">Show an Image of This Demo</div></div></p><p>the key idea of this demo is simple. we render everything else other than the billboard using a normal model view matrix, and then we modify the model view matrix, keep the translation part, and remove the rotation and scaling part.</p><p>the key line of the code is the following, let's explain.</p><pre><code class="language-javascript code-block">            let modelViewMatrixBillboard = glMatrix.mat4.fromValues(1, 0, 0, modelViewMatrix[3],
+                0, 1, 0, modelViewMatrix[7],
+                0, 0, 1, modelViewMatrix[11],
+                modelViewMatrix[12], modelViewMatrix[13], modelViewMatrix[14], modelViewMatrix[15]);</code></pre><p>recall that the upper left 3x3 sub matrix of a model view matrix defines the rotation and scaling. by setting it to an identity matrix, we essentially removed any rotation. but we want to keep the last column of the model view matrix, because the last column defines the translation.</p><p>when the rotation is removed, we want the billboard to always face the camera. As we know that anything in the world coordinate system applied with the model view matrix will become in the camera coordinate system. in the camera coordinate system, the origin is at the camera position, and the direction that the camera is point at is the Z+ axis. (evl.uic.edu/ralph/508s98/coordinates.html), hence to make the billboard face the camera, we need to define a plane facing the Z- direction.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Show an Image of the Left-Hand Camera Coordinates" sources='[]' /><div class="img-title">Show an Image of the Left-Hand Camera Coordinates</div></div></p><p>hence here is how do we define the vertices of the billboard:</p><pre><code class="language-javascript code-block">            const positions = new Float32Array([
+                10.0, -10.0, 0.0,
+                -10.0, -10.0, 0.0,
+                10.0, 10.0, 0.0,
+                -10.0, 10.0, 0.0
+            ]);</code></pre>
+        </article>
+    </div>
+    <!-- The Modal -->
+    <div id="img-modal" class="modal">
+        <!-- The Close Button -->
+        <span class="close" id="img-close">&times;</span>
+        <!-- Modal Content (The Image) -->
+        <img class="modal-content" id="img01">
+
+        <!-- Modal Caption (Image Text) -->
+        <div id="caption"></div>
+    </div>
+    <script>
+        function openImage(img) {
+            let modal = document.getElementById("img-modal");
+            let modalImg = document.getElementById("img01");
+            modal.style.display = "block";
+            if (img.getAttribute("original_src")) {
+                modalImg.src = img.getAttribute("original_src");
+            } else {
+                modalImg.src = img.src;
+            }
+            let captionText = document.getElementById("caption");
+
+            captionText.innerText = img.alt;
+
+            let sources = JSON.parse(img.getAttribute("sources"));
+
+            for (let i = 0; i < sources.length; ++i) {
+                if (sources.length == 1) {
+                    captionText.innerHTML += "<a href='" + sources[i] + "' target='_blank' class='img-source'>SOURCE</a>";
+                } else {
+                    captionText.innerHTML += "<a href='" + sources[i] + "' target='_blank' class='img-source'>SOURCE " + (i + 1) + "</a>";
+                }
+            }
+        }
+        // Get the <span> element that closes the modal
+        var closeButton = document.getElementById("img-close");
+
+        // When the user clicks on <span> (x), close the modal
+        closeButton.onclick = function () {
+            var modal = document.getElementById("img-modal");
+            modal.style.display = "none";
+        }
+    </script>
+
+<script type="module">
+    const macros = {};
+    const mathElementsBlock = document.getElementsByClassName("math-block");
+    for (let element of mathElementsBlock) {
+        katex.render(element.textContent, element, {
+            throwOnError: false,
+            displayMode: true,
+            macros
+        });
+    }
+
+    const mathElementsInline = document.getElementsByClassName("math-inline");
+    for (let element of mathElementsInline) {
+        katex.render(element.textContent, element, {
+            throwOnError: false,
+            macros
+        });
+    }
+
+    hljs.highlightAll();
+
+</script>
+</body>
+
+</html>

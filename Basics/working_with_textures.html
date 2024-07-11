@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <!-- Primary Meta Tags -->
+    <title>: WebGPU Unleashed: A Practical Tutorial</title>
+    <meta name="title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta name="description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://shi-yan.github.io/WebGPUUnleashed/Basics/working_with_textures.html" />
+    <meta property="og:title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta property="og:description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+    <meta property="og:image" content="/WebGPUUnleashed/meta.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://shi-yan.github.io/WebGPUUnleashed/Basics/working_with_textures.html" />
+    <meta property="twitter:title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta property="twitter:description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+    <meta property="twitter:image" content="/WebGPUUnleashed/meta.png" />
+
+    <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/html.min.js"></script>
+
+
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/default-dark.min.css"
+        integrity="sha512-EF2rc4QyBiRAGUMVm+EjFPBbdVGaN/pwZhtuKyrC/dM+hcwTxI5BsEDUkrMRI77z4VlDAt/qVopePXB5+ZZ8Gw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="
+        https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js
+        "></script>
+    <link href="
+        https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css
+        " rel="stylesheet" />
+
+    <script>
+        function fold(e) {
+            const sub = e.currentTarget.parentElement.getElementsByTagName("ul")[0];
+            console.log("sub", e.currentTarget, sub);
+            if (sub.style.display === "block") {
+                sub.style.display = "none";
+            } else {
+                sub.style.display = "block";
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <nav role="navigation">
+        <div id="menuToggle">
+            <input type="checkbox" />
+            <span></span>
+            <span></span>
+            <span></span>
+            <ul id="menu">
+                <!--<li><a href="#">Home</a></li>
+                <li><a href="#">About</a></li>
+                <li><a id="test" href="#" onclick="fold(event)">Info</a>
+                    <ul class="sub-menu">
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                    </ul>
+                </li>
+                <li><a href="#">Contact</a></li>
+                <li><a href="https://erikterwan.com/" target="_blank">Show me more</a></li>-->
+                <li><a href="#" onclick="fold(event)">Intro</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Introduction/the_gpu_driver.html">The GPU Driver</a></li>
+                        <li><a href="/WebGPUUnleashed/Introduction/the_gpu_pipeline.html">The GPU Pipeline</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Basics</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Basics/creating_an_empty_canvas.html">Creating an Empty Canvas</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_triangle.html">Drawing a Triangle</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_triangle_with_defined_vertices.html">Drawing a Triangle with Defined Vertices</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/applying_hardcoded_vertex_colors.html">Applying Hardcoded Vertex Colors</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/using_different_vertex_colors.html">Using Different Vertex Colors</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_colored_triangle_with_a_single_buffer.html">Drawing a Colored Triangle with a Single Buffer</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/understanding_uniforms.html">Understanding Uniforms</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/working_with_textures.html">Working with Textures</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/utilizing_transformation_matrices.html">Utilizing Transformation Matrices</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/implementing_cameras.html">Implementing Cameras</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/triangle_strips.html">Triangle Strips</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/front_and_back_face_culling.html">Front and Back Face Culling</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/depth_testing.html">Depth Testing</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/index_buffers.html">Index Buffers</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/loading_3d_models.html">Loading 3D Models</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/understanding_normals.html">Understanding Normals</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/lighting.html">Lighting</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/multi_sample_anti_aliasing.html">Multi-Sample Anti-Aliasing</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/mipmapping_and_anisotropic_filtering.html">Mipmapping and Anisotropic Filtering</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">2D Techniques</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/rendering_to_textures.html">Rendering to Textures</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/orthogonal_cameras.html">Orthogonal Cameras</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/implementing_gaussian_blur.html">Implementing Gaussian Blur</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/video_rendering.html">Video Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/text_rendering.html">Text Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/billboarding.html">Billboarding</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/implementing_fake_3d.html">Implementing Fake 3D</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Control</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Control/canvas_resizing.html">Canvas Resizing</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/arcball_camera_control.html">Arcball Camera Control</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/object_picking.html">Object Picking</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/saving_images_and_videos.html">Saving Images and Videos</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/using_web_workers.html">Using Web Workers</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/error_handling_and_limits.html">Error Handling and Limits</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Compute</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Compute/prefix_sum.html">Prefix Sum</a></li>
+                        <li><a href="/WebGPUUnleashed/Compute/radix_sort.html">Radix Sort</a></li>
+                        <li><a href="/WebGPUUnleashed/Compute/reaction_diffusion.html">Reaction Diffusion</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Advanced</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Advanced/stencil_buffer.html">Stencil Buffer</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/shadow_mapping.html">Shadow Mapping</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/toon_shading.html">Toon Shading</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/equirectangular_rendering.html">Equirectangular Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/mega_texture.html">Mega Texture</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/transparency_with_depth_peeling.html">Transparency with Depth Peeling</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/skeleton_animation.html">Skeleton Animation</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/normal_mapping_and_bump_mapping.html">Normal Mapping and Bump Mapping</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/gaussian_splatting.html">Gaussian Splatting</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div id="article-container">
+        <article>
+            <h2 >1.7 Working with Textures</h2><p>Now that we've established a basic understanding of uniforms, let's dive into the exciting world of texture maps. A texture map is essentially an image wrapped around a 3D geometry mesh. Up until now, we've been rendering rather bland shapes—solid color triangles or triangles with gradient colors. They lack the vividness and complexity we often see in games and graphics.</p><p>In gaming and computer graphics, it's common to apply various images to these geometries, creating rich and detailed visuals. In this example, we'll examine how to achieve this effect. To make textures work in a shader, we'll need to rely on uniforms. This is why we discussed uniforms in the previous chapter—to set the stage for texture mapping.</p><pre><code class="language-html code-block">&lt;script id="shader" type="wgsl"&gt;
+// Vertex shader
+
+@group(0) @binding(0)
+var&lt;uniform&gt; offset: vec3&lt;f32&gt;;
+
+struct VertexOutput {
+    @builtin(position) clip_position: vec4&lt;f32&gt;,
+    @location(0) tex_coords: vec2&lt;f32&gt;,
+};
+
+@vertex
+fn vs_main(
+    @location(0) inPos: vec3&lt;f32&gt;,
+    @location(1) inTexCoords: vec2&lt;f32&gt;
+) -&gt; VertexOutput {
+    var out: VertexOutput;
+    out.clip_position = vec4&lt;f32&gt;(inPos + offset, 1.0);
+    out.tex_coords = inTexCoords;
+    return out;
+}
+
+// Fragment shader
+
+@group(0) @binding(1)
+var t_diffuse: texture_2d&lt;f32&gt;;
+@group(0) @binding(2)
+var s_diffuse: sampler;
+
+@fragment
+fn fs_main(in: VertexOutput) -&gt; @location(0) vec4&lt;f32&gt; {
+    return textureSample(t_diffuse, s_diffuse, in.tex_coords);
+}
+
+&lt;/script&gt;</code></pre><p>Now, let's dissect the changes we've made on the shader side. Firstly, in the vertex shader, we've introduced a new attribute at <code>@location(1)</code> called <code>inTexCoords</code> for texture coordinates. Each vertex is now assigned specific texture coordinates. During the fragment stage, we'll use these coordinates to fetch colors from the texture image. If these coordinates happen to fall between pixels, we'll employ interpolation. The exact interpolation method can be configured, with 'linear' and 'nearest' being the most common choices.</p><p>Since each vertex now has distinct texture coordinates, we use attributes to pass in these coordinates. To transfer these texture coordinates to the fragment stage, we've introduced a new output value called <code>texCoords</code> in the <code>VertexOutput</code> struct. This ensures that texture coordinates are appropriately interpolated for each fragment.</p><p>In the fragment shader, we've introduced two new uniforms. The first, <code>t_diffuse</code>, is of type <code>texture_2d&lt;f32&gt;</code>. This represents the actual texture map or image that we want to apply to our triangle. You might find the second one, <code>s_diffuse</code>, a bit puzzling. It's of type <code>sampler</code>.</p><p>So, what is a sampler? While most uniforms provide values (like the texture map itself, which can be seen as a buffer or resource), a sampler defines behavior. It dictates how we should sample the texture's color based on the given texture coordinates. Remember that when texture coordinates fall between pixels, we need interpolation. The sampler allows us to define our preferred interpolation method. Different methods yield varying results—some are smooth but slightly blurred, while others are sharp but can exhibit aliasing artifacts. The choice depends on the specific use case, and we can explore different sampler types in future chapters.</p><p>With these shader updates in place, let's proceed to see how we can supply values for these new uniforms.</p><pre><code class="language-html code-block">&lt;script&gt;
+    async function webgpu() {
+        ...
+
+        const textureDescriptor = {
+            size: { width: imgBitmap.width, height: imgBitmap.height },
+            format: 'rgba8unorm',
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+        };
+        const texture = device.createTexture(textureDescriptor);
+
+        device.queue.copyExternalImageToTexture({ source: imgBitmap }, { texture }, textureDescriptor.size);
+
+        const sampler = device.createSampler({
+            addressModeU: 'repeat',
+            addressModeV: 'repeat',
+            magFilter: 'linear',
+            minFilter: 'linear',
+            mipmapFilter: 'linear',
+        });
+
+        ...
+
+        const texCoordsAttribDesc = {
+            shaderLocation: 1, // @location(1)
+            offset: 0,
+            format: 'float32x2'
+        };
+
+        const texCoordsBufferLayoutDesc = {
+            attributes: [texCoordsAttribDesc],
+            arrayStride: 4 * 2, // sizeof(float) * 3
+            stepMode: 'vertex'
+        };
+
+        ...
+
+        const texCoords = new Float32Array([
+            1.0,
+            0.0,
+            //
+            0.0,
+            0.0,
+
+            0.5,
+            1.0,
+
+        ]);
+
+        const texCoordsBufferDesc = {
+            size: texCoords.byteLength,
+            usage: GPUBufferUsage.VERTEX,
+            mappedAtCreation: true
+        };
+
+        let texCoordsBuffer = device.createBuffer(texCoordsBufferDesc);
+        const writeArrayColor = new Float32Array(texCoordsBuffer.getMappedRange());
+        writeArrayColor.set(texCoords);
+        texCoordsBuffer.unmap();
+
+        ...
+
+        let uniformBindGroupLayout = device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: {}
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: {}
+                },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler: {}
+                }
+            ]
+        });
+
+        let uniformBindGroup = device.createBindGroup({
+            layout: uniformBindGroupLayout,
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: uniformBuffer
+                    }
+                },
+                {
+                    binding: 1,
+                    resource: texture.createView()
+                },
+                {
+                    binding: 2,
+                    resource:
+                        sampler
+
+                }
+            ]
+        });
+
+        ...
+        const pipelineDesc = {
+            layout,
+            vertex: {
+                module: shaderModule,
+                entryPoint: 'vs_main',
+                buffers: [positionBufferLayoutDesc, texCoordsBufferLayoutDesc]
+            },
+            fragment: {
+                module: shaderModule,
+                entryPoint: 'fs_main',
+                targets: [colorState]
+            },
+            primitive: {
+                topology: 'triangle-list',
+                frontFace: 'ccw',
+                cullMode: 'back'
+            }
+        };
+
+        ...
+
+        passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
+        passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+        passEncoder.setPipeline(pipeline);
+        passEncoder.setBindGroup(0, uniformBindGroup);
+        passEncoder.setVertexBuffer(0, positionBuffer);
+        passEncoder.setVertexBuffer(1, texCoordsBuffer);
+        passEncoder.draw(3, 1);
+        passEncoder.end();
+
+        device.queue.submit([commandEncoder.finish()]);
+    }
+
+    webgpu();
+&lt;/script&gt;</code></pre><p>Let's explore the JavaScript side of things. First, we need to create an image. Here, we're utilizing the fetch API to load a PNG image from the server. Once the server responds, we create a blob from the response body. From this blob, we then create an image bitmap.</p><p>With our bitmap ready, the next step is to create a texture. To achieve this, we start by defining a texture descriptor. This descriptor requires the width and height of the texture as well as the pixel format. For the usage flags, we need to set the <code>TEXTURE_BINDING</code> flag because we intend to use this texture in our shader. Additionally, it's necessary to include the <code>COPY_DST</code> and <code>RENDER_ATTACHMENT</code> flags. Both are mandated by the <code>copyExternalImageToTexture</code> helper function. Although the exact reason isn't explicitly detailed in the WebGPU specification, my inference is that this function underpins a GPU command submission, possibly involving rendering to the texture to load the image data into the GPU.</p><p>Now, let's create a sampler. The first two parameters, <code>addressModeU</code> and <code>addressModeV</code>, specify how we should sample a texture if the requested coordinates fall outside the range of the texture. Here, we've opted for <code>repeat</code>, indicating that the texture should be repeated if the coordinates extend beyond the texture's size. This allows us to sample color even when the coordinates exceed the texture's dimensions. As for the filters, we've chosen a linear filter. This provides smooth results between texture map pixels, utilizing bilinear interpolation. However, it's worth noting that this choice can sometimes lead to a slightly blurry outcome. We'll explore more examples in future chapters to understand these choices better.</p><p>The remaining code structure remains largely the same. We still create the uniform buffer, but now it only contains the offset value. When we create the bind group, for the <code>@binding(0)</code>, we continue to provide the offsets via the uniform buffer. However, for the texture, we're using a texture view as its resource. And for the sampler, we simply provide the sampler as the resource.</p><p>The rest of the code follows the previous pattern. One notable difference is that we provide the texture coordinates by calling <code>setVertexBuffer</code> for <code>@location(1)</code> with the texture coordinates.</p><p>With these changes in place, we've effectively integrated a texture into our shader, opening up a world of possibilities for more visually captivating graphics.</p>
+        </article>
+    </div>
+    <!-- The Modal -->
+    <div id="img-modal" class="modal">
+        <!-- The Close Button -->
+        <span class="close" id="img-close">&times;</span>
+        <!-- Modal Content (The Image) -->
+        <img class="modal-content" id="img01">
+
+        <!-- Modal Caption (Image Text) -->
+        <div id="caption"></div>
+    </div>
+    <script>
+        function openImage(img) {
+            let modal = document.getElementById("img-modal");
+            let modalImg = document.getElementById("img01");
+            modal.style.display = "block";
+            if (img.getAttribute("original_src")) {
+                modalImg.src = img.getAttribute("original_src");
+            } else {
+                modalImg.src = img.src;
+            }
+            let captionText = document.getElementById("caption");
+
+            captionText.innerText = img.alt;
+
+            let sources = JSON.parse(img.getAttribute("sources"));
+
+            for (let i = 0; i < sources.length; ++i) {
+                if (sources.length == 1) {
+                    captionText.innerHTML += "<a href='" + sources[i] + "' target='_blank' class='img-source'>SOURCE</a>";
+                } else {
+                    captionText.innerHTML += "<a href='" + sources[i] + "' target='_blank' class='img-source'>SOURCE " + (i + 1) + "</a>";
+                }
+            }
+        }
+        // Get the <span> element that closes the modal
+        var closeButton = document.getElementById("img-close");
+
+        // When the user clicks on <span> (x), close the modal
+        closeButton.onclick = function () {
+            var modal = document.getElementById("img-modal");
+            modal.style.display = "none";
+        }
+    </script>
+
+<script type="module">
+    const macros = {};
+    const mathElementsBlock = document.getElementsByClassName("math-block");
+    for (let element of mathElementsBlock) {
+        katex.render(element.textContent, element, {
+            throwOnError: false,
+            displayMode: true,
+            macros
+        });
+    }
+
+    const mathElementsInline = document.getElementsByClassName("math-inline");
+    for (let element of mathElementsInline) {
+        katex.render(element.textContent, element, {
+            throwOnError: false,
+            macros
+        });
+    }
+
+    hljs.highlightAll();
+
+</script>
+</body>
+
+</html>

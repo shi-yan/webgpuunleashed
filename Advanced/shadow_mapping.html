@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <!-- Primary Meta Tags -->
+    <title>: WebGPU Unleashed: A Practical Tutorial</title>
+    <meta name="title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta name="description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://shi-yan.github.io/WebGPUUnleashed/Advanced/shadow_mapping.html" />
+    <meta property="og:title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta property="og:description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+    <meta property="og:image" content="/WebGPUUnleashed/meta.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://shi-yan.github.io/WebGPUUnleashed/Advanced/shadow_mapping.html" />
+    <meta property="twitter:title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta property="twitter:description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+    <meta property="twitter:image" content="/WebGPUUnleashed/meta.png" />
+
+    <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+
+
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/default-dark.min.css"
+        integrity="sha512-EF2rc4QyBiRAGUMVm+EjFPBbdVGaN/pwZhtuKyrC/dM+hcwTxI5BsEDUkrMRI77z4VlDAt/qVopePXB5+ZZ8Gw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="
+        https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js
+        "></script>
+    <link href="
+        https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css
+        " rel="stylesheet" />
+
+    <script>
+        function fold(e) {
+            const sub = e.currentTarget.parentElement.getElementsByTagName("ul")[0];
+            console.log("sub", e.currentTarget, sub);
+            if (sub.style.display === "block") {
+                sub.style.display = "none";
+            } else {
+                sub.style.display = "block";
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <nav role="navigation">
+        <div id="menuToggle">
+            <input type="checkbox" />
+            <span></span>
+            <span></span>
+            <span></span>
+            <ul id="menu">
+                <!--<li><a href="#">Home</a></li>
+                <li><a href="#">About</a></li>
+                <li><a id="test" href="#" onclick="fold(event)">Info</a>
+                    <ul class="sub-menu">
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                    </ul>
+                </li>
+                <li><a href="#">Contact</a></li>
+                <li><a href="https://erikterwan.com/" target="_blank">Show me more</a></li>-->
+                <li><a href="#" onclick="fold(event)">Intro</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Introduction/the_gpu_driver.html">The GPU Driver</a></li>
+                        <li><a href="/WebGPUUnleashed/Introduction/the_gpu_pipeline.html">The GPU Pipeline</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Basics</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Basics/creating_an_empty_canvas.html">Creating an Empty Canvas</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_triangle.html">Drawing a Triangle</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_triangle_with_defined_vertices.html">Drawing a Triangle with Defined Vertices</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/applying_hardcoded_vertex_colors.html">Applying Hardcoded Vertex Colors</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/using_different_vertex_colors.html">Using Different Vertex Colors</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_colored_triangle_with_a_single_buffer.html">Drawing a Colored Triangle with a Single Buffer</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/understanding_uniforms.html">Understanding Uniforms</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/working_with_textures.html">Working with Textures</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/utilizing_transformation_matrices.html">Utilizing Transformation Matrices</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/implementing_cameras.html">Implementing Cameras</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/triangle_strips.html">Triangle Strips</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/front_and_back_face_culling.html">Front and Back Face Culling</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/depth_testing.html">Depth Testing</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/index_buffers.html">Index Buffers</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/loading_3d_models.html">Loading 3D Models</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/understanding_normals.html">Understanding Normals</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/lighting.html">Lighting</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/multi_sample_anti_aliasing.html">Multi-Sample Anti-Aliasing</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/mipmapping_and_anisotropic_filtering.html">Mipmapping and Anisotropic Filtering</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">2D Techniques</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/rendering_to_textures.html">Rendering to Textures</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/orthogonal_cameras.html">Orthogonal Cameras</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/implementing_gaussian_blur.html">Implementing Gaussian Blur</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/video_rendering.html">Video Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/text_rendering.html">Text Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/billboarding.html">Billboarding</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/implementing_fake_3d.html">Implementing Fake 3D</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Control</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Control/canvas_resizing.html">Canvas Resizing</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/arcball_camera_control.html">Arcball Camera Control</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/object_picking.html">Object Picking</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/saving_images_and_videos.html">Saving Images and Videos</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/using_web_workers.html">Using Web Workers</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/error_handling_and_limits.html">Error Handling and Limits</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Compute</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Compute/prefix_sum.html">Prefix Sum</a></li>
+                        <li><a href="/WebGPUUnleashed/Compute/radix_sort.html">Radix Sort</a></li>
+                        <li><a href="/WebGPUUnleashed/Compute/reaction_diffusion.html">Reaction Diffusion</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Advanced</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Advanced/stencil_buffer.html">Stencil Buffer</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/shadow_mapping.html">Shadow Mapping</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/toon_shading.html">Toon Shading</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/equirectangular_rendering.html">Equirectangular Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/mega_texture.html">Mega Texture</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/transparency_with_depth_peeling.html">Transparency with Depth Peeling</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/skeleton_animation.html">Skeleton Animation</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/normal_mapping_and_bump_mapping.html">Normal Mapping and Bump Mapping</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/gaussian_splatting.html">Gaussian Splatting</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div id="article-container">
+        <article>
+            <h2 >5.1 Shadow Mapping</h2><p>previously we have learned about lighting, but lighting alone will not achieve realisticity. Our lighting model is very simple, as long as the surface normal is facing a light source, the surface area should be lit up. however, In real life, objects can also cast shadows. a surface area that is occluded from any light source by an object should be dark even its normal is facing light sources.</p><p>in this chapter, let's look at how shadow can be implemented. we will be looking at a simple technique called the shadow map. This technique can implement hard shadow, i.e. the boundary between a shadowed area and a lit-up area is distinct. A hard shadow can be generated by idealized a single point light source. it doesn't model more complex scenarios, such as the soft shadow that could be the result of a nearby area light source.</p><p>the idea of shadow map is not that complex. we first render the scene from the point of view of the light source. the purpose of this rendering is to generate a depth map, this depth map records the shortest distance from the light source to all areas that are directly under the light source.</p><p>later when we render the scene from the actual camera, for each fragment, we calculate its distance to the light source and compare the distance with the value on the above depth map. if the distance is equal or shorter, it means the fragment is lit by the light source. otherwise, the fragment must be occluded, hence we render it in a darker color.</p><p>Our code will be based on the lighting code we created before. but the first step is converting the light from a point light to a spot light. the point light can shoot out rays in all directions, it can light up the scene in 360 directions. whereas the spot light has a narrow light cone, only within the cone, the scene can be light up.</p><p>when we render the scene from the view of the light, we need to define a view frustum, which is compatible with the spot light.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Image to Illustrate the Spot Light" sources='[]' /><div class="img-title">Image to Illustrate the Spot Light</div></div></p><p>The idea of implementing spot light is very easy. we only need to slightly modify our original point light shader:</p><pre><code class="language-javascript code-block">var wldLoc2light:vec3&lt;f32&gt; =   in.wldLoc-lightLoc;
+
+var align:f32 = dot( normalize(wldLoc2light),lightDir);
+
+if (align &gt; 0.9) {
+    var radiance:vec3&lt;f32&gt;  = ambientColor.rgb * ambientConstant + 
+        diffuse(-lightDir, n, diffuseColor.rgb)* diffuseConstant +
+        specular(-lightDir, viewDir, n, specularColor.rgb, shininess) * specularConstant;
+        
+        return vec4&lt;f32&gt;(radiance * visibility ,1.0);
+} else {
+    return vec4&lt;f32&gt;(1.0,1.0,0.0,1.0);
+}</code></pre><p>here <code>wldLoc2light</code> is the vector of the fragment's world location to the light's location. whereas <code>lightDir</code> is the light direction. we perform a dot product of the two vectors and only light up fragments when the dot product passes our threshold of 0.9. i.e. the angle between the vectors need to be small enough. both vectors are in the world coordinate system, without applying the projection matrix;</p><pre><code class="language-javascript code-block">    var wldLoc:vec4&lt;f32&gt; = modelView * vec4&lt;f32&gt;(inPos, 1.0);
+    out.clip_position = projection * wldLoc;
+    out.wldLoc = wldLoc.xyz / wldLoc.w;
+    ...
+    var lightLoc:vec4&lt;f32&gt; = modelView * vec4&lt;f32&gt;(lightDirection, 1.0);
+    out.lightLoc = lightLoc.xyz / lightLoc.w;</code></pre><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Image to Show Spot Light After Shader Change" sources='[]' /><div class="img-title">Image to Show Spot Light After Shader Change</div></div></p><p>after turning the point light into a spot light, next, we will generate a depth map, or a shadow map by rendering the scene using a virtual camera that is aligned with the light.</p><p>let's take a step by step approach by dumping and visualizing this depth map first before applying it to the third step to create the shadow.</p><pre><code class="language-javascript code-block">    // Vertex shader
+    
+    @group(0) @binding(0)
+    var&lt;uniform&gt; modelView: mat4x4&lt;f32&gt;;
+    @group(0) @binding(1)
+    var&lt;uniform&gt; projection: mat4x4&lt;f32&gt;;
+    
+    struct VertexOutput {
+        @builtin(position) clip_position: vec4&lt;f32&gt;,
+        @location(0) depth: f32
+    };
+    
+    @vertex
+    fn vs_main(
+        @location(0) inPos: vec3&lt;f32&gt;
+    ) -&gt; VertexOutput {
+        var out: VertexOutput;
+
+        var wldLoc:vec4&lt;f32&gt; = modelView * vec4&lt;f32&gt;(inPos, 1.0);
+        out.clip_position = projection * wldLoc;
+        out.depth = out.clip_position.z / out.clip_position.w;
+        return out;
+    }
+
+    struct FragOutputs {
+        @builtin(frag_depth) depth: f32,
+        @location(0) color: vec4&lt;f32&gt;
+      }
+    
+    // Fragment shader
+    @fragment
+    fn fs_main(in: VertexOutput,   @builtin(front_facing) isFront: bool) -&gt; FragOutputs {
+        var out:FragOutputs;
+        if (isFront) {
+            out.depth = in.depth;
+        }
+        else {
+            out.depth = in.depth -0.001;
+        }
+        out.color = vec4&lt;f32&gt;(0.0,1.0,0.0,1.0);
+        return out;
+    }</code></pre><p>the above shader is simple and should be familiar to you. let me explain some of the interesting details. first, as previously mentioned, the depth map is rendered from the view of the light, hence the modelview matrix and the projection matrix is not from the camera, but from the light. Second, in a normal fragment shader, depth is implicitly calculated by the graphics pipeline. but here we need to write the depth value onto a texture map, hence, we have to manually calculate the depth. this is not difficult to do. as we have seen the formula that calculates the clip space position for multiple times. In the clip space, the z value is the depth.</p><p>what bears more explanation is the following chunk:</p><pre><code class="language-javascript code-block">        if (isFront) {
+            out.depth = in.depth;
+        }
+        else {
+            out.depth = in.depth -0.001;
+        }</code></pre><p>here we check if the current fragment is front facing. if it is, we output the depth. if it is not, we slightly adjust the depth by moving the fragment closer to the camera a little bit. This is a hack to deal with potential artifacts that might be caused by numerical errors. We will look back at this hack once we have implemented the full program and see what it will happen if we remove this hack.</p><p>now let's look at the javascript side and see how parameters are calculated and passed to the above shader. First, we need to create a model view matrix for the light. We want the light to circle around the teapot. for each rendering iteration, we slightly update the angle of the light. Then we calculate a model view matrix out of this angle.</p><pre><code class="language-javascript code-block">let lightDir = glMatrix.vec3.fromValues(Math.cos(angle) * 8.0, Math.sin(angle) * 8.0, 10);
+let lightDirectionUniformBufferUpdate = createGPUBuffer(device, lightDir, GPUBufferUsage.COPY_SRC);
+
+let lightModelViewMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
+    glMatrix.vec3.fromValues(Math.cos(angle) * 8.0, Math.sin(angle) * 8.0, 10),
+    glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(0.0, 0.0, 1.0));
+
+let lightModelViewMatrixUniformBufferUpdate = createGPUBuffer(device, lightModelViewMatrix, GPUBufferUsage.COPY_SRC);
+...
+angle += 0.01;  </code></pre><p>for the projection matrix of the light, we only need to initialize it once, as the aspect ratio as well as the shadow map's size will not change.</p><pre><code class="language-javascript code-block">let lightProjectionMatrix = glMatrix.mat4.perspective(glMatrix.mat4.create(),
+    Math.acos(0.9) * 2.0, 1.0, 1.0, 100.0);
+
+let lightProjectionMatrixUniformBuffer = createGPUBuffer(device, lightProjectionMatrix, GPUBufferUsage.UNIFORM);</code></pre><p>notice that here we are hardcoding the vertical view angle to <code>Math.acos(0.9) * 2.0</code>, this is corresponding to the threshold of 0.9 for visibility in the shader.</p><p>next, we will dump this shadow map for visualization:</p><pre><code class="language-javascript code-block">let copiedBuffer = createGPUBuffer(device, new Float32Array(1024 * 1024), GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
+...
+commandEncoder.copyTextureToBuffer({ texture: lightDepthTexture, origin: { x: 0, y: 0 } }, { buffer: copiedBuffer, bytesPerRow: 1024 * 4 }, { width: 1024, height: 1024 });
+...
+await copiedBuffer.mapAsync(GPUMapMode.READ, 0, 1024 * 1024 * 4);
+const d = new Float32Array(copiedBuffer.getMappedRange());
+const x = new Uint8ClampedArray(1024 * 1024 * 4);
+for (let i = 0; i &lt; 1024 * 1024; ++i) {
+    const v = d[i];
+    x[i * 4] = v * 255.0;
+    x[i * 4 + 1] = v * 255.0;
+    x[i * 4 + 2] = v * 255.0;
+    x[i * 4 + 3] = v * 255.0;
+}
+copiedBuffer.unmap();
+const imageData = new ImageData(x, 1024, 1024);
+imagedataToImage(imageData);</code></pre><p>here we read back the shadow map into a host copy called copiedBuffer. This buffer is in float32. We then convert this buffer to the uint8 format and convert it to image data.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Show a Dumped Shadow Map" sources='[]' /><div class="img-title">Show a Dumped Shadow Map</div></div></p><p>Finally, let's see how to use this shadow map in the last step to create shadow. let's look at the shader first.</p><pre><code class="language-javascript code-block">        var fragmentPosInShadowMapSpace: vec4&lt;f32&gt; = lightProjectionMatrix * lightModelViewMatrix * vec4(in.inPos, 1.0);
+        fragmentPosInShadowMapSpace = fragmentPosInShadowMapSpace / fragmentPosInShadowMapSpace.w;
+        var depth: f32 = fragmentPosInShadowMapSpace.z;</code></pre><p>the inPos is the vertex position. Here we calculate the depth as if the light is the camera, i.e. using the light's projection matrix and the light's model view matrix. This is essentially the same formula we have used to calculate the depth in the first shader.</p><pre><code class="language-javascript code-block">    @group(0) @binding(9)
+    var t_depth: texture_depth_2d;
+    @group(0) @binding(10)
+    var s_depth: sampler_comparison;
+
+       var uv:vec2&lt;f32&gt; = 0.5*(fragmentPosInShadowMapSpace.xy + vec2(1.0,1.0));
+
+        var visibility = 0.0;
+            let oneOverShadowDepthTextureSize = 1.0 / 1024.0;
+            for (var y = -2; y &lt;= 2; y++) {
+              for (var x = -2; x &lt;= 2; x++) {
+                let offset = vec2&lt;f32&gt;(vec2(x, y)) * oneOverShadowDepthTextureSize;
+          
+                visibility += textureSampleCompare(
+                    t_depth, s_depth,
+                    vec2(uv.x, 1.0-uv.y) + offset,depth  - 0.0003
+                );
+              }
+            }
+            visibility /= 25.0;</code></pre><p>then, we calculate the uv coordinates. The shadow map space is the same as the screen space when the light is the camera. recall that in the screen space, both x and y are in the range of [-1,1]. However, for uv coordinates, the range is [0,1]. hence, we need to do a transformation:</p><pre><code class="language-javascript code-block">var uv:vec2&lt;f32&gt; = 0.5*(fragmentPosInShadowMapSpace.xy + vec2(1.0,1.0));</code></pre><p>to improve visual quality, instead of simply compare the fragment's depth with the corresponding value, we look at a small neighborhood of 5x5 pixels on the shadow map to get an average value called visibility. as we know, the shadow map is hardcoded to the size 1024x1024, hence the size of a single pixel width and height should be 1.0/1024.0. we use this unit size to calculate an offsetted uv coordinates: <code>vec2(uv.x, 1.0-uv.y) + offset</code>. The reason we want to flip the y coordinate is because that from the top to the bottom edge of the texture map, the v coordinate changes from 0 to 1. whereas in the screen space, y axis is flipped.</p><p>one thing that is new to us here is the way we sample the texture map. we are using a comparison sampling <code>textureSampleCompare</code>. this function asks for one more parameter, which is a reference value <code>depth  - 0.0003</code>. the function will compare the texture sampled value to the reference value, and if the comparison passes, it will return 1.0, otherwise 0.0. The exact comparision is specified when we config the sampler in javascript, which we will look at later. Here in this shader, we specify comparision as "less", meaning if the shadow map has a value less than the reference value, it will return 1.0. we look this for all 25 pixels to get an average value. here we apply a small amount of offset to depth: 0.0003. this is again to avoid artifacts due to numerical errors. imagine you want to render a ball under light without any other objects in the scene. In theory, this ball should be lit. if we directly compare the true depth with the shadow map in the shader, and if there is no numerical error at all, the depth should be the same as the shadow map. But in reality, the numerical error will cause some of the fragments to have a depth less than the shadow map, and others have larger depth, resulting in artifacts of random shadow strips. To avoid this, we move the depth a bit forward, so that a surface's depth is always smaller than its own depth value on the shadow map. so it won't be occulted by itself.</p><p>finally we color the surface based on the visibility, we calculate the radiance when the two conditions are true: 1. the fragment is under the spot light's frustrum. 2. it is not in shadow.</p><pre><code>  if (face) {
+                var wldLoc2light:vec3&lt;f32&gt; =   in.wldLoc-lightLoc;
+                var align:f32 = dot( normalize(wldLoc2light),lightDir);
+
+                if (align &gt; 0.9) {
+                    var radiance:vec3&lt;f32&gt;  = ambientColor.rgb * ambientConstant + 
+                        diffuse(-lightDir, n, diffuseColor.rgb)* diffuseConstant +
+                        specular(-lightDir, viewDir, n, specularColor.rgb, shininess) * specularConstant;
+        
+                    return vec4&lt;f32&gt;(radiance * visibility ,1.0);    
+                }
+        } 
+        return vec4&lt;f32&gt;( 0.0,0.0,0.0,1.0);</code></pre><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Show Image of the Rendering Result" sources='[]' /><div class="img-title">Show Image of the Rendering Result</div></div></p><p>Now, let's look at if removing some of the tricks we added in the code, what artifacts we will see:</p><p>First, if we remove the offsets applied on the back surface:</p><pre><code class="language-javascript code-block">        if (isFront) {
+            out.depth = in.depth;
+        }
+        else {
+            out.depth = in.depth -0.001;
+        }</code></pre><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Show Image of the Artifacts" sources='[]' /><div class="img-title">Show Image of the Artifacts</div></div></p><p>(explain)</p><p>Second, what if we do not sample the shadow map in a small neighborhood, but a single sample instead?</p><pre><code class="language-javascript code-block">       var uv:vec2&lt;f32&gt; = 0.5*(fragmentPosInShadowMapSpace.xy + vec2(1.0,1.0));
+
+        var visibility = textureSampleCompare(
+                    t_depth, s_depth,
+                    vec2(uv.x, 1.0-uv.y) ,depth  - 0.0003
+                );</code></pre><p>third, what if we remove the 0.0003 hack to avoid self occlusion?</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Image Show the Artifacts" sources='[]' /><div class="img-title">Image Show the Artifacts</div></div></p>
+        </article>
+    </div>
+    <!-- The Modal -->
+    <div id="img-modal" class="modal">
+        <!-- The Close Button -->
+        <span class="close" id="img-close">&times;</span>
+        <!-- Modal Content (The Image) -->
+        <img class="modal-content" id="img01">
+
+        <!-- Modal Caption (Image Text) -->
+        <div id="caption"></div>
+    </div>
+    <script>
+        function openImage(img) {
+            let modal = document.getElementById("img-modal");
+            let modalImg = document.getElementById("img01");
+            modal.style.display = "block";
+            if (img.getAttribute("original_src")) {
+                modalImg.src = img.getAttribute("original_src");
+            } else {
+                modalImg.src = img.src;
+            }
+            let captionText = document.getElementById("caption");
+
+            captionText.innerText = img.alt;
+
+            let sources = JSON.parse(img.getAttribute("sources"));
+
+            for (let i = 0; i < sources.length; ++i) {
+                if (sources.length == 1) {
+                    captionText.innerHTML += "<a href='" + sources[i] + "' target='_blank' class='img-source'>SOURCE</a>";
+                } else {
+                    captionText.innerHTML += "<a href='" + sources[i] + "' target='_blank' class='img-source'>SOURCE " + (i + 1) + "</a>";
+                }
+            }
+        }
+        // Get the <span> element that closes the modal
+        var closeButton = document.getElementById("img-close");
+
+        // When the user clicks on <span> (x), close the modal
+        closeButton.onclick = function () {
+            var modal = document.getElementById("img-modal");
+            modal.style.display = "none";
+        }
+    </script>
+
+<script type="module">
+    const macros = {};
+    const mathElementsBlock = document.getElementsByClassName("math-block");
+    for (let element of mathElementsBlock) {
+        katex.render(element.textContent, element, {
+            throwOnError: false,
+            displayMode: true,
+            macros
+        });
+    }
+
+    const mathElementsInline = document.getElementsByClassName("math-inline");
+    for (let element of mathElementsInline) {
+        katex.render(element.textContent, element, {
+            throwOnError: false,
+            macros
+        });
+    }
+
+    hljs.highlightAll();
+
+</script>
+</body>
+
+</html>

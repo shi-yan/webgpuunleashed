@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <!-- Primary Meta Tags -->
+    <title>: WebGPU Unleashed: A Practical Tutorial</title>
+    <meta name="title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta name="description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://shi-yan.github.io/WebGPUUnleashed/Basics/drawing_a_triangle_with_defined_vertices.html" />
+    <meta property="og:title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta property="og:description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+    <meta property="og:image" content="/WebGPUUnleashed/meta.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://shi-yan.github.io/WebGPUUnleashed/Basics/drawing_a_triangle_with_defined_vertices.html" />
+    <meta property="twitter:title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta property="twitter:description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+    <meta property="twitter:image" content="/WebGPUUnleashed/meta.png" />
+
+    <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/html.min.js"></script>
+
+
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/default-dark.min.css"
+        integrity="sha512-EF2rc4QyBiRAGUMVm+EjFPBbdVGaN/pwZhtuKyrC/dM+hcwTxI5BsEDUkrMRI77z4VlDAt/qVopePXB5+ZZ8Gw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="
+        https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js
+        "></script>
+    <link href="
+        https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css
+        " rel="stylesheet" />
+
+    <script>
+        function fold(e) {
+            const sub = e.currentTarget.parentElement.getElementsByTagName("ul")[0];
+            console.log("sub", e.currentTarget, sub);
+            if (sub.style.display === "block") {
+                sub.style.display = "none";
+            } else {
+                sub.style.display = "block";
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <nav role="navigation">
+        <div id="menuToggle">
+            <input type="checkbox" />
+            <span></span>
+            <span></span>
+            <span></span>
+            <ul id="menu">
+                <!--<li><a href="#">Home</a></li>
+                <li><a href="#">About</a></li>
+                <li><a id="test" href="#" onclick="fold(event)">Info</a>
+                    <ul class="sub-menu">
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                    </ul>
+                </li>
+                <li><a href="#">Contact</a></li>
+                <li><a href="https://erikterwan.com/" target="_blank">Show me more</a></li>-->
+                <li><a href="#" onclick="fold(event)">Intro</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Introduction/the_gpu_driver.html">The GPU Driver</a></li>
+                        <li><a href="/WebGPUUnleashed/Introduction/the_gpu_pipeline.html">The GPU Pipeline</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Basics</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Basics/creating_an_empty_canvas.html">Creating an Empty Canvas</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_triangle.html">Drawing a Triangle</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_triangle_with_defined_vertices.html">Drawing a Triangle with Defined Vertices</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/applying_hardcoded_vertex_colors.html">Applying Hardcoded Vertex Colors</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/using_different_vertex_colors.html">Using Different Vertex Colors</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_colored_triangle_with_a_single_buffer.html">Drawing a Colored Triangle with a Single Buffer</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/understanding_uniforms.html">Understanding Uniforms</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/working_with_textures.html">Working with Textures</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/utilizing_transformation_matrices.html">Utilizing Transformation Matrices</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/implementing_cameras.html">Implementing Cameras</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/triangle_strips.html">Triangle Strips</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/front_and_back_face_culling.html">Front and Back Face Culling</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/depth_testing.html">Depth Testing</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/index_buffers.html">Index Buffers</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/loading_3d_models.html">Loading 3D Models</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/understanding_normals.html">Understanding Normals</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/lighting.html">Lighting</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/multi_sample_anti_aliasing.html">Multi-Sample Anti-Aliasing</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/mipmapping_and_anisotropic_filtering.html">Mipmapping and Anisotropic Filtering</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">2D Techniques</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/rendering_to_textures.html">Rendering to Textures</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/orthogonal_cameras.html">Orthogonal Cameras</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/implementing_gaussian_blur.html">Implementing Gaussian Blur</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/video_rendering.html">Video Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/text_rendering.html">Text Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/billboarding.html">Billboarding</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/implementing_fake_3d.html">Implementing Fake 3D</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Control</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Control/canvas_resizing.html">Canvas Resizing</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/arcball_camera_control.html">Arcball Camera Control</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/object_picking.html">Object Picking</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/saving_images_and_videos.html">Saving Images and Videos</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/using_web_workers.html">Using Web Workers</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/error_handling_and_limits.html">Error Handling and Limits</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Compute</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Compute/prefix_sum.html">Prefix Sum</a></li>
+                        <li><a href="/WebGPUUnleashed/Compute/radix_sort.html">Radix Sort</a></li>
+                        <li><a href="/WebGPUUnleashed/Compute/reaction_diffusion.html">Reaction Diffusion</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Advanced</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Advanced/stencil_buffer.html">Stencil Buffer</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/shadow_mapping.html">Shadow Mapping</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/toon_shading.html">Toon Shading</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/equirectangular_rendering.html">Equirectangular Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/mega_texture.html">Mega Texture</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/transparency_with_depth_peeling.html">Transparency with Depth Peeling</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/skeleton_animation.html">Skeleton Animation</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/normal_mapping_and_bump_mapping.html">Normal Mapping and Bump Mapping</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/gaussian_splatting.html">Gaussian Splatting</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div id="article-container">
+        <article>
+            <h2 >1.2 Drawing a Triangle with Defined Vertices</h2><p>In the previous tutorial, we have drawn a triangle without feeding any vertex data. The vertex positions are calculated in the shader. This trick only works when we only need to draw very simple geometry. For most of the real cases, deriving positions based on vertex indices is not practical. We need to prepare vertex positions as input data and provide it to the pipeline.</p><p>In this tutorial, we will again draw a single triangle. However, this time, we will create vertex data explicitly.</p><pre><code class="language-html code-block">&lt;script id="shader" type="wgsl"&gt;
+...
+@vertex
+fn vs_main(
+    @location(0) inPos: vec3&lt;f32&gt;,
+) -&gt; VertexOutput {
+    var out: VertexOutput;
+    out.clip_position = vec4&lt;f32&gt;(inPos, 1.0);
+    return out;
+}
+...
+&lt;/script&gt;</code></pre><p>First, we look at the shader change. Again, we omit what's the same as before. The input to vs_main has changed from <code>@builtin(vertex_index) in_vertex_index: u32</code> to <code>@location(0) inPos: vec3&lt;f32&gt;</code>. What we are doing here is changing the input from <code>@builtin(vertex_index)</code> to <code>@location(0)</code>, meaning we don't want the vertex indices anymore. We want the vertex positions instead. And the positions are located in <code>@location(0)</code> and their format is a vector of 3 floats.</p><p>In the function body, we don't need to derive the vertex positions anymore as we expected they are precalculated before sending to the shader. Here, we simply create a vector of 4 floats and assign its xyz to the input position and the w with 1.0.</p><p>The reset of the shader is the same. The new shader is actually simpler.</p><pre><code class="language-html code-block">&lt;script&gt;
+    async function webgpu() {
+        ...
+        const positionAttribDesc = {
+            shaderLocation: 0, // @location(0)
+            offset: 0,
+            format: 'float32x3'
+        };
+        ...
+    }
+    webgpu();
+&lt;/script&gt;</code></pre><p>Now, let's look at the pipeline change to adopt the new shader code. First, we need to create a position attribute description. An attribute is referring to the input to the function <code>@location(0) inPos: vec3&lt;f32&gt;</code>. unlike the <code>@builtin</code>s, an attribute doesn't have predefined meanings. its meaning is determined by the developer, it could represent the vertex positions, or it could represent vertex colors or texture coordinates.</p><p>first, we specify the attribute's location <code>shaderLocation</code>, this is corresponding to <code>@location(0)</code>. Second, we tell the pipeline the offset to find the first element of this attribute, because we can mingle multiple attributes in a single piece of buffer, we can use the offset to specify the beginning of the current attribute. Finally, the format field defines the format and it's corresponding to <code>vec3&lt;f32&gt;</code> in the shader.</p><pre><code class="language-html code-block">&lt;script&gt;
+    async function webgpu() {
+        ...
+        const positionBufferLayoutDesc = {
+            attributes: [positionAttribDesc],
+            arrayStride: 4 * 3, // sizeof(float) * 3
+            stepMode: 'vertex'
+        };
+        ...
+    }
+    webgpu();
+&lt;/script&gt;</code></pre><p>Moving forward, our next task involves creating a buffer layout descriptor. This step serves as a crucial aid to our GPU pipeline, facilitating its comprehension of the buffer's format when we submit it. The GPU pipeline is designed to dissect the buffer into individual vertices, even though we provide all vertex data in a single buffer for all vertices simultaneously. This is necessary because our vert_main function processes vertices individually.</p><p>Within this layout descriptor structure, we find an attribute list. In our current example, where we only deal with positions, the list solely contains the position attribute descriptor. Following that, we proceed to define the arrayStride. This parameter denotes the size of the step by which we advance the buffer pointer for each vertex. For instance, for the initial vertex (vertex zero), its data resides at offset zero within the buffer. For the subsequent vertex (vertex 1), we locate its data at the offset zero + arrayStride, which initiates at the 12th byte.</p><p>Finally, we specify the step mode. Two options exist: vertex and instance. By choosing either, we instruct the GPU pipeline to advance the pointer of this buffer for each vertex or for each instance. We'll discuss the concept of instancing in future chapters. However, for most scenarios, the vertex option suffices.</p><pre><code class="language-html code-block">&lt;script&gt;
+    async function webgpu() {
+        ...
+        const positions = new Float32Array([
+            1.0, -1.0, 0.0, -1.0, -1.0, 0.0, 0.0, 1.0, 0.0
+        ]);
+        ...
+    }
+
+    webgpu();
+&lt;/script&gt;</code></pre><p>Now, let's proceed to prepare the actual buffer, a straightforward step. Here, we create a 32-bit floating-point array and populate it with the coordinates of the three vertices. Hence, we have nine values within this array.</p><pre><code class="language-html code-block">&lt;script&gt;
+    async function webgpu() {
+        ...
+
+        const positionBufferDesc = {
+            size: positions.byteLength,
+            usage: GPUBufferUsage.VERTEX,
+            mappedAtCreation: true
+        };
+
+        let positionBuffer = device.createBuffer(positionBufferDesc);
+        // Create a temporary array linked to the mapped GPU buffer
+        const writeArray = new Float32Array(positionBuffer.getMappedRange());
+
+        // Copy the CPU buffer to the GPU buffer via the temporary array
+        writeArray.set(positions);
+
+        // Unmap the buffer, ensuring data is transferred to the GPU
+        positionBuffer.unmap();
+        ...
+    }
+
+    webgpu();
+&lt;/script&gt;</code></pre><p>Up to this point, the data we've generated resides in CPU memory. To utilize it within the GPU pipeline, we must first transfer this data to GPU memory, which entails creating a GPU buffer.</p><p>To initiate this process, we start by crafting a buffer descriptor. The descriptor's first field specifies the size of the buffer, followed by the usage flag. In our case, since we intend to use this buffer for supplying vertex data, we set the <code>VERTEX</code> flag. Finally, we determine whether we want to map this buffer at creation.</p><p>Mapping is a crucial operation that must precede any data transfer between the CPU and GPU. Mapping essentially creates a mirrored buffer on the CPU side for the GPU buffer. Only after mapping can we copy data to the GPU. Once we're finished with the data copying, we call <code>unmap</code> to flush the data onto the GPU.</p><p>Here, the <code>mappedAtCreation</code> flag provides a convenient shortcut. By specifying this flag, the buffer is automatically mapped upon creation, making it immediately available for data copying.</p><p>Once the descriptor structure is defined, the subsequent line creates the buffer based on this descriptor. Since the buffer is already mapped at this point, we proceed to write the data.</p><p>Our approach involves creating a dummy 32-bit floating-point array, directly linked to the mapped GPU buffer. We then simply copy the CPU buffer to this dummy buffer. After unmapping it, we can be confident that the data has been successfully moved to the GPU and is ready for utilization by the shader.</p><pre><code class="language-html code-block">&lt;script&gt;
+
+    async function webgpu() {
+       ...
+
+        const pipelineDesc = {
+            layout,
+            vertex: {
+                module: shaderModule,
+                entryPoint: 'vs_main',
+                buffers: [positionBufferLayoutDesc]
+            },
+            fragment: {
+                module: shaderModule,
+                entryPoint: 'fs_main',
+                targets: [colorState]
+            },
+            primitive: {
+                topology: 'triangle-list',
+                frontFace: 'ccw',
+                cullMode: 'back'
+            }
+        };
+
+       ...
+
+        passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
+        passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+        passEncoder.setPipeline(pipeline);
+        // Set the vertex buffer for the pipeline
+        passEncoder.setVertexBuffer(0, positionBuffer);
+
+        // Draw three vertices as a single triangle
+        passEncoder.draw(3, 1);
+        passEncoder.end();
+    }
+
+    webgpu();
+&lt;/script&gt;</code></pre><p>The remaining part of the code closely resembles the previous tutorial with only minor differences. One notable change is seen when defining the pipeline descriptor. In the vertex stage, observe that we provide a buffer layout descriptor in the buffers field. It's worth noting that we can provide more than just one buffer here.</p><p>Subsequently, we create a new pipeline using this updated pipeline descriptor. When crafting a command with this pipeline, we also need to set a vertex buffer using the <code>setVertexBuffer</code> function. The first parameter represents an index since the vertex stage has the capability to access multiple buffers. Here, we specify that the position buffer, which resides on the GPU, should be used as the vertex data source.</p>
+        </article>
+    </div>
+    <!-- The Modal -->
+    <div id="img-modal" class="modal">
+        <!-- The Close Button -->
+        <span class="close" id="img-close">&times;</span>
+        <!-- Modal Content (The Image) -->
+        <img class="modal-content" id="img01">
+
+        <!-- Modal Caption (Image Text) -->
+        <div id="caption"></div>
+    </div>
+    <script>
+        function openImage(img) {
+            let modal = document.getElementById("img-modal");
+            let modalImg = document.getElementById("img01");
+            modal.style.display = "block";
+            if (img.getAttribute("original_src")) {
+                modalImg.src = img.getAttribute("original_src");
+            } else {
+                modalImg.src = img.src;
+            }
+            let captionText = document.getElementById("caption");
+
+            captionText.innerText = img.alt;
+
+            let sources = JSON.parse(img.getAttribute("sources"));
+
+            for (let i = 0; i < sources.length; ++i) {
+                if (sources.length == 1) {
+                    captionText.innerHTML += "<a href='" + sources[i] + "' target='_blank' class='img-source'>SOURCE</a>";
+                } else {
+                    captionText.innerHTML += "<a href='" + sources[i] + "' target='_blank' class='img-source'>SOURCE " + (i + 1) + "</a>";
+                }
+            }
+        }
+        // Get the <span> element that closes the modal
+        var closeButton = document.getElementById("img-close");
+
+        // When the user clicks on <span> (x), close the modal
+        closeButton.onclick = function () {
+            var modal = document.getElementById("img-modal");
+            modal.style.display = "none";
+        }
+    </script>
+
+<script type="module">
+    const macros = {};
+    const mathElementsBlock = document.getElementsByClassName("math-block");
+    for (let element of mathElementsBlock) {
+        katex.render(element.textContent, element, {
+            throwOnError: false,
+            displayMode: true,
+            macros
+        });
+    }
+
+    const mathElementsInline = document.getElementsByClassName("math-inline");
+    for (let element of mathElementsInline) {
+        katex.render(element.textContent, element, {
+            throwOnError: false,
+            macros
+        });
+    }
+
+    hljs.highlightAll();
+
+</script>
+</body>
+
+</html>

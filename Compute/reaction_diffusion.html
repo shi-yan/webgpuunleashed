@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <!-- Primary Meta Tags -->
+    <title>: WebGPU Unleashed: A Practical Tutorial</title>
+    <meta name="title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta name="description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://shi-yan.github.io/WebGPUUnleashed/Compute/reaction_diffusion.html" />
+    <meta property="og:title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta property="og:description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+    <meta property="og:image" content="/WebGPUUnleashed/meta.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://shi-yan.github.io/WebGPUUnleashed/Compute/reaction_diffusion.html" />
+    <meta property="twitter:title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta property="twitter:description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+    <meta property="twitter:image" content="/WebGPUUnleashed/meta.png" />
+
+    <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+
+
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/default-dark.min.css"
+        integrity="sha512-EF2rc4QyBiRAGUMVm+EjFPBbdVGaN/pwZhtuKyrC/dM+hcwTxI5BsEDUkrMRI77z4VlDAt/qVopePXB5+ZZ8Gw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="
+        https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js
+        "></script>
+    <link href="
+        https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css
+        " rel="stylesheet" />
+
+    <script>
+        function fold(e) {
+            const sub = e.currentTarget.parentElement.getElementsByTagName("ul")[0];
+            console.log("sub", e.currentTarget, sub);
+            if (sub.style.display === "block") {
+                sub.style.display = "none";
+            } else {
+                sub.style.display = "block";
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <nav role="navigation">
+        <div id="menuToggle">
+            <input type="checkbox" />
+            <span></span>
+            <span></span>
+            <span></span>
+            <ul id="menu">
+                <!--<li><a href="#">Home</a></li>
+                <li><a href="#">About</a></li>
+                <li><a id="test" href="#" onclick="fold(event)">Info</a>
+                    <ul class="sub-menu">
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                    </ul>
+                </li>
+                <li><a href="#">Contact</a></li>
+                <li><a href="https://erikterwan.com/" target="_blank">Show me more</a></li>-->
+                <li><a href="#" onclick="fold(event)">Intro</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Introduction/the_gpu_driver.html">The GPU Driver</a></li>
+                        <li><a href="/WebGPUUnleashed/Introduction/the_gpu_pipeline.html">The GPU Pipeline</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Basics</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Basics/creating_an_empty_canvas.html">Creating an Empty Canvas</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_triangle.html">Drawing a Triangle</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_triangle_with_defined_vertices.html">Drawing a Triangle with Defined Vertices</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/applying_hardcoded_vertex_colors.html">Applying Hardcoded Vertex Colors</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/using_different_vertex_colors.html">Using Different Vertex Colors</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_colored_triangle_with_a_single_buffer.html">Drawing a Colored Triangle with a Single Buffer</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/understanding_uniforms.html">Understanding Uniforms</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/working_with_textures.html">Working with Textures</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/utilizing_transformation_matrices.html">Utilizing Transformation Matrices</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/implementing_cameras.html">Implementing Cameras</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/triangle_strips.html">Triangle Strips</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/front_and_back_face_culling.html">Front and Back Face Culling</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/depth_testing.html">Depth Testing</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/index_buffers.html">Index Buffers</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/loading_3d_models.html">Loading 3D Models</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/understanding_normals.html">Understanding Normals</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/lighting.html">Lighting</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/multi_sample_anti_aliasing.html">Multi-Sample Anti-Aliasing</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/mipmapping_and_anisotropic_filtering.html">Mipmapping and Anisotropic Filtering</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">2D Techniques</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/rendering_to_textures.html">Rendering to Textures</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/orthogonal_cameras.html">Orthogonal Cameras</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/implementing_gaussian_blur.html">Implementing Gaussian Blur</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/video_rendering.html">Video Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/text_rendering.html">Text Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/billboarding.html">Billboarding</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/implementing_fake_3d.html">Implementing Fake 3D</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Control</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Control/canvas_resizing.html">Canvas Resizing</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/arcball_camera_control.html">Arcball Camera Control</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/object_picking.html">Object Picking</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/saving_images_and_videos.html">Saving Images and Videos</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/using_web_workers.html">Using Web Workers</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/error_handling_and_limits.html">Error Handling and Limits</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Compute</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Compute/prefix_sum.html">Prefix Sum</a></li>
+                        <li><a href="/WebGPUUnleashed/Compute/radix_sort.html">Radix Sort</a></li>
+                        <li><a href="/WebGPUUnleashed/Compute/reaction_diffusion.html">Reaction Diffusion</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Advanced</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Advanced/stencil_buffer.html">Stencil Buffer</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/shadow_mapping.html">Shadow Mapping</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/toon_shading.html">Toon Shading</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/equirectangular_rendering.html">Equirectangular Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/mega_texture.html">Mega Texture</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/transparency_with_depth_peeling.html">Transparency with Depth Peeling</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/skeleton_animation.html">Skeleton Animation</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/normal_mapping_and_bump_mapping.html">Normal Mapping and Bump Mapping</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/gaussian_splatting.html">Gaussian Splatting</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div id="article-container">
+        <article>
+            <h2 >4.2 Reaction Diffusion</h2><p>As a third example, let's explore a scenario where a compute shader collaborates with a rendering shader. The compute shader engages in a straightforward simulation known as reaction-diffusion, and the rendering shader is responsible for visualizing the outcomes of the simulated process.</p><p>In his groundbreaking 1952 paper, "The Chemical Basis of Morphogenesis," Alan Turing proposed a mathematical model to elucidate the emergence of complex patterns and structures within biological systems, particularly in the realm of embryonic development.</p><p>Turing's model explores the interaction of two chemicals undergoing reaction and diffusion processes. This concept, commonly termed the Turing pattern, has become associated with reaction-diffusion systems.Reaction-diffusion equations delineate how concentrations of substances evolve over space and time, influenced by both chemical reactions and substance diffusion. In the realm of pattern formation, Turing's concepts laid the groundwork for comprehending how elementary local interactions could give rise to the development of intricate patterns within biological systems. Despite the seemingly simplicity of the reaction-diffusion system, Turing theorized that it underlies the intricate patterns observed in animals, such as zebras and leopards.</p><p>In our simulation, we simulate the behavior of two chemicals, A and B. Specifically, two molecules of B catalyze the conversion of one molecule of A into B. Chemical A is introduced into the system at a specified rate, while chemical B exits the system at a distinct rate. This dynamic interplay between the addition of chemical A and the removal of chemical B contributes to the evolving state of the simulation, reflecting the intricate balance and interactions within the simulated reaction-diffusion system.</p><p>===</p><p>However, We don't want to model individual molecules. Instead, we divide the whole space into small units. Each unit is a pixel. For each time stamp interval, we update the amount of A and B in each pixel and their concentration will be visualized using color. The whole process can be stated in the following equations:</p><p class="katex-display-counter"><code class="language-math math-block">A^\prime = A + (D_A \nabla^2 A - A B^2 + f(1-A)	)\Delta	t
+B^\prime = B + (D_B \nabla^2 B + A B^2 - (K+f)B)\Delta	t</code></p><p>Basically this first equation models the chemical A. For each unit time <code class="language-math math-inline">\Delta t</code>, the diffused amount is defined by <code class="language-math math-inline">D_A \nabla^2 A</code>, <code class="language-math math-inline">D_A \nabla^2</code> is called a laplacian, it is essentially a 3x3 matrix used to calculate a weighted sum of each 3x3 neighborhood. If the center pixel has more concentration than its neighbors, we let more chemical flow into the neighbors. But if the neighbors have more concentration, we do the opposite to let the chemical flow from neighbors to the central pixel.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Show the Laplacian" sources='[]' /><div class="img-title">Show the Laplacian</div></div></p><p>The second part models the chemical reaction. Because for the reaction to happen, we need to have two Bs and one A. Since we are modeling the chemical by their concentration, we can view it as the possibility of meeting a molecule. Which makes sense, because the more a chemical concentrate, the higher possibility we have to run into a molecule. So <code class="language-math math-inline">A B^2</code> is essentially the probability of one A meets two Bs.</p><p>Finally we are adding new molecule A into the system at a rate <code class="language-math math-inline">f(1-A)</code>, this can guarantee that the amount of A won't become larger than 1.0, because if it is, the rate will become negative to compensate the effect.</p><p>And similarly, we remove B molecule at the rate of <code class="language-math math-inline">(K+f)B</code>, since <code class="language-math math-inline">K + f > f</code>, this guarantee that B is removed faster than A being added.</p><p><code class="language-math math-inline">\Delta t</code> is the time interval.</p><p>Now let's look at the code. the purpose of this exercise is to look at how to let a compute shader work together with a rendering shader. There are two storage textures involved in the program. Unlike a normal texture, a storage texture can be written to. We use two textures. for each shader invocation, we use one of them as the input texture, containing the current chemical concentration. And we update the concentration based on the above formula, and write the result into another storage texture. Then we trigger the rendering program for visualization. For the consecutive run, we switch the roles of the two textures. The previous input texture now becomes the output and vise versa.</p><pre><code>    enable chromium_experimental_read_write_storage_texture;
+
+      @binding(0) @group(0) var texSrc : texture_storage_2d&lt;rg32float, read&gt;;
+      @binding(1) @group(0) var texDst : texture_storage_2d&lt;rg32float, write&gt;;
+      @binding(2) @group(0) var&lt;uniform&gt; drawPos : vec3&lt;f32&gt;;
+        
+
+      const imageSize:i32 = 1024;</code></pre><p>first let's define the inputs of the compute shader. In the first line, we need to explicitly enable the writable storage texture feature, because this feature is still experimental. This is not the only line of code we need to enable this feature, in fact, we will need to also request this feature when we request the device, which we will see later.</p><p>As previously mentioned, there are two texture maps, one for inputs and one for outputs. notice that the format of the two texture maps are rg32f, because we have two types of chemicals, we can use two channels to represent them. And we choose 32f for numerical accuracy.</p><p>We also have a drawPos which defines a position. This position represents the current brush location, because we want our demo to be interactive, we want our users can draw on the canvas by adding chemical A where the brush is.</p><p>for image size, we hardcode it to 1024.</p><pre><code>@compute @workgroup_size(16, 16)
+fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3&lt;u32&gt;) {
+   ...
+}</code></pre><p>Next, we create a compute kernel function. Notice that we are using a 2D workgroup of size 16x16. 2D is because our problem is now a 2D problem calculating pixel values of a 2D texture map. the size 16x16 seems to be too small compared to the size of the texture map size of 1024. This is because 16x16 is as large as the maximum workgroup_size we can request, as the maxComputeInvocationsPerWorkgroup (The maximum value of the product of the workgroup_size dimensions for a compute stage) is 256.</p><pre><code>      @compute @workgroup_size(16, 16)
+      fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3&lt;u32&gt;) {
+
+            var centerY:i32 = i32(GlobalInvocationID.y);
+            var centerX:i32 = i32(GlobalInvocationID.x);
+
+            if (drawPos.z &gt; 0.5) {
+                var radius:f32 = sqrt((f32(centerX) - drawPos.x)*(f32(centerX) - drawPos.x) +
+                (f32(centerY) - drawPos.y)*(f32(centerY) - drawPos.y));
+
+                if (radius &lt; 5.0) {
+                    textureStore(texDst, vec2i(GlobalInvocationID.xy), vec4&lt;f32&gt;(0.0,1.0,0.0,0.0));
+                    return;
+                }
+            }
+        }</code></pre><p>next, we handle brush first, if the user is currently drawing (determined by drawPos.z > 0.5), we then calculate the distance between the current pixel (centerX, centerY) and the drawPox.xy, if the distance is within 5.0, we simply assign the texture with the color 0.0, 1.0, because we want the pixel to be fully concentrated by modelcule B.</p><pre><code>            var data:vec2&lt;f32&gt; = vec2&lt;f32&gt;(0.0,0.0);
+            var original:vec2&lt;f32&gt; = textureLoad(texSrc, GlobalInvocationID.xy).rg;
+
+            for(var y = -1; y&lt;= 1;y++){
+                var accessY:i32 = centerY + y;
+                if (accessY &lt; 0) {
+                    accessY = imageSize-1;
+                }
+                else if (accessY &gt;= imageSize){
+                    accessY = 0;
+                }
+
+                for(var x = -1; x&lt;=1;x++) {
+                    
+                  
+                    var accessX:i32 =centerX+ x;
+
+                    if (accessX &lt; 0) {
+                        accessX = imageSize-1;
+                    }
+                    else if (accessX &gt;= imageSize){
+                        accessX = 0;
+                    }
+
+                    ...
+                }
+            }</code></pre><p>next, we loop through the nearby 3x3 neighborhood. here we want to wrap around the indices if they are outside the image.</p><pre><code>           for(var y = -1; y&lt;= 1;y++){
+                ...
+                for(var x = -1; x&lt;=1;x++) {
+                    ...
+        var rate = -1.0;
+                    if (x==0 &amp;&amp; y == 0){
+                        rate = -1.0;
+                    }else if (x ==0 || y==0){
+                        rate = 0.2;
+                    }
+                    else {
+                        rate = 0.05;
+                    }
+                    data += textureLoad(texSrc, vec2i(accessX, accessY)).rg * rate;
+                }
+            }</code></pre><p>then we calculate the amount of concentration change due to diffusion.</p><pre><code>            const f:f32 = 0.055;
+            const k:f32 = 0.062;
+            data = vec2&lt;f32&gt;(data.x- original.x*original.y*original.y
+                + f * (1.0 - original.x),
+                 data.y*0.5 + original.x*original.y*original.y - (k+f) * original.y) + original;
+            textureStore(texDst, vec2i(GlobalInvocationID.xy), vec4&lt;f32&gt;(data,0.0,0.0));</code></pre><p>and finally, we calculate the concentration change due to reaction and that is added into or removed from the system. and we then write the result to the output texture map.</p><p>The rendering shader is the same as a simple texture mapping shader, where we apply the result from the compute shader onto a quad for visualization. I will omit the code here, please refer to our sample code. One thing worth mentioning is that, for the rendering shader, the texture map we load doesn't have to be a storage type. it can simply be the normal texture map type.</p><p>Now let's look at pipeline configuration.</p><pre><code class="language-javascript code-block"> const feature = "chromium-experimental-read-write-storage-texture";
+        const adapter = await navigator.gpu.requestAdapter();
+    ...
+        if (!adapter.features.has(feature)) {
+            showWarning("This sample requires a chrome experimental feature. Please restart chrome with the --enable-dawn-features=allow_unsafe_apis flag.");
+            throw new Error("Read-write storage texture support is not available");
+        }
+        const device = await adapter.requestDevice({
+            requiredFeatures: [feature],
+        });</code></pre><p>First, as previously mentioned, we need to request the storage texture feature when creating the device.</p><p>Next, we need to configure the uniforms for the compute stage</p><pre><code class="language-javascript code-block">
+        const context = configContext(device, canvas)
+
+        // create shaders
+        let shaderModule = shaderModuleFromCode(device, 'shader');
+
+        let uniformBindGroupLayoutCompute = device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.COMPUTE,
+                    storageTexture: {
+                        access: "read-only",
+                        format: "rg32float",
+                    }
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.COMPUTE,
+                    storageTexture: {
+                        access: "write-only",
+                        format: "rg32float",
+                    }
+                },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: {}
+                }
+            ]
+        });</code></pre><p>it's similar to what we have done before, but please pay attention to the storage texture's configuration. We specify read-only access for the input texture and write-only for the output texture. And for format, rg32float is used.</p><p>Next, we initialize the input texture. Because we want to assign the input texture some initial chemical concentration, such that it can develop into a pattern without any user input.</p><pre><code class="language-javascript code-block">        const srcTextureDesc = {
+            size: [1024, 1024, 1],
+            dimension: '2d',
+            format: "rg32float",
+            usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING
+        };
+
+        let textureValues = [];
+
+        for (let y = 0; y &lt; 1024; ++y) {
+            for (let x = 0; x &lt; 1024; ++x) {
+                if (x &gt; 302 &amp;&amp; x &lt; 532 &amp;&amp; y &gt;= 302 &amp;&amp; y &lt; 532) {
+                    textureValues.push(0.0);
+                    textureValues.push(1.0);
+                }
+                else {
+                    textureValues.push(1.0);
+                    textureValues.push(0.0);
+                }
+            }
+        }
+
+        let srcTexture = device.createTexture(srcTextureDesc);
+
+        device.queue.writeTexture({ texture: srcTexture }, new Float32Array(textureValues), {
+            offset: 0,
+            bytesPerRow: 1024 * 8,
+            rowsPerImage: 1024
+        }, { width: 1024, height: 1024 });
+        await device.queue.onSubmittedWorkDone();</code></pre><p>the way we initialize this texture map is easy, we define a rectangle area [302, 532, 302, 532], such that within this rectangle, we assign chemical B, otherwise the chemical A. And finally we load the data to the input texture.</p><pre><code class="language-javascript code-block">      const dstTextureDesc = {
+            size: [1024, 1024, 1],
+            dimension: '2d',
+            format: "rg32float",
+            usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING
+        };
+
+        let dstTexture = device.createTexture(dstTextureDesc);
+
+        let drawPosUniformBuffer = createGPUBuffer(device, drawPos, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);</code></pre><p>next is creating the output texture. There is no initialization needed for this texture map. For uniform bind group, we need to create two. because we want to alternating the role of the input and the output texture maps between two consecutive invocations.</p><pre><code class="language-javascript code-block">
+        let uniformBindGroupCompute0 = device.createBindGroup({
+            layout: uniformBindGroupLayoutCompute,
+            entries: [
+                {
+                    binding: 0,
+                    resource: srcTexture.createView()
+                },
+                {
+                    binding: 1,
+                    resource: dstTexture.createView()
+                },
+                {
+                    binding: 2,
+                    resource: {
+                        buffer: drawPosUniformBuffer
+                    }
+                }
+            ]
+        });
+
+        let uniformBindGroupCompute1 = device.createBindGroup({
+            layout: uniformBindGroupLayoutCompute,
+            entries: [
+                {
+                    binding: 0,
+                    resource: dstTexture.createView()
+                },
+                {
+                    binding: 1,
+                    resource: srcTexture.createView()
+                },
+                {
+                    binding: 2,
+                    resource: {
+                        buffer: drawPosUniformBuffer
+                    }
+                }
+            ]
+        });</code></pre><p>And after the above, we need to create the compile shader pipeline. Since it is the same process as we have seen before, we will skip the code here. After the compute shader is configured, we now have to configure the bind group layout for the render shader:</p><pre><code class="language-javascript code-block">
+        const sampler = device.createSampler({
+            addressModeU: "clamp-to-edge",
+            addressModeV: "clamp-to-edge",
+            addressModeW: "clamp-to-edge",
+            magFilter: "nearest",
+            minFilter: "nearest",
+            mipmapFilter: "nearest"
+        });
+
+        let uniformBindGroupLayoutRender = device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: {
+                        sampleType: "unfilterable-float",
+                    }
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler: {
+                        type: "non-filtering",
+                    }
+                }
+            ]
+        });</code></pre><p>unless the feature  "float32-filterable" is enabled, the texture format rg32float can only be unfilterable-float for its sampleType, and accordingly the sampler has to use "nearest" for the filters and has the type non-filtering. If you are not familiar with the concept of filtering, in computer graphics, filtering means the gpu will interpolate the values defined on the texture map to derive the values you will read in a shader program. During the texture mapping process for any arbitrary 3D surface, a texture lookup takes place to find out where on the texture each pixel center falls. For texture-mapped polygonal surfaces composed of triangles typical of most surfaces in 3D games and movies, every pixel (or subordinate pixel sample) of that surface will be associated with some triangle(s) and a set of barycentric coordinates, which are used to provide a position within a texture. Such a position may not lie perfectly on the "pixel grid," necessitating some function to account for these cases. In other words, since the textured surface may be at an arbitrary distance and orientation relative to the viewer, one pixel does not usually correspond directly to one texel. Some form of filtering has to be applied to determine the best color for the pixel. Insufficient or incorrect filtering will show up in the image as artifacts (errors in the image), such as 'blockiness', jaggies, or shimmering.</p><p>There can be different types of correspondence between a pixel and the texel/texels it represents on the screen. These depend on the position of the textured surface relative to the viewer, and different forms of filtering are needed in each case. Given a square texture mapped on to a square surface in the world, at some viewing distance the size of one screen pixel is exactly the same as one texel. Closer than that, the texels are larger than screen pixels, and need to be scaled up appropriately — a process known as texture magnification. Farther away, each texel is smaller than a pixel, and so one pixel covers multiple texels. In this case an appropriate color has to be picked based on the covered texels, via texture minification. Graphics APIs such as OpenGL allow the programmer to set different choices for minification and magnification filters.[1]</p><p>Note that even in the case where the pixels and texels are exactly the same size, one pixel will not necessarily match up exactly to one texel. It may be misaligned or rotated, and cover parts of up to four neighboring texels. Hence some form of filtering is still required.</p><p>Disabling filtering means that we will read the values as they are defined on the texture map without interpolations. For our demo, we will read the values as they are, to void the extra requirement of enabling "float32-filterable".</p><p>For bind groups, again, we need two in order to alternate the two texture maps</p><pre><code class="language-javascript code-block">        let uniformBindGroupRender0 = device.createBindGroup({
+            layout: uniformBindGroupLayoutRender,
+            entries: [
+                {
+                    binding: 0,
+                    resource: dstTexture.createView()
+                },
+                {
+                    binding: 1,
+                    resource: sampler
+                }
+            ]
+        });
+
+        let uniformBindGroupRender1 = device.createBindGroup({
+            layout: uniformBindGroupLayoutRender,
+            entries: [
+                {
+                    binding: 0,
+                    resource: srcTexture.createView()
+                },
+                {
+                    binding: 1,
+                    resource: sampler
+                }
+            ]
+        });</code></pre><p>The rest code of creating the rendering pipeline is the same as before, I will skip the details. For shader invocation, let's first look at how to implement brush drawing. because the pattern generated by the reaction diffusion process is highly related to the initial chemical concentration, we want the users to be able to alter this concentration to alter the pattern. Hence we want to add the capability of brush drawing.</p><p>Here is the code that handles mouse input:</p><pre><code class="language-javascript code-block">
+    let prevX = 0.0;
+    let prevY = 0.0;
+    let isDragging = false;
+
+    canvas.onmousedown = (event) =&gt; {
+        var rect = canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+
+
+        isDragging = true;
+
+    }
+
+    canvas.onmousemove = (event) =&gt; {
+        if (isDragging != 0) {
+            var rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            drawPos.set([x, y, 1.0], 0);
+        }
+    }
+
+    canvas.onmouseup = (event) =&gt; {
+        isDragging = 0;
+        drawPos.set([0.0, 0.0, 0.0], 0);
+    }</code></pre><p>It's not that complex, we basically set the uniform drawPos to (x,y,1.0) when drawing is happening. And (0.0,0.0,0.0) when it is not. remember that in the shader code, we use the third component of this vector (drawPos.z > 0.5) to determine if the brush is currently touching the canvas.</p><pre><code class="language-javascript code-block">
+           const commandEncoder = device.createCommandEncoder();
+
+            commandEncoder.copyBufferToBuffer(drawPosUniformBufferUpdate, 0,
+                drawPosUniformBuffer, 0, drawPos.byteLength);
+
+            const passEncoder = commandEncoder.beginComputePass(
+                {}
+            );
+            passEncoder.setPipeline(computePipeline);
+            if (frame % 2 == 0) {
+                passEncoder.setBindGroup(0, uniformBindGroupCompute0);
+            }
+            else {
+                passEncoder.setBindGroup(0, uniformBindGroupCompute1);
+            }
+            passEncoder.dispatchWorkgroups(64, 64);
+            passEncoder.end();
+
+            device.queue.submit([commandEncoder.finish()]);
+
+            const commandEncoder2 = device.createCommandEncoder();
+
+            const passEncoder2 = commandEncoder2.beginRenderPass(renderPassDesc);
+            passEncoder2.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+            passEncoder2.setPipeline(renderPipeline);
+            if (frame % 2 == 0) {
+                passEncoder2.setBindGroup(0, uniformBindGroupRender0);
+            }
+            else {
+                passEncoder2.setBindGroup(0, uniformBindGroupRender1);
+            }
+            passEncoder2.setVertexBuffer(0, positionBuffer);
+            passEncoder2.draw(4, 1);
+            passEncoder2.end();
+
+            device.queue.submit([commandEncoder2.finish()]);</code></pre><p>A single render process comprised of two rendering passes. The first pass performs the compute and update the output texture map, the second pass is a rendering pass that presents the output texture map onto the screen. recall that our workgroup_Size for the compute shader is 16x16, and we are dispatching the workgroups here also in a 2D formation 64x64, because 64x16 = 1024, which is the size of our textures. This concludes one frame of rendering, for the next frame, we need to alternate the role of the input and the output texture. The output texture will be used as the input and the input texture will be used as the output.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Show 3 Steps of Diffusion" sources='[]' /><div class="img-title">Show 3 Steps of Diffusion</div></div></p>
+        </article>
+    </div>
+    <!-- The Modal -->
+    <div id="img-modal" class="modal">
+        <!-- The Close Button -->
+        <span class="close" id="img-close">&times;</span>
+        <!-- Modal Content (The Image) -->
+        <img class="modal-content" id="img01">
+
+        <!-- Modal Caption (Image Text) -->
+        <div id="caption"></div>
+    </div>
+    <script>
+        function openImage(img) {
+            let modal = document.getElementById("img-modal");
+            let modalImg = document.getElementById("img01");
+            modal.style.display = "block";
+            if (img.getAttribute("original_src")) {
+                modalImg.src = img.getAttribute("original_src");
+            } else {
+                modalImg.src = img.src;
+            }
+            let captionText = document.getElementById("caption");
+
+            captionText.innerText = img.alt;
+
+            let sources = JSON.parse(img.getAttribute("sources"));
+
+            for (let i = 0; i < sources.length; ++i) {
+                if (sources.length == 1) {
+                    captionText.innerHTML += "<a href='" + sources[i] + "' target='_blank' class='img-source'>SOURCE</a>";
+                } else {
+                    captionText.innerHTML += "<a href='" + sources[i] + "' target='_blank' class='img-source'>SOURCE " + (i + 1) + "</a>";
+                }
+            }
+        }
+        // Get the <span> element that closes the modal
+        var closeButton = document.getElementById("img-close");
+
+        // When the user clicks on <span> (x), close the modal
+        closeButton.onclick = function () {
+            var modal = document.getElementById("img-modal");
+            modal.style.display = "none";
+        }
+    </script>
+
+<script type="module">
+    const macros = {};
+    const mathElementsBlock = document.getElementsByClassName("math-block");
+    for (let element of mathElementsBlock) {
+        katex.render(element.textContent, element, {
+            throwOnError: false,
+            displayMode: true,
+            macros
+        });
+    }
+
+    const mathElementsInline = document.getElementsByClassName("math-inline");
+    for (let element of mathElementsInline) {
+        katex.render(element.textContent, element, {
+            throwOnError: false,
+            macros
+        });
+    }
+
+    hljs.highlightAll();
+
+</script>
+</body>
+
+</html>

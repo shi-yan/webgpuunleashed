@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <!-- Primary Meta Tags -->
+    <title>: WebGPU Unleashed: A Practical Tutorial</title>
+    <meta name="title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta name="description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://shi-yan.github.io/WebGPUUnleashed/Advanced/transparency_with_depth_peeling.html" />
+    <meta property="og:title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta property="og:description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+    <meta property="og:image" content="/WebGPUUnleashed/meta.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://shi-yan.github.io/WebGPUUnleashed/Advanced/transparency_with_depth_peeling.html" />
+    <meta property="twitter:title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta property="twitter:description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+    <meta property="twitter:image" content="/WebGPUUnleashed/meta.png" />
+
+    <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js"></script>
+
+
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/default-dark.min.css"
+        integrity="sha512-EF2rc4QyBiRAGUMVm+EjFPBbdVGaN/pwZhtuKyrC/dM+hcwTxI5BsEDUkrMRI77z4VlDAt/qVopePXB5+ZZ8Gw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="
+        https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js
+        "></script>
+    <link href="
+        https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css
+        " rel="stylesheet" />
+
+    <script>
+        function fold(e) {
+            const sub = e.currentTarget.parentElement.getElementsByTagName("ul")[0];
+            console.log("sub", e.currentTarget, sub);
+            if (sub.style.display === "block") {
+                sub.style.display = "none";
+            } else {
+                sub.style.display = "block";
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <nav role="navigation">
+        <div id="menuToggle">
+            <input type="checkbox" />
+            <span></span>
+            <span></span>
+            <span></span>
+            <ul id="menu">
+                <!--<li><a href="#">Home</a></li>
+                <li><a href="#">About</a></li>
+                <li><a id="test" href="#" onclick="fold(event)">Info</a>
+                    <ul class="sub-menu">
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                    </ul>
+                </li>
+                <li><a href="#">Contact</a></li>
+                <li><a href="https://erikterwan.com/" target="_blank">Show me more</a></li>-->
+                <li><a href="#" onclick="fold(event)">Intro</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Introduction/the_gpu_driver.html">The GPU Driver</a></li>
+                        <li><a href="/WebGPUUnleashed/Introduction/the_gpu_pipeline.html">The GPU Pipeline</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Basics</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Basics/creating_an_empty_canvas.html">Creating an Empty Canvas</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_triangle.html">Drawing a Triangle</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_triangle_with_defined_vertices.html">Drawing a Triangle with Defined Vertices</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/applying_hardcoded_vertex_colors.html">Applying Hardcoded Vertex Colors</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/using_different_vertex_colors.html">Using Different Vertex Colors</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_colored_triangle_with_a_single_buffer.html">Drawing a Colored Triangle with a Single Buffer</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/understanding_uniforms.html">Understanding Uniforms</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/working_with_textures.html">Working with Textures</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/utilizing_transformation_matrices.html">Utilizing Transformation Matrices</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/implementing_cameras.html">Implementing Cameras</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/triangle_strips.html">Triangle Strips</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/front_and_back_face_culling.html">Front and Back Face Culling</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/depth_testing.html">Depth Testing</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/index_buffers.html">Index Buffers</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/loading_3d_models.html">Loading 3D Models</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/understanding_normals.html">Understanding Normals</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/lighting.html">Lighting</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/multi_sample_anti_aliasing.html">Multi-Sample Anti-Aliasing</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/mipmapping_and_anisotropic_filtering.html">Mipmapping and Anisotropic Filtering</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">2D Techniques</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/rendering_to_textures.html">Rendering to Textures</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/orthogonal_cameras.html">Orthogonal Cameras</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/implementing_gaussian_blur.html">Implementing Gaussian Blur</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/video_rendering.html">Video Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/text_rendering.html">Text Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/billboarding.html">Billboarding</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/implementing_fake_3d.html">Implementing Fake 3D</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Control</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Control/canvas_resizing.html">Canvas Resizing</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/arcball_camera_control.html">Arcball Camera Control</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/object_picking.html">Object Picking</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/saving_images_and_videos.html">Saving Images and Videos</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/using_web_workers.html">Using Web Workers</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/error_handling_and_limits.html">Error Handling and Limits</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Compute</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Compute/prefix_sum.html">Prefix Sum</a></li>
+                        <li><a href="/WebGPUUnleashed/Compute/radix_sort.html">Radix Sort</a></li>
+                        <li><a href="/WebGPUUnleashed/Compute/reaction_diffusion.html">Reaction Diffusion</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Advanced</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Advanced/stencil_buffer.html">Stencil Buffer</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/shadow_mapping.html">Shadow Mapping</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/toon_shading.html">Toon Shading</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/equirectangular_rendering.html">Equirectangular Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/mega_texture.html">Mega Texture</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/transparency_with_depth_peeling.html">Transparency with Depth Peeling</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/skeleton_animation.html">Skeleton Animation</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/normal_mapping_and_bump_mapping.html">Normal Mapping and Bump Mapping</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/gaussian_splatting.html">Gaussian Splatting</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div id="article-container">
+        <article>
+            <h2 >5.5 Transparency with Depth Peeling</h2><p>transparency is another example of a fundamental visual effect that is not supported by 3d graphics aPIs out of box. and its implementation is not that trivial. previously I have introduced alpha blending and used it to achieve certain semi-transparent effects, such as when rendering text. However when it comes to 3D objects, alpha blending alone will not achieve the correct result.</p><p>the fundamental issue is that depth testing is required to implement occlusion, but it has conflict with transparency rendering. imagine a 3d scene with opaque and transparent objects. if we disable depth testing, occlusion will not be rendered properly. however if we enable depth testing, transparent objects in front of the opaque objects will occlude the opaque objects. but the correct rendering should be that the transparent objects should overlay the opaque objects, instead of occluding them. we should be able to see through the transparent objects to see the opaque objects.</p><p>one naive idea is drawing the scene's object in order from back to front with depth testing only applied to each individual object, but turned off when overlaying objects on top of others. If you have used photoshop before, this is similar to the layer concept. The problem is that in certain situations, it's difficult to order objects. for example:</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Image to Show a Inter Linked Chain" sources='[]' /><div class="img-title">Image to Show a Inter Linked Chain</div></div></p><p>if ordering objects is not a good solution, you might think about ordering the triangles. but similar to ordering objects, it's sometimes difficult to determine the order of triangles too. for example:</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Image to Show an Intersected Triangle" sources='[]' /><div class="img-title">Image to Show an Intersected Triangle</div></div></p><p>in this tutorial, we will look at a better technique called depth peeling. the idea is also similar to photoshop's layers. however, instead of treating the objects or triangles as layers. we peel the scene from the front to the back and put each peeled scene as a layer and compose them together to form the final rendering.</p><p>let me explain what I mean for peeling scene. we first render the scene with depth testing. This will result in the front most objects being rendered regardless if objects are transparent or not. at the same time, we keep the depth map. The rendering result will be the layer zero. then, we render the scene again, however, we only render fragments that a behind the first depth map, i.e. the depth is larger than the depth value. the result will be that we have peeled the front most fragments, and revealed the second layer of fragments, let this be the layer one. similarly, we keep the depth map. from now on, we repeat the procedure, rendering the scene again, but keep fragments only when they have a depth value larger than that of the depth map. this will be the layer two and so on.</p><p>in the end, we will break down the scene into a set of layers based on depth. in the final pass, we compose the layers from front to back using alpha blending to create the final result.</p><p>The key concept of depth peeling is not difficult. I think one key aspect of understanding it thoroughly is understanding the alpha blending formula used for the front to back blending.</p><p>I have worked in the field of computer graphics for many years, but I must admit, I found alpha blending and concepts like premultiplied alpha, back-to-front blending, and front-to-back blending confusing. While it's easy to find online resources that provide the formulas to use in different situations, truly understanding the underlying principles is crucial for handling more complex cases.</p><p>I want to express my gratitude to the book <a class="link" href="https://www.amazon.com/Advanced-Graphics-Programming-Kaufmann-Computer/dp/1558606599" target="_blank">Advanced Graphics Programming Using OpenGL</a>, which has a dedicated chapter that patiently explains how alpha blending works (starting from page 185).</p><p>My earlier confusion stemmed from conceptualizing alpha as opacity, similar to how we perceive transparency in real life. For example, imagining a semi-transparent red film, where red is the color and alpha represents the semi-transparency. This misconception made it difficult for me to grasp concepts like premultiplied alpha. In real life, an object's color is generally unrelated to its transparency – a very transparent red film should still appear red. However, in computer graphics, we have the concept of premultiplied alpha, where we multiply the alpha value with the color, causing a very transparent red to appear dark red or even black.</p><p>The correct way to conceptualize alpha is as the "amount of color" rather than opacity. In computer graphics, there is no true transparency; it's more akin to painting, where all pigments are fully opaque, differing only in color.</p><p>To create the illusion of semi-transparency, we must mix colors by taking a weighted average of existing colors, simulating the effect of light passing through multiple layers of color. When mixing colors, the only controllable factor is the amount of color, which corresponds to the alpha channel of an RGBA pixel.</p><p>Thus, the most basic form of alpha blending two colors is:</p><p class="katex-display-counter"><code class="language-math math-block">\begin{aligned}
+C_{new} &= C_{src} * A_{src} + C_{dst} * (1 - A_{src}) \\
+A_{new} &= 1.0
+\end{aligned}</code></p><p>This is a typical weighted average of two colors, assuming that both colors and the resulting color <code class="language-math math-inline">C_{new}</code> are fully opaque. Here, only <code class="language-math math-inline">C_{src}</code> has an alpha value and is used in the formula, while <code class="language-math math-inline">C_{dst}</code> and <code class="language-math math-inline">C_{new}</code> have an alpha of 1.0 (full amount). If <code class="language-math math-inline">C_{src}</code> is the foreground, we determine how much of the foreground we want to see using this formula, without any actual transparency involved.</p><p>We can view each pixel as a small color bucket, where the amount of color poured into a single bucket cannot exceed 1.0 (overflow).</p><p>In the scenario of mixing two colors, we can think of all pixel buckets initially containing the background color <code class="language-math math-inline">C_{dst}</code> at the full amount of 1.0. To make room for adding the foreground color of the amount <code class="language-math math-inline">A_{src}</code>, we need to pour out some existing color. To ensure the resulting bucket is still full, the amount to pour out should be <code class="language-math math-inline">1.0 - A_{src}</code>.</p><p>If we want to blend more than two colors additively, we need to adjust the formula because we cannot assume that the resulting color of each step has no alpha (always a full bucket).</p><p>As we pour colors additively into this bucket, we need to leave some room for incoming colors. This is why we need to keep track of the amount of color already present in the bucket.</p><p>Let's label the colors we want to blend as <code class="language-math math-inline">C_1</code>, <code class="language-math math-inline">C_2</code>, <code class="language-math math-inline">C_3</code>, and so on. The formula becomes:</p><p class="katex-display-counter"><code class="language-math math-block">\begin{aligned}
+C_{new} &= C_1 * A_1 + C_2 * A_2 * (1.0 - A_1) \\
+A_{new} &= A_1 + A_2 * (1.0 - A_1)
+\end{aligned}</code></p><p>The weighted average of the two colors is still the same, but we now multiply <code class="language-math math-inline">C_2</code> by its <code class="language-math math-inline">A_2</code> because <code class="language-math math-inline">C_2</code> is not a full bucket.</p><p>The new alpha formula, <code class="language-math math-inline">A_{new} = A_1 + A_2 * (1.0 - A_1)</code>, guarantees that the new alpha never exceeds 1.0, preventing overflow.</p><p>Now, looking at the common equations found online for front-to-back alpha blending, they may not seem to match the above equation at first glance. However, in reality, they are equivalent. First, since it's front-to-back alpha blending, the destination color is the foreground, and the source is the background. Second, the following formula uses <code class="language-math math-inline">A_dst</code> to store the <code class="language-math math-inline">(1.0 - A_1)</code> term from the above equation. If we substitute <code class="language-math math-inline">C_{src}</code> and <code class="language-math math-inline">A_{src}</code> with <code class="language-math math-inline">C_2</code> and <code class="language-math math-inline">A_2</code>, and <code class="language-math math-inline">C_{dst}</code> and <code class="language-math math-inline">A_{dst}</code> with <code class="language-math math-inline">C_1</code> and <code class="language-math math-inline">(1.0 - A_1)</code>, we should arrive at the same equation:</p><p class="katex-display-counter"><code class="language-math math-block">\begin{aligned}
+C_{dst} &= A_{dst} * (A_{src} * C_{src}) + C_{dst} \\
+A_{dst} &= (1 - A_{src}) * A_{dst}
+\end{aligned}</code></p><p>now that we have sorted out the blending equation, now, let's look at the implementation:</p><pre><code class="language-yaml code-block">file: 5_05_transparency/index.html
+id: depth_peel_shader
+title: Depth peeling shader
+lang: javascript</code></pre><p>this shader should look familiar to us. it's almost the same lighting shader with a slight difference. This shader loads a depth map, and does a comparison of the current depth value with what's in the depth map. it renders the fragment only when the new depth is larger than that on the depth map. this is how we peel away things before the depth map.</p><pre><code class="language-yaml code-block">file: 5_05_transparency/index.html
+id: depth_peel_shader_coord
+title: Calculate depth and uv coordinates
+lang: javascript</code></pre><p>What worth noticing is the above logic to calculate the uv coordinates for depth map fetching, as well as the current depth. what may appear strange to you is that I have two variables clip_position and inPos, both seem to save the clip space position vector. they appear to be duplicated.</p><p>I'm doing so intentionally to show you that what has been passed into the clip_position in the vertex shader will be changed before the fragment shader. hence once we read it back in the fragment shader, it is not the same clip position, despite that the variable's name is the same.</p><p>recall when we introduced the gpu pipeline, we learned that during the vertex shader stage, we only sparsely define properties on each vertices. And then we go through a step called rasterization. during rasterization, we convert triangle geometries into fragments similar to laying bricks. the values defined on each fragments are obtained through bilinear interpolation. interpolation can explain some of the value changes, but not all. Another obvious change is that, the pipeline will also alter the coordinate system. for x and y, the pipeline will change it from the clip_space to the normalized device coordinates and then the normalized device coordinates are converted to the framebuffer coordinates (The top-left corner is at (0.0, 0.0). x increases to the right. y increases down.) for x and y. for the z, we will map it to a value in the viewport depth range: vp.minDepth + n.z × ( vp.maxDepth - vp.minDepth );</p><p>there is a technical term to describe the values passed into the fragment shader: <a class="link" href="https://gpuweb.github.io/gpuweb/#rasterizationpoint" target="_blank">RasterizationPoint</a>. bear in mind that there are data changes despite the variable naming might be the same.</p><p>with that in mind, it shouldn't be difficult to understand the uv calculation, we basically map the NDC range in [-1,1] to [0,1]; and we will need to flip the y axis, as for the texture coordinate, y increases down. And for the z value, we just read it from the clip_position.z;</p><p>now, let's see how this pipeline is set up.</p><p>the first thing is that we need to have an empty canvas to serve as the background. the order of the rendering is that we render from the front to the back order and finally we overlay what's been rendered on the background.</p><p>at the beginning of each round, we need to clear our dst texture to (0,0,0,1). This is easy to achieve using the built-in functionality of clearing color attachments when loading, without needing to draw anything. the dst texture is the layer zero for our front-to-back alpha blending. The first layer will blend with this texture, and the second layer will blend with the resulting texture and so on. and finally the dst texture should have all layers composed in the front to back order. we then apply it to a background.</p><p>you may wonder why the dst texture map is cleaned up with the value (0,0,0,1)? rather than (0,0,0,0). shouldn't the layer zero be completely transparent. yes, the first layer should be fully transparent and have the color (0,0,0,0). but recall that when doing the front-to-back blending, we utilize the alpha channel to save (1.0 - A_{dst}) rather than the A_{dst} itself. hence we assign the alpha to 1.0 here.</p><pre><code class="language-yaml code-block">file: 5_05_transparency/index.html
+id: cleanup_pipeline
+title: Clean up the background
+lang: javascript</code></pre><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="An Image to Show Individual Layers" sources='[]' /><div class="img-title">An Image to Show Individual Layers</div></div></p><p>for the actual rendering, we first define two depth maps for alternative usage. This is because for each peeling step, we want to read the depth values from one of them, and write to the other one. since we can't read and write to the same depth map, we need to have two depth maps used in an alternating pattern.</p><pre><code class="language-yaml code-block">file: 5_05_transparency/index.html
+id: pipeline_rest
+title: The actual rendering logic
+lang: javascript</code></pre><p>at the beginning, we set the depth maps to be all ones. because one is the maximum possible value for depth. this is to make sure during the first peeling step, we can render the front most layer.</p><p>for the color attachment, we always clear it to (0,0,0,0) for the front to back rendering.</p><p>notice that we loop the peeling step for 6 times. this is a hardcoded value meaning at most, we can peel 6 layers. if we have more layers in the scene, our program won't be able to handle. this is a draw back of the current implementation, we have to predetermine the maximum number of supported layers.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="An Image to Show the Rendering Order, Front to Back and Then on the Background" sources='[]' /><div class="img-title">An Image to Show the Rendering Order, Front to Back and Then on the Background</div></div></p><p>after rendering objects, we then call into blender to compose the newly rendered layer onto the existing layer. we will explain the blender in detail later.</p><pre><code class="language-yaml code-block">file: 5_05_transparency/index.html
+id: blending_shader
+title: Blending shader
+lang: javascript</code></pre><p>The shader is very simple, it simply load a texture (the rendered layer) and apply it on the framebuffer. the crucial part is the alpha blending setup of the pipeline:</p><pre><code class="language-yaml code-block">file: 5_05_transparency/index.html
+id: blending_config
+title: Blending function setup
+lang: javascript</code></pre><p>Notice that this is the same blending equation we have explained above, under the condition that the src color is already premultiplied (see the shader for object rendering).</p><pre><code class="language-yaml code-block">file: 5_05_transparency/index.html
+id: blend_pass
+title: Render pass for blending
+lang: javascript</code></pre><p>The above is the render pass descriptor. it starts with a cleaned up dst texture. notice that the dst texture was cleaned up with (0,0,0,1) and from then on, we will not clear the texture anymore, we will load it for each blending operation, as the texture contains layers we have already composed.</p><pre><code class="language-yaml code-block">file: 5_05_transparency/index.html
+id: final_shader
+title: Final step
+lang: javascript</code></pre><p>finally, in the very last step, we render the composed layers onto a black background using the back-to-front blending. Since our color is premultiplied, we will be using the <code class="language-math math-inline">C_src+(1-A_src)*C_dst</code> formula.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Image to Show Rendering Result" sources='[]' /><div class="img-title">Image to Show Rendering Result</div></div></p>
+        </article>
+    </div>
+    <!-- The Modal -->
+    <div id="img-modal" class="modal">
+        <!-- The Close Button -->
+        <span class="close" id="img-close">&times;</span>
+        <!-- Modal Content (The Image) -->
+        <img class="modal-content" id="img01">
+
+        <!-- Modal Caption (Image Text) -->
+        <div id="caption"></div>
+    </div>
+    <script>
+        function openImage(img) {
+            let modal = document.getElementById("img-modal");
+            let modalImg = document.getElementById("img01");
+            modal.style.display = "block";
+            if (img.getAttribute("original_src")) {
+                modalImg.src = img.getAttribute("original_src");
+            } else {
+                modalImg.src = img.src;
+            }
+            let captionText = document.getElementById("caption");
+
+            captionText.innerText = img.alt;
+
+            let sources = JSON.parse(img.getAttribute("sources"));
+
+            for (let i = 0; i < sources.length; ++i) {
+                if (sources.length == 1) {
+                    captionText.innerHTML += "<a href='" + sources[i] + "' target='_blank' class='img-source'>SOURCE</a>";
+                } else {
+                    captionText.innerHTML += "<a href='" + sources[i] + "' target='_blank' class='img-source'>SOURCE " + (i + 1) + "</a>";
+                }
+            }
+        }
+        // Get the <span> element that closes the modal
+        var closeButton = document.getElementById("img-close");
+
+        // When the user clicks on <span> (x), close the modal
+        closeButton.onclick = function () {
+            var modal = document.getElementById("img-modal");
+            modal.style.display = "none";
+        }
+    </script>
+
+<script type="module">
+    const macros = {};
+    const mathElementsBlock = document.getElementsByClassName("math-block");
+    for (let element of mathElementsBlock) {
+        katex.render(element.textContent, element, {
+            throwOnError: false,
+            displayMode: true,
+            macros
+        });
+    }
+
+    const mathElementsInline = document.getElementsByClassName("math-inline");
+    for (let element of mathElementsInline) {
+        katex.render(element.textContent, element, {
+            throwOnError: false,
+            macros
+        });
+    }
+
+    hljs.highlightAll();
+
+</script>
+</body>
+
+</html>

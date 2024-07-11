@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <!-- Primary Meta Tags -->
+    <title>: WebGPU Unleashed: A Practical Tutorial</title>
+    <meta name="title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta name="description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://shi-yan.github.io/WebGPUUnleashed/Control/saving_images_and_videos.html" />
+    <meta property="og:title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta property="og:description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+    <meta property="og:image" content="/WebGPUUnleashed/meta.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://shi-yan.github.io/WebGPUUnleashed/Control/saving_images_and_videos.html" />
+    <meta property="twitter:title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta property="twitter:description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+    <meta property="twitter:image" content="/WebGPUUnleashed/meta.png" />
+
+    <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+
+
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/default-dark.min.css"
+        integrity="sha512-EF2rc4QyBiRAGUMVm+EjFPBbdVGaN/pwZhtuKyrC/dM+hcwTxI5BsEDUkrMRI77z4VlDAt/qVopePXB5+ZZ8Gw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="
+        https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js
+        "></script>
+    <link href="
+        https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css
+        " rel="stylesheet" />
+
+    <script>
+        function fold(e) {
+            const sub = e.currentTarget.parentElement.getElementsByTagName("ul")[0];
+            console.log("sub", e.currentTarget, sub);
+            if (sub.style.display === "block") {
+                sub.style.display = "none";
+            } else {
+                sub.style.display = "block";
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <nav role="navigation">
+        <div id="menuToggle">
+            <input type="checkbox" />
+            <span></span>
+            <span></span>
+            <span></span>
+            <ul id="menu">
+                <!--<li><a href="#">Home</a></li>
+                <li><a href="#">About</a></li>
+                <li><a id="test" href="#" onclick="fold(event)">Info</a>
+                    <ul class="sub-menu">
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                    </ul>
+                </li>
+                <li><a href="#">Contact</a></li>
+                <li><a href="https://erikterwan.com/" target="_blank">Show me more</a></li>-->
+                <li><a href="#" onclick="fold(event)">Intro</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Introduction/the_gpu_driver.html">The GPU Driver</a></li>
+                        <li><a href="/WebGPUUnleashed/Introduction/the_gpu_pipeline.html">The GPU Pipeline</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Basics</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Basics/creating_an_empty_canvas.html">Creating an Empty Canvas</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_triangle.html">Drawing a Triangle</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_triangle_with_defined_vertices.html">Drawing a Triangle with Defined Vertices</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/applying_hardcoded_vertex_colors.html">Applying Hardcoded Vertex Colors</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/using_different_vertex_colors.html">Using Different Vertex Colors</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_colored_triangle_with_a_single_buffer.html">Drawing a Colored Triangle with a Single Buffer</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/understanding_uniforms.html">Understanding Uniforms</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/working_with_textures.html">Working with Textures</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/utilizing_transformation_matrices.html">Utilizing Transformation Matrices</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/implementing_cameras.html">Implementing Cameras</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/triangle_strips.html">Triangle Strips</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/front_and_back_face_culling.html">Front and Back Face Culling</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/depth_testing.html">Depth Testing</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/index_buffers.html">Index Buffers</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/loading_3d_models.html">Loading 3D Models</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/understanding_normals.html">Understanding Normals</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/lighting.html">Lighting</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/multi_sample_anti_aliasing.html">Multi-Sample Anti-Aliasing</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/mipmapping_and_anisotropic_filtering.html">Mipmapping and Anisotropic Filtering</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">2D Techniques</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/rendering_to_textures.html">Rendering to Textures</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/orthogonal_cameras.html">Orthogonal Cameras</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/implementing_gaussian_blur.html">Implementing Gaussian Blur</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/video_rendering.html">Video Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/text_rendering.html">Text Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/billboarding.html">Billboarding</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/implementing_fake_3d.html">Implementing Fake 3D</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Control</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Control/canvas_resizing.html">Canvas Resizing</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/arcball_camera_control.html">Arcball Camera Control</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/object_picking.html">Object Picking</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/saving_images_and_videos.html">Saving Images and Videos</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/using_web_workers.html">Using Web Workers</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/error_handling_and_limits.html">Error Handling and Limits</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Compute</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Compute/prefix_sum.html">Prefix Sum</a></li>
+                        <li><a href="/WebGPUUnleashed/Compute/radix_sort.html">Radix Sort</a></li>
+                        <li><a href="/WebGPUUnleashed/Compute/reaction_diffusion.html">Reaction Diffusion</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Advanced</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Advanced/stencil_buffer.html">Stencil Buffer</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/shadow_mapping.html">Shadow Mapping</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/toon_shading.html">Toon Shading</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/equirectangular_rendering.html">Equirectangular Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/mega_texture.html">Mega Texture</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/transparency_with_depth_peeling.html">Transparency with Depth Peeling</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/skeleton_animation.html">Skeleton Animation</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/normal_mapping_and_bump_mapping.html">Normal Mapping and Bump Mapping</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/gaussian_splatting.html">Gaussian Splatting</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div id="article-container">
+        <article>
+            <h2 >3.3 Saving Images and Videos</h2><p>In this tutorial, we are going to look at how to dump our rendering as image and video. This is useful for applications like video and image editing.</p><p>saving images is not difficult, as the canvas element has a built-in feature to save its content to a blob. in the demo, I add the image dumping logic at the end of the rendering function, because I want to be sure that when a user click save image, the content is up-to-date. Hence we want to render the scene again before saving, and only when the rendering is done, we save the image.</p><pre><code class="language-javascript code-block">            if (takeScreenshot) {
+                takeScreenshot = false;
+                canvas.toBlob((blob) =&gt; {
+                    saveBlob(blob, `screencapture-${canvas.width}x${canvas.height}.png`);
+                });
+            }</code></pre><p>The thing is that blob is not yet a visible image, we need to dump it as a file. To do that, we can introduce a helper function:</p><pre><code class="language-javascript code-block">    const saveBlob = (function () {
+        const a = document.createElement('a');
+        document.body.appendChild(a);
+        a.style.display = 'none';
+        return function saveData(blob, fileName) {
+            const url = window.URL.createObjectURL(blob);
+            a.href = url;
+            a.download = fileName;
+            a.click();
+            a.parentNode.removeChild(a);
+        };
+    }());</code></pre><p>The principle of this function is simple, we create a hidden link, and we encode the blob as an object url using the window.URL.createObjectURL(blob); then we programmatically click on this link to trigger the download before removing it from the dom tree.</p><p>The above shows how to dump the canvas as an image. sometimes, it is also useful to dump textures or intermediant buffers a render pass might create for debugging purpose. We can see how to do that in later chapters.</p><p>Dumping video is more involved. In the demo, we will use a new API introduced recently called WebCodec, which lets us encode video frames directly in browser.</p><p>Most apis we see in the computer realm are organized in a heirachy way. from low level apis that are difficult to use but flexible to high level apis that easy but might be limited to a specific use case.</p><p>Web standards are different. most web apis seem to be designed to do one specific thing only. for example, before webcodec, we had the video tag for playing videos, and webrtc to do video conferences. but none of them expose a low level video api for encoding frames.</p><p>this has changed when cloud gaming came out, people realized that cloud gaming is more demanding in terms of video stream control to ensure low latency game play. google hence introduced webcodec to expose low level video apis.</p><p>we will be using the same button for start and stop recording the video.</p><pre><code class="language-javascript code-block">    recordButton.onclick = async () =&gt; {
+        if (encoder === null) {
+            const options = {
+                suggestedName: 'video.webm',
+                types: [
+                    {
+                        description: 'Webm video',
+                        accept: {
+                            'video/webm': ['.webm']
+                        }
+                    }
+                ],
+            };
+
+            let fileHandle = await window.showSaveFilePicker(options);
+
+            fileWritableStream = await fileHandle.createWritable();
+
+            // This WebMWriter thing comes from the third-party library
+            webmWriter = new WebMWriter({
+                fileWriter: fileWritableStream,
+                codec: 'VP9',
+                width: canvas.width,
+                height: canvas.height
+            });
+
+            encoder = new VideoEncoder({
+                output: chunk =&gt; webmWriter.addFrame(chunk),
+                error: e =&gt; console.error(e)
+            });
+            // Configure to your liking
+            encoder.configure({
+                codec: "vp09.00.10.08",
+                width: canvas.width,
+                height: canvas.height,
+                bitrate: 2_000_000,
+                latencyMode: 'realtime',
+                framerate: 25
+            });
+            frameCount = 0;
+            beginTime = window.performance.now();
+            recordButton.innerText = 'Stop';
+        } else {
+            encoder.flush();
+            await webmWriter.complete();
+            fileWritableStream.close();
+
+            webmWriter = null;
+            fileWritableStream = null;
+            encoder = null;
+            recordButton.innerText = 'Record';
+        }
+    }</code></pre><p>When the encoder hasn't being created, we treat it as starting recording. the first step is showing a file browser dialog to let the user to specify a filename for the video.</p><pre><code class="language-javascript code-block">            const options = {
+                suggestedName: 'video.webm',
+                types: [
+                    {
+                        description: 'Webm video',
+                        accept: {
+                            'video/webm': ['.webm']
+                        }
+                    }
+                ],
+            };
+
+            let fileHandle = await window.showSaveFilePicker(options);
+
+            fileWritableStream = await fileHandle.createWritable();</code></pre><p>for the file format, we are using the webm format, a free video format created by google. If video format is unfamiliar to you, I can briefly cover some background. most video files we see are actually a container format, inside which there are usually multiple media streams or tracks. A movie for example, might contain a video track and a audio track. they use different codecs for encoding. When we use WebCodec for encoding, we can only encode individual frames. These frames needs to be assembled to a track and then enclosed into a container. Otherwise we will not be able to play what we encode. unfortunately assembling a container format, or muxing, is not part of the webcodec standard. hence, we have to make use of a third party library, called the webm-writer2.js.</p><p>once we have the writable stream, we can create the muxing object:</p><pre><code class="language-javascript code-block">            // This WebMWriter thing comes from the third-party library
+            webmWriter = new WebMWriter({
+                fileWriter: fileWritableStream,
+                codec: 'VP9',
+                width: canvas.width,
+                height: canvas.height
+            });</code></pre><p>for video codec, we are using VP9, one of the most common codec format used by webm. and the width and height are set to match the canvas size.</p><pre><code class="language-javascript code-block">            encoder = new VideoEncoder({
+                output: chunk =&gt; webmWriter.addFrame(chunk),
+                error: e =&gt; console.error(e)
+            });
+            // Configure to your liking
+            encoder.configure({
+                codec: "vp09.00.10.08",
+                width: canvas.width,
+                height: canvas.height,
+                bitrate: 2_000_000,
+                latencyMode: 'realtime',
+                framerate: 25
+            });</code></pre><p>finally, we create the encoder and configure it. the encoder takes two callbacks. The output callback is triggered when a frame is encoded. we simply pass the data chunk to the webmWriter to assemble the video file. and the error callback is called upon errors.</p><p>to configure the encoder, we specify vp9 for codec, bitrate and framerate etc. and finally we set the frameCount to zero and get the high precision timestamp. we primarly use the frameCount to decide when to encode a key frame and when to encode a intra frame. One keyframes, a video codec often only employ spacial compression. whereas on intra frames, a video codec employs timproal compression also. intra frames have a higher compression rate, but they can't be decompressed by only looking at themselves. we have to find the previous key frame and all intra frames between this keyframe and the current frame to decode it. because compression error can accumulate, therefore every several intra frames, we need to encode a key frame. unlike an intra frame, a keyframe can be decoded by itself. but a keyframe is large in size than an intra frame.</p><p>encoding a frame also requires a timestamp, therefore we record the time when video recording begins.</p><pre><code class="language-javascript code-block">            frameCount = 0;
+            beginTime = window.performance.now();</code></pre><p>similar to the image dumping code, for video encoding, we also put the code after a frame is rendered. here if the encoder has been initialized, we first obtain the current time. and we provide the canvas and the elapsed time since the beginning to a VideoFrame. we call the encode function and for every 10 frames, we encode a key frame.</p><pre><code class="language-javascript code-block">
+    function render() {
+        ...
+            if (encoder !== null) {
+                let currentTime = window.performance.now();
+                const frame = new VideoFrame(canvas, { timestamp: (currentTime - beginTime) * 1000 });
+                encoder.encode(frame, { keyFrame: frameCount % 10 == 0 });
+                frame.close();
+                frameCount++;
+            }
+    }</code></pre><p>and finally when the user clicks on the record button again, we stop the recoding and dump the video file:</p><pre><code class="language-javascript code-block">recordButton.onclick = async () =&gt; {
+        if (encoder === null) {
+            ...
+        } else {
+            encoder.flush();
+            await webmWriter.complete();
+            fileWritableStream.close();
+
+            webmWriter = null;
+            fileWritableStream = null;
+            encoder = null;
+            recordButton.innerText = 'Record';
+        }
+    }</code></pre><p>here we first flush the encoder to finish all pending frames that hasn't being encoded yet. Then we close the webmWriter and the file stream. The saved file should be playable now using a video player.</p>
+        </article>
+    </div>
+    <!-- The Modal -->
+    <div id="img-modal" class="modal">
+        <!-- The Close Button -->
+        <span class="close" id="img-close">&times;</span>
+        <!-- Modal Content (The Image) -->
+        <img class="modal-content" id="img01">
+
+        <!-- Modal Caption (Image Text) -->
+        <div id="caption"></div>
+    </div>
+    <script>
+        function openImage(img) {
+            let modal = document.getElementById("img-modal");
+            let modalImg = document.getElementById("img01");
+            modal.style.display = "block";
+            if (img.getAttribute("original_src")) {
+                modalImg.src = img.getAttribute("original_src");
+            } else {
+                modalImg.src = img.src;
+            }
+            let captionText = document.getElementById("caption");
+
+            captionText.innerText = img.alt;
+
+            let sources = JSON.parse(img.getAttribute("sources"));
+
+            for (let i = 0; i < sources.length; ++i) {
+                if (sources.length == 1) {
+                    captionText.innerHTML += "<a href='" + sources[i] + "' target='_blank' class='img-source'>SOURCE</a>";
+                } else {
+                    captionText.innerHTML += "<a href='" + sources[i] + "' target='_blank' class='img-source'>SOURCE " + (i + 1) + "</a>";
+                }
+            }
+        }
+        // Get the <span> element that closes the modal
+        var closeButton = document.getElementById("img-close");
+
+        // When the user clicks on <span> (x), close the modal
+        closeButton.onclick = function () {
+            var modal = document.getElementById("img-modal");
+            modal.style.display = "none";
+        }
+    </script>
+
+<script type="module">
+    const macros = {};
+    const mathElementsBlock = document.getElementsByClassName("math-block");
+    for (let element of mathElementsBlock) {
+        katex.render(element.textContent, element, {
+            throwOnError: false,
+            displayMode: true,
+            macros
+        });
+    }
+
+    const mathElementsInline = document.getElementsByClassName("math-inline");
+    for (let element of mathElementsInline) {
+        katex.render(element.textContent, element, {
+            throwOnError: false,
+            macros
+        });
+    }
+
+    hljs.highlightAll();
+
+</script>
+</body>
+
+</html>

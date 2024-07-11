@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <!-- Primary Meta Tags -->
+    <title>: WebGPU Unleashed: A Practical Tutorial</title>
+    <meta name="title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta name="description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://shi-yan.github.io/WebGPUUnleashed/Basics/understanding_uniforms.html" />
+    <meta property="og:title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta property="og:description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+    <meta property="og:image" content="/WebGPUUnleashed/meta.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://shi-yan.github.io/WebGPUUnleashed/Basics/understanding_uniforms.html" />
+    <meta property="twitter:title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta property="twitter:description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+    <meta property="twitter:image" content="/WebGPUUnleashed/meta.png" />
+
+    <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/wgsl.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/html.min.js"></script>
+
+
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/default-dark.min.css"
+        integrity="sha512-EF2rc4QyBiRAGUMVm+EjFPBbdVGaN/pwZhtuKyrC/dM+hcwTxI5BsEDUkrMRI77z4VlDAt/qVopePXB5+ZZ8Gw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="
+        https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js
+        "></script>
+    <link href="
+        https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css
+        " rel="stylesheet" />
+
+    <script>
+        function fold(e) {
+            const sub = e.currentTarget.parentElement.getElementsByTagName("ul")[0];
+            console.log("sub", e.currentTarget, sub);
+            if (sub.style.display === "block") {
+                sub.style.display = "none";
+            } else {
+                sub.style.display = "block";
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <nav role="navigation">
+        <div id="menuToggle">
+            <input type="checkbox" />
+            <span></span>
+            <span></span>
+            <span></span>
+            <ul id="menu">
+                <!--<li><a href="#">Home</a></li>
+                <li><a href="#">About</a></li>
+                <li><a id="test" href="#" onclick="fold(event)">Info</a>
+                    <ul class="sub-menu">
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                    </ul>
+                </li>
+                <li><a href="#">Contact</a></li>
+                <li><a href="https://erikterwan.com/" target="_blank">Show me more</a></li>-->
+                <li><a href="#" onclick="fold(event)">Intro</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Introduction/the_gpu_driver.html">The GPU Driver</a></li>
+                        <li><a href="/WebGPUUnleashed/Introduction/the_gpu_pipeline.html">The GPU Pipeline</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Basics</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Basics/creating_an_empty_canvas.html">Creating an Empty Canvas</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_triangle.html">Drawing a Triangle</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_triangle_with_defined_vertices.html">Drawing a Triangle with Defined Vertices</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/applying_hardcoded_vertex_colors.html">Applying Hardcoded Vertex Colors</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/using_different_vertex_colors.html">Using Different Vertex Colors</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_colored_triangle_with_a_single_buffer.html">Drawing a Colored Triangle with a Single Buffer</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/understanding_uniforms.html">Understanding Uniforms</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/working_with_textures.html">Working with Textures</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/utilizing_transformation_matrices.html">Utilizing Transformation Matrices</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/implementing_cameras.html">Implementing Cameras</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/triangle_strips.html">Triangle Strips</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/front_and_back_face_culling.html">Front and Back Face Culling</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/depth_testing.html">Depth Testing</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/index_buffers.html">Index Buffers</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/loading_3d_models.html">Loading 3D Models</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/understanding_normals.html">Understanding Normals</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/lighting.html">Lighting</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/multi_sample_anti_aliasing.html">Multi-Sample Anti-Aliasing</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/mipmapping_and_anisotropic_filtering.html">Mipmapping and Anisotropic Filtering</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">2D Techniques</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/rendering_to_textures.html">Rendering to Textures</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/orthogonal_cameras.html">Orthogonal Cameras</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/implementing_gaussian_blur.html">Implementing Gaussian Blur</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/video_rendering.html">Video Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/text_rendering.html">Text Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/billboarding.html">Billboarding</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/implementing_fake_3d.html">Implementing Fake 3D</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Control</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Control/canvas_resizing.html">Canvas Resizing</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/arcball_camera_control.html">Arcball Camera Control</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/object_picking.html">Object Picking</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/saving_images_and_videos.html">Saving Images and Videos</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/using_web_workers.html">Using Web Workers</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/error_handling_and_limits.html">Error Handling and Limits</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Compute</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Compute/prefix_sum.html">Prefix Sum</a></li>
+                        <li><a href="/WebGPUUnleashed/Compute/radix_sort.html">Radix Sort</a></li>
+                        <li><a href="/WebGPUUnleashed/Compute/reaction_diffusion.html">Reaction Diffusion</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Advanced</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Advanced/stencil_buffer.html">Stencil Buffer</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/shadow_mapping.html">Shadow Mapping</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/toon_shading.html">Toon Shading</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/equirectangular_rendering.html">Equirectangular Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/mega_texture.html">Mega Texture</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/transparency_with_depth_peeling.html">Transparency with Depth Peeling</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/skeleton_animation.html">Skeleton Animation</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/normal_mapping_and_bump_mapping.html">Normal Mapping and Bump Mapping</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/gaussian_splatting.html">Gaussian Splatting</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div id="article-container">
+        <article>
+            <h2 >1.6 Understanding Uniforms</h2><p>In this tutorial, we'll dive into the concept of uniforms. Uniforms provide a means to supply data to a shader program, and they behave like constants. The critical distinction with uniforms is that their values remain constant throughout the entire execution of a shader.</p><p>Now, you might be wondering how uniforms differ from attributes, which we've previously used to pass data to shader programs. The key difference lies in their intended use:</p><ul><li><p><strong>Attributes</strong>: These are used to provide per-vertex data. When dealing with attributes, we typically bundle all the attribute data into a single buffer. The GPU pipeline then takes care of dissecting this data for each vertex. When a shader program runs on the GPU, it effectively launches numerous instances of the same program, each processing an individual vertex. The GPU's parallel processing capability shines in this aspect, as it can efficiently handle this workload. Think of attributes as the data each vertex requires for its unique processing.</p></li><li><p><strong>Uniforms</strong>: In contrast, uniforms are constants that maintain the same value for all vertices and persist throughout the entire shader program execution. To draw an analogy, consider uniforms as akin to environment variables or command-line arguments when running a command-line program. Once the shader program begins execution, you can think of uniforms as constants that retain their values throughout the process. They don't change or vary per vertex; rather, they provide consistent information to the entire shader.</p></li></ul><p>This distinction is crucial because it enables shaders to handle both per-vertex data (attributes) and shared, unchanging data (uniforms), offering flexibility and efficiency in the rendering process.</p><pre><code class="language-html code-block">&lt;script id="shader" type="wgsl"&gt;
+// Vertex shader
+
+@group(0) @binding(0)
+var&lt;uniform&gt; offset: vec3&lt;f32&gt;;
+
+struct VertexOutput {
+    @builtin(position) clip_position: vec4&lt;f32&gt;,
+    @location(0) color: vec3&lt;f32&gt;,
+};
+
+@vertex
+fn vs_main(
+    @location(0) inPos: vec3&lt;f32&gt;,
+    @location(1) inColor: vec3&lt;f32&gt;
+) -&gt; VertexOutput {
+    var out: VertexOutput;
+    out.clip_position = vec4&lt;f32&gt;(inPos + offset, 1.0);
+    out.color = inColor;
+    return out;
+}
+
+// Fragment shader
+
+@fragment
+fn fs_main(in: VertexOutput) -&gt; @location(0) vec4&lt;f32&gt; {
+    return vec4&lt;f32&gt;(in.color, 1.0);
+}
+
+&lt;/script&gt;</code></pre><p>In this example, we'll create a uniform called "offset" to shift the positions of our vertices by a consistent offset. Using a uniform for the offset makes sense because we want the same offset to be applied to all vertices. If we used attributes for the offset, we'd have to duplicate the same offset for every vertex, which would be inefficient and wasteful. Uniforms are the ideal choice when you need to pass the same information to the shader for all vertices.</p><p>Let's break down the syntax used to create a uniform in this program:</p><pre><code class="language-wgsl code-block">@group(0) @binding(0)
+var&lt;uniform&gt; offset: vec3&lt;f32&gt;;</code></pre><ol><li><p><code>var&lt;uniform&gt;</code>: This part of the syntax indicates that "offset" is a uniform variable. It tells the shader that this variable should be provided from a uniform buffer.</p></li><li><p><code>@binding(0)</code>: This annotation is similar to <code>@location(0)</code> for vertex attributes. It's an index that identifies the uniform within a uniform buffer. In a uniform buffer, you typically pack multiple uniform values, and this index helps the shader locate the correct value.</p></li><li><p><code>@group(0)</code>: Uniforms can be organized into different groups. In this simple case, we have all uniforms in a single group (group 0). However, for complex shaders, using multiple groups can be beneficial. For example, when rendering an animated scene, you might have camera parameters that change frequently and object colors that remain constant. By separating them into different groups, you can update only the data that changes frequently, optimizing performance.</p></li></ol><p>Once we've defined the "offset" uniform, using it in the shader is straightforward. We simply add the "offset" value to the position of each vertex, shifting their positions accordingly. This uniform allows us to apply a consistent transformation to all vertices without the need for duplication or redundancy in the shader code.</p><pre><code class="language-html code-block">&lt;script&gt;
+    async function webgpu() {
+        ...
+
+        const uniformData = new Float32Array([
+            0.1, 0.1, 0.1
+        ]);
+
+        const uniformBufferDesc = {
+            size: uniformData.byteLength,
+            usage: GPUBufferUsage.UNIFORM,
+            mappedAtCreation: true
+        };
+
+        let uniformBuffer = device.createBuffer(uniformBufferDesc);
+
+        const writeUniformBuffer = new Float32Array(uniformBuffer.getMappedRange());
+        writeUniformBuffer.set(uniformData);
+        uniformBuffer.unmap();
+
+        let uniformBindGroupLayout = device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.VERTEX,
+                    buffer: {}
+                }
+            ]
+        });
+
+        let uniformBindGroup = device.createBindGroup({
+            layout: uniformBindGroupLayout,
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: uniformBuffer
+                    }
+                }
+            ]
+        });
+
+        const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout] };
+        ...
+
+        passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
+        passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+        passEncoder.setPipeline(pipeline);
+        passEncoder.setBindGroup(0, uniformBindGroup);
+        passEncoder.setVertexBuffer(0, positionBuffer);
+        passEncoder.setVertexBuffer(1, colorBuffer);
+        passEncoder.draw(3, 1);
+        passEncoder.end();
+
+        device.queue.submit([commandEncoder.finish()]);
+    }
+
+    webgpu();
+&lt;/script&gt;</code></pre><p>Once we've made the necessary modifications to the shader, let's proceed to create the uniform and supply the data on the JavaScript side. Uniforms are provided in a GPU buffer, similar to how we supply attribute data. Here's a breakdown of the process:</p><p><strong>Creating the Uniform Buffer:</strong></p><pre><code class="language-javascript code-block">const uniformData = new Float32Array([0.1, 0.1, 0.1]);
+
+const uniformBufferDesc = {
+    size: uniformData.byteLength,
+    usage: GPUBufferUsage.UNIFORM, // Using the uniform flag for usage
+    mappedAtCreation: true
+};
+
+let uniformBuffer = device.createBuffer(uniformBufferDesc);
+
+const writeUniformBuffer = new Float32Array(uniformBuffer.getMappedRange());
+writeUniformBuffer.set(uniformData);
+uniformBuffer.unmap();</code></pre><ul><li><p>We create a <code>uniformData</code> buffer to hold our uniform values. In this example, it contains a 3-element vector.</p></li><li><p>We create the <code>uniformBuffer</code> using the <code>GPUBufferUsage.UNIFORM</code> flag to indicate that it's a uniform buffer.</p></li><li><p>The <code>writeUniformBuffer</code> is a Float32Array that mirrors the GPU buffer's range. We copy the uniform data into this array and then unmap the buffer to send the data to the GPU.</p></li></ul><p><strong>Creating the Uniform Binding Group Layout:</strong></p><pre><code class="language-javascript code-block">let uniformBindGroupLayout = device.createBindGroupLayout({
+    entries: [
+        {
+            binding: 0, // Corresponds to the binding index in the shader
+            visibility: GPUShaderStage.VERTEX, // Set to vertex because we use it in the vertex shader
+            buffer: {} // Empty buffer resource
+        }
+    ]
+});</code></pre><ul><li><p>We create a uniform binding group layout to describe the format of the uniform buffer. In this case, we have only one uniform value.</p></li></ul><p><strong>Creating the Uniform Binding Group:</strong></p><pre><code class="language-javascript code-block">let uniformBindGroup = device.createBindGroup({
+    layout: uniformBindGroupLayout,
+    entries: [
+        {
+            binding: 0, // Corresponds to the binding index in the shader
+            resource: {
+                buffer: uniformBuffer // Supply the uniform buffer
+            }
+        }
+    ]
+});</code></pre><ul><li><p>The uniform binding group includes both the layout and the actual content storage. We supply the uniform buffer as the resource for binding 0.</p></li></ul><p><strong>Updating the Pipeline Layout Descriptor:</strong></p><pre><code class="language-javascript code-block">const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout] };</code></pre><ul><li><p>In the pipeline layout descriptor, we include the uniform binding group layout in the <code>bindGroupLayouts</code> field. This indicates that our pipeline uses this layout.</p></li></ul><p><strong>Setting the Uniform in the Command Encoder:</strong></p><pre><code class="language-javascript code-block">passEncoder.setBindGroup(0, uniformBindGroup);</code></pre><ul><li><p>When we create the command for submission, we use <code>setBindGroup</code> to specify the group ID (0 in this case) and the corresponding binding group. This action supplies the uniform values to the pipeline.</p></li></ul><p>With these steps, we've successfully created a uniform buffer, defined the uniform binding group layout, and supplied the uniform data to the shader in the GPU pipeline. Uniforms allow us to pass constant values that remain the same throughout the shader's execution, making them a valuable tool for various rendering tasks.</p>
+        </article>
+    </div>
+    <!-- The Modal -->
+    <div id="img-modal" class="modal">
+        <!-- The Close Button -->
+        <span class="close" id="img-close">&times;</span>
+        <!-- Modal Content (The Image) -->
+        <img class="modal-content" id="img01">
+
+        <!-- Modal Caption (Image Text) -->
+        <div id="caption"></div>
+    </div>
+    <script>
+        function openImage(img) {
+            let modal = document.getElementById("img-modal");
+            let modalImg = document.getElementById("img01");
+            modal.style.display = "block";
+            if (img.getAttribute("original_src")) {
+                modalImg.src = img.getAttribute("original_src");
+            } else {
+                modalImg.src = img.src;
+            }
+            let captionText = document.getElementById("caption");
+
+            captionText.innerText = img.alt;
+
+            let sources = JSON.parse(img.getAttribute("sources"));
+
+            for (let i = 0; i < sources.length; ++i) {
+                if (sources.length == 1) {
+                    captionText.innerHTML += "<a href='" + sources[i] + "' target='_blank' class='img-source'>SOURCE</a>";
+                } else {
+                    captionText.innerHTML += "<a href='" + sources[i] + "' target='_blank' class='img-source'>SOURCE " + (i + 1) + "</a>";
+                }
+            }
+        }
+        // Get the <span> element that closes the modal
+        var closeButton = document.getElementById("img-close");
+
+        // When the user clicks on <span> (x), close the modal
+        closeButton.onclick = function () {
+            var modal = document.getElementById("img-modal");
+            modal.style.display = "none";
+        }
+    </script>
+
+<script type="module">
+    const macros = {};
+    const mathElementsBlock = document.getElementsByClassName("math-block");
+    for (let element of mathElementsBlock) {
+        katex.render(element.textContent, element, {
+            throwOnError: false,
+            displayMode: true,
+            macros
+        });
+    }
+
+    const mathElementsInline = document.getElementsByClassName("math-inline");
+    for (let element of mathElementsInline) {
+        katex.render(element.textContent, element, {
+            throwOnError: false,
+            macros
+        });
+    }
+
+    hljs.highlightAll();
+
+</script>
+</body>
+
+</html>

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <!-- Primary Meta Tags -->
+    <title>: WebGPU Unleashed: A Practical Tutorial</title>
+    <meta name="title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta name="description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://shi-yan.github.io/WebGPUUnleashed/Advanced/mega_texture.html" />
+    <meta property="og:title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta property="og:description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+    <meta property="og:image" content="/WebGPUUnleashed/meta.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://shi-yan.github.io/WebGPUUnleashed/Advanced/mega_texture.html" />
+    <meta property="twitter:title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta property="twitter:description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+    <meta property="twitter:image" content="/WebGPUUnleashed/meta.png" />
+
+    <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js"></script>
+
+
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/default-dark.min.css"
+        integrity="sha512-EF2rc4QyBiRAGUMVm+EjFPBbdVGaN/pwZhtuKyrC/dM+hcwTxI5BsEDUkrMRI77z4VlDAt/qVopePXB5+ZZ8Gw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="
+        https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js
+        "></script>
+    <link href="
+        https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css
+        " rel="stylesheet" />
+
+    <script>
+        function fold(e) {
+            const sub = e.currentTarget.parentElement.getElementsByTagName("ul")[0];
+            console.log("sub", e.currentTarget, sub);
+            if (sub.style.display === "block") {
+                sub.style.display = "none";
+            } else {
+                sub.style.display = "block";
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <nav role="navigation">
+        <div id="menuToggle">
+            <input type="checkbox" />
+            <span></span>
+            <span></span>
+            <span></span>
+            <ul id="menu">
+                <!--<li><a href="#">Home</a></li>
+                <li><a href="#">About</a></li>
+                <li><a id="test" href="#" onclick="fold(event)">Info</a>
+                    <ul class="sub-menu">
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                    </ul>
+                </li>
+                <li><a href="#">Contact</a></li>
+                <li><a href="https://erikterwan.com/" target="_blank">Show me more</a></li>-->
+                <li><a href="#" onclick="fold(event)">Intro</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Introduction/the_gpu_driver.html">The GPU Driver</a></li>
+                        <li><a href="/WebGPUUnleashed/Introduction/the_gpu_pipeline.html">The GPU Pipeline</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Basics</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Basics/creating_an_empty_canvas.html">Creating an Empty Canvas</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_triangle.html">Drawing a Triangle</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_triangle_with_defined_vertices.html">Drawing a Triangle with Defined Vertices</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/applying_hardcoded_vertex_colors.html">Applying Hardcoded Vertex Colors</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/using_different_vertex_colors.html">Using Different Vertex Colors</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_colored_triangle_with_a_single_buffer.html">Drawing a Colored Triangle with a Single Buffer</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/understanding_uniforms.html">Understanding Uniforms</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/working_with_textures.html">Working with Textures</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/utilizing_transformation_matrices.html">Utilizing Transformation Matrices</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/implementing_cameras.html">Implementing Cameras</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/triangle_strips.html">Triangle Strips</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/front_and_back_face_culling.html">Front and Back Face Culling</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/depth_testing.html">Depth Testing</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/index_buffers.html">Index Buffers</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/loading_3d_models.html">Loading 3D Models</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/understanding_normals.html">Understanding Normals</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/lighting.html">Lighting</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/multi_sample_anti_aliasing.html">Multi-Sample Anti-Aliasing</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/mipmapping_and_anisotropic_filtering.html">Mipmapping and Anisotropic Filtering</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">2D Techniques</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/rendering_to_textures.html">Rendering to Textures</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/orthogonal_cameras.html">Orthogonal Cameras</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/implementing_gaussian_blur.html">Implementing Gaussian Blur</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/video_rendering.html">Video Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/text_rendering.html">Text Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/billboarding.html">Billboarding</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/implementing_fake_3d.html">Implementing Fake 3D</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Control</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Control/canvas_resizing.html">Canvas Resizing</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/arcball_camera_control.html">Arcball Camera Control</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/object_picking.html">Object Picking</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/saving_images_and_videos.html">Saving Images and Videos</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/using_web_workers.html">Using Web Workers</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/error_handling_and_limits.html">Error Handling and Limits</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Compute</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Compute/prefix_sum.html">Prefix Sum</a></li>
+                        <li><a href="/WebGPUUnleashed/Compute/radix_sort.html">Radix Sort</a></li>
+                        <li><a href="/WebGPUUnleashed/Compute/reaction_diffusion.html">Reaction Diffusion</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Advanced</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Advanced/stencil_buffer.html">Stencil Buffer</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/shadow_mapping.html">Shadow Mapping</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/toon_shading.html">Toon Shading</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/equirectangular_rendering.html">Equirectangular Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/mega_texture.html">Mega Texture</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/transparency_with_depth_peeling.html">Transparency with Depth Peeling</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/skeleton_animation.html">Skeleton Animation</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/normal_mapping_and_bump_mapping.html">Normal Mapping and Bump Mapping</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/gaussian_splatting.html">Gaussian Splatting</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div id="article-container">
+        <article>
+            <h2 >5.4 Mega Texture</h2><p>mega texture is also called the virtualized texture. virtualization is a familiar word in the field of computer science. we see the same word in virtual memory. virtual memory is a technique we use when our physical memory is not very large, but we want to give the applications that we have a memory space way larger than the size of our physical memory. this is achieved by smartly loading only the portion that is currently used. Virtualized texture is of the same concept. if we calculate the image sizes, we will be astonished by how large it can be. for example, if we have a 1024x1024 image of RGBA, it will occupy 4mb in video memory. A video card with 8gb video memory can hold at most 2000 such images. Of course, we can't use all memory for saving those texture maps, that means the actual number of texture maps is very limited. in a large game scene, we can exhaust this limitation easily.</p><p>in addition, there is also a size image for a single texture map. for example, according to the WebGPU spec, this can be queried by maxTextureDimension2D for 2D textures, with a default value of 8192. if you have a single image that is larger than this size, you will need extra effort such as mega texture.</p><p>further more, we don't always want to load the finest version of a texture map. if a textured surface is viewed from afar, we want to use a coarse version to resolve the sampling issue. We have covered this concept when introducing mipmap. However, naively using mipmaps will cause more memory use as not only we load the original image into the video memory, we also load a pyramid of images of different detail level into the memory.</p><p>mega texture is a technique that can allow you to work with a large pool of texture maps. the size of those texture maps, if combined, is more than your video memory can hold. the process is comprised of two passes. During the first pass, we don't need to use any of the real texture maps, instead, we just do a prerendering to figure out what texture maps should be visible and at what level of detail. Then we pass the control to cpu to assemble a single texture map that is formed by tiling the visible textures and at the same time, we establish a lookup table, such that given the texture id, the detail level, we can locate the corresponding tile on this assembled texture. And during the second pass of rendering, we calculate the texture visibility again, and based on that, we search in the lookup table to locate the corresponding tile, and we sample the tile instead.</p><p>With this approach, we will never be limited to the overall number of texture maps anymore. As long as our assembled texture map is large enough to hold the maximum visible texture maps, we should be fine.</p><p>we should also create the assembled texture map with care. it should behave similar to a cache. such that if a tile presents on the assembled texture map already, we should avoid reloading it and updating its entry in the lookup table. if we have used up all spaces on the assembled texture map, we will retire the one that is least used. in another word, we want to update the assembled texture map as less as possible.</p><p>in this example, we will be looking at a simplified special case of mega texture. we want to render a screen aligned plane to show a huge texture, the crab nebula from james webb?, that is impossible to load in a single texture map. the raw size of the image is 10752x9216 and it is of 129.3mb. although we are only implementing a special case to show how mega texture works here, bear in mind that mega texture can be applied to generic cases when surfaces are not aligned with the screen. but the demo shown in this chapter is also very useful, it shows a way to implement large image loading and navigating, similar to what we see in google maps.</p><p>since the original image is too large, we don't want to load the entire version all at once. Instead, we will chunk it up using a preprocessing program, into tiles of 256x256. further more, since we want to achieve levels of details, we will also use the preprocessor to create the coarse levels. but we force all image tiles of any level to be 256x256 for easy implementation, i.e. four 256x256 tiles form a single 512x512 image tile, and then we down size the 512x512 image to 256x256 to create a tile of coarser level.</p><p>here is the code for the tile preprocessor in python:</p><pre><code class="language-yaml code-block">file: 5_04_mega_texture/preprocess.py
+id: mega_texture_preprocess
+title: Tile preprocessor
+lang: python</code></pre><p>notice that for easy loading in the code, we name our tiles using this pattern <code>crab_&lt;level&gt;_&lt;index y&gt;_&lt;index x&gt;</code>. level is the detail level, y is the vertical index of all tiles of the same level, x is the horizontal index.</p><p>notice that I have added a padding to all tiles, i.e. the actual size is 4 pixels larger than 256 along each dimension. I will explain the necessity later.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Image Show Some Tile Samples of Different Levels" sources='[]' /><div class="img-title">Image Show Some Tile Samples of Different Levels</div></div></p><p>first, let's configure some constants. here is the relevant code:</p><pre><code class="language-yaml code-block">file: 5_04_mega_texture/index.html
+id: basic_setup
+title: Setup constants
+lang: javascript</code></pre><p>Here imageWidth and imageHeight hardcode the raw image size. textureSizeWithoutPadding holds the texture map we will use to hold visible tiles. maxVisibleTileCountOnTexture is the maximum possible visible tiles, this number is limited by the size of the texture map.</p><p>levelCount is the total number of levels. This number is the count we need to halve a tile of size 256 down to a single pixel. tileH and tileV are the horizontal and vertical tile counts on the raw image.</p><p>levelTileCount is an array recording the horizontal and vertical tile counts for all levels, plus each level's tile size on the original image. overallTileCount is the sum of the tile counts of all levels.</p><pre><code class="language-yaml code-block">file: 5_04_mega_texture/index.html
+id: tile_key
+title: Tile coordinates and key conversion
+lang: javascript</code></pre><p>in our program, we will use a key value store to function like our tile cache. we need to define two function to serialize a tile's info, including a tile's horizontal and vertical coordinates and level, into a key, and conversely, we also need a function to convert a key to recover the corresponding tile info.</p><p>the key used in our program is a single index that uniquely identify a tile. if we view all the tiles on all levels as a pyramid, the way we assign an index to each tile is that we stretch the pyramid into a single string, starting from level 0 to level 8. on certain level, a tile at the location x,y (we will call them the level coordinates in the following text.) has its id calculated by tileH * y + x + the count of all tiles from levels under it.</p><p>similarly, given a key, we can recover the corresponding tile's x,y and level.</p><p>the first task we need to perform is visibility test. in the first pass of rendering, we want to determine which tiles are actually visible. let's look at the visibility test shader:</p><pre><code class="language-yaml code-block">file: 5_04_mega_texture/index.html
+id: visibility_shader
+title: Visibility shader
+lang: javascript</code></pre><p>The vertex shader is relatively simple to explain. Here we have two inputs, inPos one of the vertices of a 256x256 tile positioned at the origin and the tile's texture coordinates. loc is the tile's level coordinates, i.e. tileH and tileV. What the vertex shader does is applying an offset to the tile's vertices based on tileH and tileV, so that the tile is positioned correctly.</p><p>The vertex shader passes three types of information to the fragment shader. the clip position, the texture coordinates and the current tile's level coordinates. notice that, we have a <code>@interpolate(flat)</code> decoration, because the tile coordinates are integers, we don't want the graphics pipeline performs any interpolation on them.</p><p>what bears for more explanation is the fragment shader. What this shader does is actually exactly the same as the built-in function textureSample does. The reason we have to manually implement this function is that we want to explicitly get the texture level.</p><p>an advanced concept of this shader is the derivative functions dpdx and dpdy. they are functions to measure how fast a value p changes along the x and y axis. for example, dpdx(in.tex * tileSizeWithoutPadding) means how fast the value in.tex * tileSizeWithoutPadding between two horizontal nearby fragments. as we know, the way fragment shaders work is identical to the compute shader. at the same time, there are many invocations of the fragment shader executing in parallel processing different fragments. what's conter-intuitive about these derivative functions is that only looking at a fragment alone, we can't measure the how fast the value changes. the current fragment execution needs to work with other fragment shader executions to return the value, i.e. there is thread synchronization involved in the process. previously we have learned that when thread synchronization is involved, it is required that the relevant code is in a uniform control flow. same requirements are needed for the derivative functions too.</p><p>in the chapter about mipmaps, we haven't answered the question why the textureSample function has to be in uniform control flow. now the answer should be clear, because internally textureSample also rely on the derivative functions to obtain the texture level.</p><p>but we haven't explained why measuring how fast in.tex * tileSizeWithoutPadding changes can help us get the texture level. as we can see, the in.tex is the texture coordinates, its value span from 0.0 to 1.0. and the tileSizeWithoutPadding is 256, hence tileSizeWithoutPadding times the texture coordinates, we should be in the range of [0.0, 256.0].</p><p>no looking at a single 256x256 tile parallel to the screen space. if there is no zooming at all or zooming in, the value change of tileSizeWithoutPadding*in.tex across two horizontal adjacent fragments should be less or equal to 1.0. in this scenario, we want to choose the texture level 0 = max(log2(d),0) for sampling, because only the level 0 can give us the best rendering quality. no imagine if we zoom out, the 256x256 tile will be rendered on screen in a smaller size. in this case, two adjacent fragments will have a value change faster than 1.0. but the same principle applies, we can simply get the level by max(log2(d),0). in the most extreme case, if we zoom out enough, so much so that the entire 256x256 tile is smaller or equal to a single pixel, two adjacent fragments will have a derivative larger than 256. hence we will need to sample from the log2(256)=8 level.</p><p>dx and dy may change in different speed. in the shader, we don't consider the dx and dy separately, but picking the maximum change among the two.</p><p>once we have figured out the level. the next step is obtain the key in the same manner we have seen before. The first step is getting the level coordinates x and y. This is done by first calculating the position of the current fragment on the original image, then divide the position by the level tile size. the level coordinates can give us the index of the tile on that level. tile count of each level is passed in as level_tile_count, with it, we can count the number of tiles on all levels below. and together, we can get the unique tile id for the current fragment.</p><p>finally, we need to update the visibility table var<storage,read_write> visible_tiles: array<u32>;, this is a storage buffer we can write to. for each tile, we have an entry for it indexed by the tile id. for all fragments we actually render, we set the corresponding tile's entry to 1 indicating "visible". in the next step, we gether all visible tiles' information to assemble a single texture map to hold them for the actual rendering.</p><p>now let's look at the corresponding javascript code that works with this shader.</p><pre><code class="language-yaml code-block">file: 5_04_mega_texture/index.html
+id: visibility_js
+title: Buffer setup, command encoding for visibility test
+lang: javascript</code></pre><p>as we have seen in the shader, there are two vertex attributes. The position buffer holds the four vertices of a 256x256 tile. The tileLocBufferLayoutDesc holds a set of level coordinates x and y. this attribute is a per instance attribute. We will use the instancing technique to duplicate the 256x256 tile for each set of level coordinates.</p><p>the tileVisibilityBuffer contains the output array. before each round of rendering, we need to clear this buffer. hence we have tileVisibilityBufferZeros with zeros of the same size. we will use it to clear tileVisibilityBuffer. tileVisibilityBufferRead is used for result readback.</p><p>for command encoding, we will draw the tile for tileH * tileV instances. This will cover the entire image.</p><pre><code class="language-yaml code-block">file: 5_04_mega_texture/index.html
+id: read_back_result
+title: Read the resulting buffer
+lang: javascript</code></pre><p>After buffer submission, we read back the resulting buffer. and we extract the indices of visible tiles and hand the result to a hash table visibleTiles to assemble the actual texture map. now let's look at how the texture map is assembled:</p><pre><code class="language-yaml code-block">file: 5_04_mega_texture/index.html
+id: key_id_manager
+title: Key manager
+lang: javascript</code></pre><p>first, let's look at a helper class called the KeyId manager. recall that our actual texture map has a size of 2048x2048, and our tile size is 256x256. hence the actual texture map can hold at most 64 tiles. we need a class to manage which ones of the 64 (maxVisibleTileCountOnTexture) spots have been occupied by visible tiles. And after a new round of visibility test, the manager will recycle invisible tiles and load visible ones into the texture map. in a more advanced version, we could implement a LRU cache, such that we will retire the least used tiles first. here, for simplicity, we always retire a tile if it is not visible.</p><p>in the class, <code>available</code> is a list of available spots' ids. at the beginning, all 64 posts are available, hence we push all ids into the list. the <code>used</code> variable is a map from a tile's key to its id on the texture map.</p><p>the key function is generate. The inputs are the keys of all visible tiles and a helper function that can paste a tile into the texture map.</p><p>the logic of this function is not difficult to understand. first, we load all keys into a hash table (a set). because next, we need to perform a lot existence queries. next, we visit all visible tiles of the previous round, if any has become invisible in this round, we recycle its id into the <code>available</code> list. next, we visit all visible tiles of this round, if the tile was also visible in the previous round, we skip the loading step. otherwise, we utilize the texture loading utility function to paste the tile onto an available spot on the texture.</p><p>now, let's look at the implementation of the loading utility function:</p><pre><code class="language-yaml code-block">file: 5_04_mega_texture/index.html
+id: texture_loading_helper
+title: Helper function to load tile onto texture
+lang: javascript</code></pre><p>the function accomplishes two things. first, it updates the texture lookup table. for each tile in the lookup table, there is a corresponding entry of two float numbers. the two numbers are the texture coordinates of this tile's upper left corner on the texture.</p><p>next, we use the fetch API to load the corresponding tile image into a imageBitmap. our filename comes handy now. we rely on the filename to fetch the right tile image.</p><p>finally, we utilize the copyExternalImageToTexture function to paste the imageBitmap onto the texture map. the actual tiles have paddings and so does the texture map. hence when calculating the tile's position on the texture map, we need to consider the paddings.</p><p>Next, let's look at the class <code>VisibleTileHashTable</code>. This is the wrapper of everything related to texture update.</p><pre><code class="language-yaml code-block">file: 5_04_mega_texture/index.html
+id: visible_tile_manager
+title: Visible tile hash table
+lang: javascript</code></pre><p>the class contains four members. the texture, the lookup table, and an additional buffer for updating the lookup table. finally the keyIdManager.</p><p>After we perform a new round of visibility test, we will need to call the assembleTexture function to build up the new texture. this function maps the update buffer for the lookup table and pass it to other helper function we have explained above.</p><p>finally, with the visibility test done, we will run the second pass to actually render the tiles. this is accomplished by the following shader:</p><pre><code class="language-yaml code-block">file: 5_04_mega_texture/index.html
+id: tile_render_shader
+title: The shader does the actual rendering
+lang: javascript</code></pre><p>this shader is very similar to the visibility test shader. in fact, the vertex shader is exactly the same, hence I omit the vertex shader here. The fragment shader is also not too different. first to notice is the hash table has become read only now. we still perform the same calculation to obtain the key of each visible tile.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Use Image to Illustrate?" sources='[]' /><div class="img-title">Use Image to Illustrate?</div></div></p><p>the calculation looks intimidating. let's break it down. first, let's assume that there is no padding at all. x-floor(x) is the texture coordinates on the current visible tile for the current fragment. But since the current visible tile is only a part of the texture, we need to convert this local texture coordinates the the global texture coordinates on the texture.</p><p>recall that our lookup table contains the correspondence of tile keys to tiles' upper left corner texture coordinates on the texture map. hence hash[base] will give us the global texture coordinates of the upper left corner. now, the global texture coordinates can be obtained by hash[base] + local_coordinates * tile_size / texture_size;</p><p>this works when there is no padding. with padding, we need to slightly update the local coordinates. first, we times the local coordinates with tileSizeWithoutPadding to get local coordinates in pixels. Then we add the paddings to it and divide this adjusted coordinates with the tile size With coordinates to get a new local coordinates. The rest of the calculation is the same as above.</p><p>With this process, we can get the precise texture coordinates for each fragment. We use it to look up for the color value from the texture map.</p><p>The javascript code that sets up the second rendering pass is shared with the first pass. we will omit the details. but it is worth checking the navigation code.</p><pre><code class="language-yaml code-block">file: 5_04_mega_texture/index.html
+id: navigation
+title: Navigation related code
+lang: javascript</code></pre><p>Panning is achieved by updating the translation Matrix. We use the lookAt function to derive the updated matrix. At the beginning, we look at the origin. and mouse move will update both the lookAt's from and to parameters.</p><p>Zooming is achieved by updating the projection matrix. For image viewing, we use only the orthogonal matrix. When zoom in and out, we adjust the viewing range of the orthogonal matrix.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Image to Show the Artifact if No Padding" sources='[]' /><div class="img-title">Image to Show the Artifact if No Padding</div></div></p><p>In the end, let's discuss what's gonna happen if we don't include a padding in the texture. to see the effect, we can set the padding to zero. As we can see, we can easily see seams between the tiles. the seams are caused by numerical errors when sampling the texture map. sampling at a coordinates close to the boarder of a tile might read from a nearby tile. to avoid this, we add an extra buffer between tiles, so that sampling close to the border of a tile won't read nearby tiles, but from the buffering area.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Image to Illustrate Buffering" sources='[]' /><div class="img-title">Image to Illustrate Buffering</div></div></p>
+        </article>
+    </div>
+    <!-- The Modal -->
+    <div id="img-modal" class="modal">
+        <!-- The Close Button -->
+        <span class="close" id="img-close">&times;</span>
+        <!-- Modal Content (The Image) -->
+        <img class="modal-content" id="img01">
+
+        <!-- Modal Caption (Image Text) -->
+        <div id="caption"></div>
+    </div>
+    <script>
+        function openImage(img) {
+            let modal = document.getElementById("img-modal");
+            let modalImg = document.getElementById("img01");
+            modal.style.display = "block";
+            if (img.getAttribute("original_src")) {
+                modalImg.src = img.getAttribute("original_src");
+            } else {
+                modalImg.src = img.src;
+            }
+            let captionText = document.getElementById("caption");
+
+            captionText.innerText = img.alt;
+
+            let sources = JSON.parse(img.getAttribute("sources"));
+
+            for (let i = 0; i < sources.length; ++i) {
+                if (sources.length == 1) {
+                    captionText.innerHTML += "<a href='" + sources[i] + "' target='_blank' class='img-source'>SOURCE</a>";
+                } else {
+                    captionText.innerHTML += "<a href='" + sources[i] + "' target='_blank' class='img-source'>SOURCE " + (i + 1) + "</a>";
+                }
+            }
+        }
+        // Get the <span> element that closes the modal
+        var closeButton = document.getElementById("img-close");
+
+        // When the user clicks on <span> (x), close the modal
+        closeButton.onclick = function () {
+            var modal = document.getElementById("img-modal");
+            modal.style.display = "none";
+        }
+    </script>
+
+<script type="module">
+    const macros = {};
+    const mathElementsBlock = document.getElementsByClassName("math-block");
+    for (let element of mathElementsBlock) {
+        katex.render(element.textContent, element, {
+            throwOnError: false,
+            displayMode: true,
+            macros
+        });
+    }
+
+    const mathElementsInline = document.getElementsByClassName("math-inline");
+    for (let element of mathElementsInline) {
+        katex.render(element.textContent, element, {
+            throwOnError: false,
+            macros
+        });
+    }
+
+    hljs.highlightAll();
+
+</script>
+</body>
+
+</html>

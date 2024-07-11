@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <!-- Primary Meta Tags -->
+    <title>: WebGPU Unleashed: A Practical Tutorial</title>
+    <meta name="title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta name="description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://shi-yan.github.io/WebGPUUnleashed/Basics/mipmapping_and_anisotropic_filtering.html" />
+    <meta property="og:title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta property="og:description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+    <meta property="og:image" content="/WebGPUUnleashed/meta.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://shi-yan.github.io/WebGPUUnleashed/Basics/mipmapping_and_anisotropic_filtering.html" />
+    <meta property="twitter:title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta property="twitter:description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+    <meta property="twitter:image" content="/WebGPUUnleashed/meta.png" />
+
+    <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+
+
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/default-dark.min.css"
+        integrity="sha512-EF2rc4QyBiRAGUMVm+EjFPBbdVGaN/pwZhtuKyrC/dM+hcwTxI5BsEDUkrMRI77z4VlDAt/qVopePXB5+ZZ8Gw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="
+        https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js
+        "></script>
+    <link href="
+        https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css
+        " rel="stylesheet" />
+
+    <script>
+        function fold(e) {
+            const sub = e.currentTarget.parentElement.getElementsByTagName("ul")[0];
+            console.log("sub", e.currentTarget, sub);
+            if (sub.style.display === "block") {
+                sub.style.display = "none";
+            } else {
+                sub.style.display = "block";
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <nav role="navigation">
+        <div id="menuToggle">
+            <input type="checkbox" />
+            <span></span>
+            <span></span>
+            <span></span>
+            <ul id="menu">
+                <!--<li><a href="#">Home</a></li>
+                <li><a href="#">About</a></li>
+                <li><a id="test" href="#" onclick="fold(event)">Info</a>
+                    <ul class="sub-menu">
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                    </ul>
+                </li>
+                <li><a href="#">Contact</a></li>
+                <li><a href="https://erikterwan.com/" target="_blank">Show me more</a></li>-->
+                <li><a href="#" onclick="fold(event)">Intro</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Introduction/the_gpu_driver.html">The GPU Driver</a></li>
+                        <li><a href="/WebGPUUnleashed/Introduction/the_gpu_pipeline.html">The GPU Pipeline</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Basics</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Basics/creating_an_empty_canvas.html">Creating an Empty Canvas</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_triangle.html">Drawing a Triangle</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_triangle_with_defined_vertices.html">Drawing a Triangle with Defined Vertices</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/applying_hardcoded_vertex_colors.html">Applying Hardcoded Vertex Colors</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/using_different_vertex_colors.html">Using Different Vertex Colors</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_colored_triangle_with_a_single_buffer.html">Drawing a Colored Triangle with a Single Buffer</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/understanding_uniforms.html">Understanding Uniforms</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/working_with_textures.html">Working with Textures</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/utilizing_transformation_matrices.html">Utilizing Transformation Matrices</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/implementing_cameras.html">Implementing Cameras</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/triangle_strips.html">Triangle Strips</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/front_and_back_face_culling.html">Front and Back Face Culling</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/depth_testing.html">Depth Testing</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/index_buffers.html">Index Buffers</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/loading_3d_models.html">Loading 3D Models</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/understanding_normals.html">Understanding Normals</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/lighting.html">Lighting</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/multi_sample_anti_aliasing.html">Multi-Sample Anti-Aliasing</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/mipmapping_and_anisotropic_filtering.html">Mipmapping and Anisotropic Filtering</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">2D Techniques</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/rendering_to_textures.html">Rendering to Textures</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/orthogonal_cameras.html">Orthogonal Cameras</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/implementing_gaussian_blur.html">Implementing Gaussian Blur</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/video_rendering.html">Video Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/text_rendering.html">Text Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/billboarding.html">Billboarding</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/implementing_fake_3d.html">Implementing Fake 3D</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Control</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Control/canvas_resizing.html">Canvas Resizing</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/arcball_camera_control.html">Arcball Camera Control</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/object_picking.html">Object Picking</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/saving_images_and_videos.html">Saving Images and Videos</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/using_web_workers.html">Using Web Workers</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/error_handling_and_limits.html">Error Handling and Limits</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Compute</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Compute/prefix_sum.html">Prefix Sum</a></li>
+                        <li><a href="/WebGPUUnleashed/Compute/radix_sort.html">Radix Sort</a></li>
+                        <li><a href="/WebGPUUnleashed/Compute/reaction_diffusion.html">Reaction Diffusion</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Advanced</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Advanced/stencil_buffer.html">Stencil Buffer</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/shadow_mapping.html">Shadow Mapping</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/toon_shading.html">Toon Shading</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/equirectangular_rendering.html">Equirectangular Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/mega_texture.html">Mega Texture</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/transparency_with_depth_peeling.html">Transparency with Depth Peeling</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/skeleton_animation.html">Skeleton Animation</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/normal_mapping_and_bump_mapping.html">Normal Mapping and Bump Mapping</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/gaussian_splatting.html">Gaussian Splatting</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div id="article-container">
+        <article>
+            <h2 >1.18 Mipmapping and Anisotropic Filtering</h2><p>In this tutorial, we're going to talk about Mipmaps. It's a wrong belief that a texture map is simply just an image, because a texture map can have multiple levels.</p><p>At each level, we usually have the same image of different resolution with the level 0 being the original resolution. At level 1, we have a smaller version of the original image, and so on. We call this the level of details.</p><p>The reason that we need multiple resolutions of the same image is to resolve a sampling issue. Let me explain.</p><p>We access the texture image through a sampling function. What I mean by sampling is that we're not going to read the entire image as a whole. Instead, we read the image color by color by providing texture coordinates. Because we don't have the holistic view of the image, our sampling density will determine what we see, even the texture image is unchanged.</p><p>If our sampling density is very low, we will not be able to reconstruct the original appearance of the original image. Instead, we're going to get some weird result.</p><p>Let me explain this more clearly using an analogy. Assume you wake up at an interval to look at the sky. In the end, you want to conclude the color of the sky. If the interval is very short, let's say 5 minutes, you will be able to see all different colors of the sky. In the nighttime, the sky is very dark. During the daytime, it's bright, sometimes it's blue, sometimes it's gray. During the sunset, the color can be orange. You will be able to see all color variants of the sky. However, if your interval is very long, you wake up once every 24 hours. And you happen to wake up during the nighttime, then all you can see is the dark sky. And you will incorrectly conclude that the sky's color is always dark, which is wrong.</p><p>So a similar thing could happen for texture map. If we're sampling the texture map at a very low density, then we will get a very weird looking image. when will the sampling density be low? Well, for example, if you apply a texture map on a 3D plane, and the 3D plane is very away from our camera, and because of the perspective projection, an object that is further away will be projected on the screen into a small size. Because texture map sampling is carried out on each fragment, it could happen that only a few fragments overlap with the 3D plane, which means we're not going to sample the texture map enough. We will end up with a very strange looking image.</p><p>So let me actually show you a situation like this with actual code. below is the same shader we've seen before when introducing texture mapping. But instead of using the baboon texture map, this time we're going to use a checkerboard to make the issue more obvious.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="An Example of Checker Board" sources='[]' /><div class="img-title">An Example of Checker Board</div></div></p><p>So with this naive implementation, as you can see, on the near side of the checkerboard, we see clearly the checkerboard pattern. However, on the far side of the checkerboard, we start to see that the pattern becomes stripes. They don't resemble a checkerboard anymore. This is because we're not sampling the texture map enough.</p><p>if when we sample fragments, we happen to fall on a black area. We end up getting a lot of black from the texture map.The end result will be a black stripe instead of the alternating black and white color.Similarly, if we happen to sample always on the white area, we're going to get a white stripe without any black.That's why the far side looks like a zebra stripe instead of a checkerboard.</p><p>Now to fix this issue, we need to rely on the Mipmap. Given an original image, we're going to gradually shrink its size to make a smaller version of the same image.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="An Image to Explain Mipmap Interpolation" sources='[]' /><div class="img-title">An Image to Explain Mipmap Interpolation</div></div></p><p>When we sample the texture map, we will Based on the distance, choose the most appropriate texture map level. We sample a pixel of color from that level of texture map. The reason being, by choosing a smaller version of the texture map, we essentially mix nearby pixels to get an average color.</p><p>In the checkerboard case, when we shrink the size of the checkerboard, we make it a gray color because we essentially mix white and black areas. But it will produce a better result because when the checkerboard is further away, we will naturally see a gray color instead of a zebra stripe.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="An Example of Checker Board" sources='[]' /><div class="img-title">An Example of Checker Board</div></div></p><p>With this way of sampling texture map, we can avoid weird artifacts due to not enough sampling rate.</p><p>One difficulty of doing Mipmap with WebGPU is that we have to manually create our Mipmap using a shader.If you come from other graphics API like OpenGL, you probably know that generating Mipmap for texture map is mostly automatic. But for WebGPU, we have to write code. But it's not that difficult. Now let's look at the code side of changes.</p><pre><code class="language-javascript code-block">        const textureDescriptor = {
+            size: { width: imgBitmap.width, height: imgBitmap.height },
+            format: 'rgba8unorm',
+            mipLevelCount: Math.ceil(Math.log2(Math.max(imgBitmap.width, imgBitmap.height))),
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+        };
+        const texture = device.createTexture(textureDescriptor);
+        device.queue.copyExternalImageToTexture({ source: imgBitmap }, { texture }, textureDescriptor.size);</code></pre><p>So notice that when we create the checkerboard texture map, we're now using our helper function image to texture map this time because we want to manually define the Mipmap level count.</p><p>So we'll calculate the Mipmap level count based on this equation because we want to shrink the width and height by half each time until we reach the size of a single pixel.</p><p>And notice that for the usage, not only we want to specify texture binding, we also need copy destination and render attachment because we're going to use the same texture map both for read and write and as a render target.</p><p>Now let's look at the shader set of changes. You might notice that this time we are actually having two different shaders. One shader is used solely for generating the Mipmap for our texture.</p><p>The second shader is the actual shader for rendering. We're going to look at the Mipmap shader first, and then we will go through the JavaScript changes to generate the Mipmap.</p><pre><code>    var&lt;private&gt; pos : array&lt;vec2&lt;f32&gt;, 4&gt; = array&lt;vec2&lt;f32&gt;, 4&gt;(
+        vec2&lt;f32&gt;(-1.0, 1.0), vec2&lt;f32&gt;(1.0, 1.0),
+        vec2&lt;f32&gt;(-1.0, -1.0), vec2&lt;f32&gt;(1.0, -1.0));
+
+      struct VertexOutput {
+        @builtin(position) position : vec4&lt;f32&gt;,
+        @location(0) texCoord : vec2&lt;f32&gt;,
+      };
+
+      @vertex
+      fn vs_main(@builtin(vertex_index) vertexIndex : u32) -&gt; VertexOutput {
+        var output : VertexOutput;
+        output.texCoord = pos[vertexIndex] * vec2&lt;f32&gt;(0.5, -0.5) + vec2&lt;f32&gt;(0.5);
+        output.position = vec4&lt;f32&gt;(pos[vertexIndex], 0.0, 1.0);
+        return output;
+      }
+
+      @group(0) @binding(0) var imgSampler : sampler;
+      @group(0) @binding(1) var img : texture_2d&lt;f32&gt;;
+
+      @fragment
+      fn fs_main(@location(0) texCoord : vec2&lt;f32&gt;) -&gt; @location(0) vec4&lt;f32&gt; {
+        return textureSample(img, imgSampler, texCoord);
+      }</code></pre><p>And then we will look at how to sample the Mipmap based on distance. So the Mipmap shader is not very difficult to understand. We're basically using the same trick we've seen before. So we're not passing any vertex data from the outside, instead we define the vertex data as an array.</p><p>Notice that if any data is defined outside a function scope, there should be a storage location specified for the variable. In this situation, the position buffer is stored in the private storage.</p><p>In the vertex shader, we basically derive the texture coordinate and positions based on the vertex index. We basically want to generate a rectangle that covers the entire canvas or screen, and render the entire image to cover the area.</p><p>The fragment shader is very simple. We simply just sample the texture map based on the texture coordinates. And in the JavaScript code, to create the Mipmap, we need to first define a Mipmap pipeline.</p><p>This is very straightforward, however. the trick here is we need to first create a texture map based on the checkerboard image, and then we use the same checkerboard texture map but a different level as our render target. We then render the texture map as a screen aligned rectangle on the specified level as a way to shrink the texture map. we repeat this process till all texture map levels are populated.</p><p>To use it as a render target, we need to create a view from the texture map. Notice that before when we create a view, we never provide any parameter, but here we're providing two additional parameters.</p><pre><code class="language-javascript code-block">
+    let srcView = texture.createView({
+        baseMipLevel: 0,
+        mipLevelCount: 1
+    });
+
+    const sampler = device.createSampler({ minFilter: 'linear' });
+    const commandEncoder = device.createCommandEncoder({});
+      for (let i = 1; i &lt; textureDescriptor.mipLevelCount; ++i) {
+                const dstView = texture.createView({
+                    baseMipLevel: i,  // Make sure we're getting the right mip level...
+                    mipLevelCount: 1, // And only selecting one mip level
+                });
+
+                const passEncoder = commandEncoder.beginRenderPass({
+                    colorAttachments: [{
+                        view: dstView, // Render pass uses the next mip level as it's render attachment.
+                        clearValue: { r: 0, g: 0, b: 0, a: 1 },
+                        loadOp: 'clear',
+                        storeOp: 'store'
+                    }],
+                });
+
+                // Need a separate bind group for each level to ensure
+                // we're only sampling from the previous level.
+                const bindGroup = device.createBindGroup({
+                    layout: uniformBindGroupLayout,
+                    entries: [{
+                        binding: 0,
+                        resource: sampler,
+                    }, {
+                        binding: 1,
+                        resource: srcView,
+                    }],
+                });
+
+                // Render
+                passEncoder.setPipeline(mipmapPipeline);
+                passEncoder.setBindGroup(0, bindGroup);
+                passEncoder.draw(4);
+                // what is a render pass;
+                passEncoder.end();
+
+                srcView = dstView;
+            }
+            device.queue.submit([commandEncoder.finish()]);</code></pre><p>There are two texture views involved here. if the source view points to a level i of the texture. for the target view, we will select the i+1 level, till all levels are processed.</p><p>When creating a texture view, the first parameter baseMipLevel is the render target level. At level 0 we have the original image, at level 1 we have a shrunk version, etc. And for mipLevelCount, we always provide 1, which means at each time we only process one level of the Mipmap.</p><p>And then for the sampler, we're using the linear interpolation. This means when we shrink the original image to generate our Mipmap, we want to perform linear interpolation of the pixels.</p><p>This operation will make the image a little bit blurry, but for further away objects, a blurry version of the texture map is actually desired.</p><p>And then we create an encoder to encode the command, draw command. We're going to draw a series of rectangles, and each rectangle is corresponding to one level of the Mipmap.</p><p>And for each time, we're going to shrink the target. We create a target, and the target will be selected one level above the source view of the texture map.</p><p>This way we'll shrink the image step by step. Notice that there's no need to specify the width and height of a Mipmap level. It's automatically handled - when the level increases, both width and height halves.</p><p>And then we're going to create our color attachment out of the destination view. And for the bending group, we provide the source view.
+And we draw four indices. In the end, we assign the destination view to the source view, and we loop back to finish the next level of Mipmap.</p><p>After we execute these commands, the mipmap should be generated. we can now use it for normal rendering. The process is the same as before, and in fact, choosing the right mipmap levels and perform interpolations between the levels are handled automatically:</p><pre><code>@group(0) @binding(2)
+var t_diffuse: texture_2d&lt;f32&gt;;
+@group(0) @binding(3)
+var s_diffuse: sampler;
+
+@fragment
+fn fs_main(in: VertexOutput) -&gt; @location(0) vec4&lt;f32&gt; {
+    return textureSample(t_diffuse, s_diffuse, in.tex_coords) ;
+}</code></pre><p>but there is one caveat, the textureSample function usage has to meet the uniformity requirements. that is to say that this function has to be called in a uniform control flow. it may be a bit difficult to grasp the concept of uniform control flow now, and I will skip the why for now, as we will come back to it in later chapters. To put it simply, a piece of code is in a uniform control flow means that the code will be executed regardless of the shader invocation. no matter what shader inputs we provide, that includes uniforms, vertex attributes etc, the piece of code will be executed.</p><pre><code>@group(0) @binding(2)
+var t_diffuse: texture_2d&lt;f32&gt;;
+@group(0) @binding(3)
+var s_diffuse: sampler;
+
+@fragment
+fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -&gt; @location(0) vec4&lt;f32&gt; {
+    if (face) {
+        return textureSample(t_diffuse, s_diffuse, in.tex_coords) ;
+    } else {
+        return vec4&lt;f32&gt;(0.0, 1.0, 0.0, 1.0); // Green for back-facing
+    }
+}</code></pre><p>as a counter example, the above code does not fulfill the uniformity requirement and hence won't compile. because the execution of textureSample depends on if a fragment is front facing or not. We won't guarentee its execution across all invocations.</p><p>The right way to do it if we want to only return the texture map color for front facing fragments is doing the texture sampling outside the if condition.</p><pre><code>@group(0) @binding(2)
+var t_diffuse: texture_2d&lt;f32&gt;;
+@group(0) @binding(3)
+var s_diffuse: sampler;
+
+@fragment
+fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -&gt; @location(0) vec4&lt;f32&gt; {
+    let c: vec4&lt;f32&gt; = textureSample(t_diffuse, s_diffuse, in.tex_coords);
+    if (face) {
+        return c;
+    } else {
+        return vec4&lt;f32&gt;(0.0, 1.0, 0.0, 1.0); // Green for back-facing
+    }
+}</code></pre><p>again, we will explain why this is the case in later chapters. While avoiding uniformity issue by simply eyeballing the problem in the code might sound non-trivial, luckily the WebGPU shader compiler will report this problem.</p>
+        </article>
+    </div>
+    <!-- The Modal -->
+    <div id="img-modal" class="modal">
+        <!-- The Close Button -->
+        <span class="close" id="img-close">&times;</span>
+        <!-- Modal Content (The Image) -->
+        <img class="modal-content" id="img01">
+
+        <!-- Modal Caption (Image Text) -->
+        <div id="caption"></div>
+    </div>
+    <script>
+        function openImage(img) {
+            let modal = document.getElementById("img-modal");
+            let modalImg = document.getElementById("img01");
+            modal.style.display = "block";
+            if (img.getAttribute("original_src")) {
+                modalImg.src = img.getAttribute("original_src");
+            } else {
+                modalImg.src = img.src;
+            }
+            let captionText = document.getElementById("caption");
+
+            captionText.innerText = img.alt;
+
+            let sources = JSON.parse(img.getAttribute("sources"));
+
+            for (let i = 0; i < sources.length; ++i) {
+                if (sources.length == 1) {
+                    captionText.innerHTML += "<a href='" + sources[i] + "' target='_blank' class='img-source'>SOURCE</a>";
+                } else {
+                    captionText.innerHTML += "<a href='" + sources[i] + "' target='_blank' class='img-source'>SOURCE " + (i + 1) + "</a>";
+                }
+            }
+        }
+        // Get the <span> element that closes the modal
+        var closeButton = document.getElementById("img-close");
+
+        // When the user clicks on <span> (x), close the modal
+        closeButton.onclick = function () {
+            var modal = document.getElementById("img-modal");
+            modal.style.display = "none";
+        }
+    </script>
+
+<script type="module">
+    const macros = {};
+    const mathElementsBlock = document.getElementsByClassName("math-block");
+    for (let element of mathElementsBlock) {
+        katex.render(element.textContent, element, {
+            throwOnError: false,
+            displayMode: true,
+            macros
+        });
+    }
+
+    const mathElementsInline = document.getElementsByClassName("math-inline");
+    for (let element of mathElementsInline) {
+        katex.render(element.textContent, element, {
+            throwOnError: false,
+            macros
+        });
+    }
+
+    hljs.highlightAll();
+
+</script>
+</body>
+
+</html>

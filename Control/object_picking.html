@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <!-- Primary Meta Tags -->
+    <title>: WebGPU Unleashed: A Practical Tutorial</title>
+    <meta name="title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta name="description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://shi-yan.github.io/WebGPUUnleashed/Control/object_picking.html" />
+    <meta property="og:title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta property="og:description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+    <meta property="og:image" content="/WebGPUUnleashed/meta.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://shi-yan.github.io/WebGPUUnleashed/Control/object_picking.html" />
+    <meta property="twitter:title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta property="twitter:description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+    <meta property="twitter:image" content="/WebGPUUnleashed/meta.png" />
+
+    <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+
+
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/default-dark.min.css"
+        integrity="sha512-EF2rc4QyBiRAGUMVm+EjFPBbdVGaN/pwZhtuKyrC/dM+hcwTxI5BsEDUkrMRI77z4VlDAt/qVopePXB5+ZZ8Gw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="
+        https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js
+        "></script>
+    <link href="
+        https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css
+        " rel="stylesheet" />
+
+    <script>
+        function fold(e) {
+            const sub = e.currentTarget.parentElement.getElementsByTagName("ul")[0];
+            console.log("sub", e.currentTarget, sub);
+            if (sub.style.display === "block") {
+                sub.style.display = "none";
+            } else {
+                sub.style.display = "block";
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <nav role="navigation">
+        <div id="menuToggle">
+            <input type="checkbox" />
+            <span></span>
+            <span></span>
+            <span></span>
+            <ul id="menu">
+                <!--<li><a href="#">Home</a></li>
+                <li><a href="#">About</a></li>
+                <li><a id="test" href="#" onclick="fold(event)">Info</a>
+                    <ul class="sub-menu">
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                    </ul>
+                </li>
+                <li><a href="#">Contact</a></li>
+                <li><a href="https://erikterwan.com/" target="_blank">Show me more</a></li>-->
+                <li><a href="#" onclick="fold(event)">Intro</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Introduction/the_gpu_driver.html">The GPU Driver</a></li>
+                        <li><a href="/WebGPUUnleashed/Introduction/the_gpu_pipeline.html">The GPU Pipeline</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Basics</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Basics/creating_an_empty_canvas.html">Creating an Empty Canvas</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_triangle.html">Drawing a Triangle</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_triangle_with_defined_vertices.html">Drawing a Triangle with Defined Vertices</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/applying_hardcoded_vertex_colors.html">Applying Hardcoded Vertex Colors</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/using_different_vertex_colors.html">Using Different Vertex Colors</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_colored_triangle_with_a_single_buffer.html">Drawing a Colored Triangle with a Single Buffer</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/understanding_uniforms.html">Understanding Uniforms</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/working_with_textures.html">Working with Textures</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/utilizing_transformation_matrices.html">Utilizing Transformation Matrices</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/implementing_cameras.html">Implementing Cameras</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/triangle_strips.html">Triangle Strips</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/front_and_back_face_culling.html">Front and Back Face Culling</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/depth_testing.html">Depth Testing</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/index_buffers.html">Index Buffers</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/loading_3d_models.html">Loading 3D Models</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/understanding_normals.html">Understanding Normals</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/lighting.html">Lighting</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/multi_sample_anti_aliasing.html">Multi-Sample Anti-Aliasing</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/mipmapping_and_anisotropic_filtering.html">Mipmapping and Anisotropic Filtering</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">2D Techniques</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/rendering_to_textures.html">Rendering to Textures</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/orthogonal_cameras.html">Orthogonal Cameras</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/implementing_gaussian_blur.html">Implementing Gaussian Blur</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/video_rendering.html">Video Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/text_rendering.html">Text Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/billboarding.html">Billboarding</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/implementing_fake_3d.html">Implementing Fake 3D</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Control</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Control/canvas_resizing.html">Canvas Resizing</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/arcball_camera_control.html">Arcball Camera Control</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/object_picking.html">Object Picking</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/saving_images_and_videos.html">Saving Images and Videos</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/using_web_workers.html">Using Web Workers</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/error_handling_and_limits.html">Error Handling and Limits</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Compute</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Compute/prefix_sum.html">Prefix Sum</a></li>
+                        <li><a href="/WebGPUUnleashed/Compute/radix_sort.html">Radix Sort</a></li>
+                        <li><a href="/WebGPUUnleashed/Compute/reaction_diffusion.html">Reaction Diffusion</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Advanced</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Advanced/stencil_buffer.html">Stencil Buffer</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/shadow_mapping.html">Shadow Mapping</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/toon_shading.html">Toon Shading</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/equirectangular_rendering.html">Equirectangular Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/mega_texture.html">Mega Texture</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/transparency_with_depth_peeling.html">Transparency with Depth Peeling</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/skeleton_animation.html">Skeleton Animation</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/normal_mapping_and_bump_mapping.html">Normal Mapping and Bump Mapping</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/gaussian_splatting.html">Gaussian Splatting</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div id="article-container">
+        <article>
+            <h2 >3.2 Object Picking</h2><p>Another important way of interaction is picking or selection, for example, in an RTS game, we use mouse to select the units we want to control.</p><h3 >Ray casting</h3><p>There are two common ways of implementing picking. We will be look at both in this tutorial. The first method is called raycasting and it's principle is simple. recall that by applying a projection matrix, we can project a 3D point onto the screen plane. Raycasting simply reverses the process: given a 2D position on the screen plane (our mouse cursor position), we obtain a ray by looking at the projection matrix, such that the ray will overlap the 2D point if projected. Then we use that ray to test against objects that can potentially intersect with it. If intersection happens, we select interested object.</p><p>precise ray object intersection can be difficult to compute if the object is in a complex shape, such as a teapot. usually, we use an overlapping proxy geometry for the calculation. For example, a bounding box or a bounding sphere. usually the ray intersection can be checked against the proxy geometry using a simple formula and efficiently. in this tutorial for example, we will be using proxy spheres.</p><p>in this demo, we will be rendering 16 teapots that form a ring using the instancing technique we covered before. each teapot is enclosed by a proxy sphere. We render the proxy sphere for visualization purpose. Ray casting is primarily calculated by the cpu code in javascript, hence I will omit most explanation regarding rendering, please refer to the sample code for details. Here I want to mainly discuss the scene setup:</p><p>The first part is constructing 3 rings to represent the proxy sphere, similar to what we have created in the previous chapter. The 3 rings are perpendicular to each other because we want to use them to represent the silluate of the proxy sphere:</p><pre><code class="language-javascript code-block">            const teapotCenter = glMatrix.vec4.fromValues(center[0], center[1], center[2], 1.0);
+
+            this.ringPositionBuffer = [];
+
+            for (let i = 0; i &lt; 16; ++i) {
+                const angle = 2.0 * Math.PI * i / 16.0;
+                const x = Math.cos(angle) * radius;
+                const y = Math.sin(angle) * radius;
+
+                this.ringPositionBuffer.push(x + center[0]);
+                this.ringPositionBuffer.push(y + center[1]);
+                this.ringPositionBuffer.push(0.0 + center[2]);
+            }
+
+            this.ringPositionBuffer = createGPUBuffer(device, new Float32Array(this.ringPositionBuffer), GPUBufferUsage.VERTEX);
+
+            this.ringPositionBuffer2 = [];
+            for (let i = 0; i &lt; 16; ++i) {
+                const angle = 2.0 * Math.PI * i / 16.0;
+                const x = Math.cos(angle) * radius;
+                const z = Math.sin(angle) * radius;
+
+                this.ringPositionBuffer2.push(x + center[0]);
+                this.ringPositionBuffer2.push(0.0 + center[1]);
+                this.ringPositionBuffer2.push(z + center[2]);
+            }
+
+            this.ringPositionBuffer2 = createGPUBuffer(device, new Float32Array(this.ringPositionBuffer2), GPUBufferUsage.VERTEX);
+
+
+            this.ringPositionBuffer3 = [];
+            for (let i = 0; i &lt; 16; ++i) {
+                const angle = 2.0 * Math.PI * i / 16.0;
+                const y = Math.cos(angle) * radius;
+                const z = Math.sin(angle) * radius;
+
+                this.ringPositionBuffer3.push(0.0 + center[0]);
+                this.ringPositionBuffer3.push(y + center[1]);
+                this.ringPositionBuffer3.push(z + center[2]);
+            }
+            this.ringPositionBuffer3 = createGPUBuffer(device, new Float32Array(this.ringPositionBuffer3), GPUBufferUsage.VERTEX);</code></pre><p>here we create 3 position buffers, each contains the verticies of a ring. A ring is centered at the teapot's center. next, we will setup individual rotation and translation for each teapot instance:</p><pre><code class="language-javascript code-block">            for (let i = 0; i &lt; this.instanceCount; ++i) {
+
+                const angle = 2.0 * Math.PI * i / this.instanceCount;
+
+                let translation = glMatrix.mat4.fromTranslation(glMatrix.mat4.create(),
+                    glMatrix.vec3.fromValues(Math.cos(angle) * circleRadius,
+                        Math.sin(angle) * circleRadius, 0));
+                let rotation = glMatrix.mat4.fromRotation(glMatrix.mat4.create(), Math.PI * 0.5 + angle, glMatrix.vec3.fromValues(0.0, 0.0, 1.0));
+
+                const modelViewMatrix = glMatrix.mat4.multiply(glMatrix.mat4.create(), translation, rotation);
+
+                transformationMats.set(modelViewMatrix, i * 16);
+
+                let modelViewMatrixInverse = glMatrix.mat4.invert(glMatrix.mat4.create(), modelViewMatrix);
+
+                let normalMatrix = glMatrix.mat4.transpose(glMatrix.mat4.create(), modelViewMatrixInverse);
+
+                normalMats.set(normalMatrix, i * 16);
+
+                let center = glMatrix.vec4.transformMat4(glMatrix.vec3.create(), teapotCenter, modelViewMatrix);
+                this.instanceCenters.push(glMatrix.vec3.fromValues(center[0], center[1], center[2]));
+
+            }</code></pre><p>for each teapot, we first apply a rotation to it and then move it to a position such that all instances form a ring. The modelViewMatrix is kept in a matrix array and similarly the normal matrices are also kept in an array. These arrays are passed into the shader program as:</p><pre><code class="language-javascript code-block">    @group(0) @binding(3)
+    var&lt;uniform&gt; teapotTransformationMat : array&lt;mat4x4&lt;f32&gt;, 16&gt;;
+    @group(0) @binding(4)
+    var&lt;uniform&gt; teapotNormalMat : array&lt;mat4x4&lt;f32&gt;, 16&gt;;</code></pre><p>notice that we also save the transformed teapot centers into an array, they are important for ray sphere intersection test.</p><p>Now let's look at the picking part implemented in the mouse event handling functions. Because this demo also wants to support navigation via arcball, most of the implementation, for example the onmousedown function, is the same as the previous chapter. here I will focus on the difference, the picking part in the mousemove event handler:</p><pre><code class="language-javascript code-block">        canvas.onmousemove = (event) =&gt; {
+            ...
+
+            if (isDragging != 0) {
+                ...
+            }
+            else {
+                //selection mode
+                const currX = (x - originX) * 2.0 / width;
+                const currY = (originY - y) * 2.0 / height;
+
+                let projectionMatrixInverse = glMatrix.mat4.invert(glMatrix.mat4.create(), projectionMatrix);
+
+                let clipSpacePosition = glMatrix.vec4.fromValues(currX, currY, 0, 1.0);
+
+                clipSpacePosition = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), clipSpacePosition, projectionMatrixInverse);
+
+                clipSpacePosition[3] = 0;
+
+                let dir = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), clipSpacePosition, modelViewMatrixInverse);
+
+                dir = glMatrix.vec3.normalize(glMatrix.vec3.create(), dir);
+
+                let found = false;
+                console.log("select", currX, currY, teapot.instanceCount);
+
+                for (let i = 0; i &lt; teapot.instanceCount; ++i) {
+                    let center = teapot.instanceCenters[i];
+                    center = glMatrix.vec3.fromValues(center[0] - arcball.forwardVector[0],
+                        center[1] - arcball.forwardVector[1],
+                        center[2] - arcball.forwardVector[2]);
+
+                    const dot = glMatrix.vec3.dot(center, dir);
+                    const dis = glMatrix.vec3.length(glMatrix.vec3.subtract(glMatrix.vec3.create(), glMatrix.vec3.scale(glMatrix.vec3.create(), dir, dot), center));
+                    console.log("dis ", dis);
+                    if (dis &lt; teapot.teapotRadius) {
+                        console.log('found teapot ', i, dis, teapot.teapotRadius);
+                        const selectionUniformBufferUpdate = createGPUBuffer(device, new Uint32Array([i]), GPUBufferUsage.COPY_SRC);
+                        commandEncoder = device.createCommandEncoder();
+                        commandEncoder.copyBufferToBuffer(selectionUniformBufferUpdate, 0,
+                            teapot.selectionUniformBuffer, 0, 4);
+                        device.queue.submit([commandEncoder.finish()]);
+                        requestAnimationFrame(render);
+                        console.log("update selection")
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found) {
+                    const selectionUniformBufferUpdate = createGPUBuffer(device, new Uint32Array([17]), GPUBufferUsage.COPY_SRC);
+                    commandEncoder = device.createCommandEncoder();
+                    commandEncoder.copyBufferToBuffer(selectionUniformBufferUpdate, 0,
+                        teapot.selectionUniformBuffer, 0, 4);
+                    device.queue.submit([commandEncoder.finish()]);
+                    requestAnimationFrame(render);
+                }
+            }
+        }</code></pre><p>this function contains a if condition checking if we are currently dragging the mouse. If we are, then we treat it as a arcball navigation gesture and update the arcball. If not, i.e. we are not pressing any mouse button, just moving the mouse, then we consider it as a picking scenario.</p><pre><code>                const currX = (x - originX) * 2.0 / width;
+                const currY = (originY - y) * 2.0 / height;
+
+                let projectionMatrixInverse = glMatrix.mat4.invert(glMatrix.mat4.create(), projectionMatrix);
+
+                let clipSpacePosition = glMatrix.vec4.fromValues(currX, currY, 0, 1.0);
+
+                let cameraSpacePosition = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), clipSpacePosition, projectionMatrixInverse);
+
+                let cameraSpacePosition[3] = 0;
+
+                let dir = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), clipSpacePosition, modelViewMatrixInverse);
+
+                dir = glMatrix.vec3.normalize(glMatrix.vec3.create(), dir);</code></pre><p>the purpose of the above part is to turn the current mouse position on the canvas to a ray direction in the world space. To understand it, we need to be familiar with the coordinate transformation of the graphics pipeline. Recall that after applying the projection matrix, we will turn a 3d point from the camera coordinates to the clip space position. And the clip space position has the range that -1.0 < x < 1.0 and -1.0 < y < 1.0 and 0 < z < 1.0. hence, we apply the following calculations to make sure the x and y are in the range</p><pre><code class="language-javascript code-block">                const currX = (x - originX) * 2.0 / width;
+                const currY = (originY - y) * 2.0 / height;</code></pre><p>for the z axis, since the screen position is 2D, we need to come up with a z for the clipSpacePosition. here we use zero, because we want to point to be on the near plane of the clip volume. then for the w, recall that in homogeneous coordinates, if the last component is 1.0, it represents a position, otherwise a direction. For now, let's treat it as a position. We then apply the inversed projection matrix to turn the clip space point into a point in the camera coordinate system. recall that in the camera coordinates, the origin is at the camera. Hence, the ray we shoot from the camera, through the mouse position into the scene, should be the point's position - the origin. here we force the camera coordinates's w component to be zero, because from now on, it is a direction, not a point. Then we apply the inversed model view matrix to this direction to get the direction in the world space and normalize it.</p><pre><code class="language-javascript code-block">                for (let i = 0; i &lt; teapot.instanceCount; ++i) {
+                    let center = teapot.instanceCenters[i];
+                    center = glMatrix.vec3.fromValues(center[0] - arcball.forwardVector[0],
+                        center[1] - arcball.forwardVector[1],
+                        center[2] - arcball.forwardVector[2]);
+
+                    const dot = glMatrix.vec3.dot(center, dir);
+                    const dis = glMatrix.vec3.length(glMatrix.vec3.subtract(glMatrix.vec3.create(), glMatrix.vec3.scale(glMatrix.vec3.create(), dir, dot), center));
+                    console.log("dis ", dis);
+                    if (dis &lt; teapot.teapotRadius) {
+                        console.log('found teapot ', i, dis, teapot.teapotRadius);
+                        const selectionUniformBufferUpdate = createGPUBuffer(device, new Uint32Array([i]), GPUBufferUsage.COPY_SRC);
+                        commandEncoder = device.createCommandEncoder();
+                        commandEncoder.copyBufferToBuffer(selectionUniformBufferUpdate, 0,
+                            teapot.selectionUniformBuffer, 0, 4);
+                        device.queue.submit([commandEncoder.finish()]);
+                        requestAnimationFrame(render);
+                        console.log("update selection")
+                        found = true;
+                        break;
+                    }
+                }</code></pre><p>then we loop through all teapots, for each, we calculate the direction from its center to the camera position. we project this vector to the ray vector. and then we scale the ray vector by the projected length. finally, we subtract teapot's center vector to the scaled ray vector, because this resulting vector is perpendicular to the ray vector, its length is the shortest distance from the teapot center to the ray. if this ray is smaller than the teapot's proxy sphere, then we think the ray passes through the teapot. in this situation, we update the current selected teapot index encoded in a uniform buffer. in the shader code, if an instance id matches the current selection, we draw the teapot in a different color.</p><p>and last, if no selection is currently detected, we need to reset the previous selection by updating the current selection id to 17, because we only have 16 teapots, no id will match 17 in the shader, hence all of them will be rendered normally.</p><pre><code class="language-javascript code-block">         if (!found) {
+                    const selectionUniformBufferUpdate = createGPUBuffer(device, new Uint32Array([17]), GPUBufferUsage.COPY_SRC);
+                    commandEncoder = device.createCommandEncoder();
+                    commandEncoder.copyBufferToBuffer(selectionUniformBufferUpdate, 0,
+                        teapot.selectionUniformBuffer, 0, 4);
+                    device.queue.submit([commandEncoder.finish()]);
+                    requestAnimationFrame(render);
+                }</code></pre><h3 >Color coding</h3><p>Ray casting is not difficult to implement, but it won't fit every scenario. For example, the proxy geometry is not as fine as the actual object. Sometimes, we want precise picking. second, ray casting we implemented doesn't consider occlussion. a further away and occoluded object can still be picked if it happens to be visited first when we iterate through all objects. Sometimes, certain objects have a single side. for example, consider a plane that has only one front side. When this plane is facing away from us, it should not be visible if we cull its back face. we shouldn't pick it when it is not visible, but ray picking will picking it still. Third, when there are a lot of objects, ray casting might be slow, especially when most objects are not visible due to occolusion or outside the view. Of course, this situation can be improved by adopting a better scene datastructure, such as the kd tree, which allows us to only test ray hit against geometry objects that have the potential to intersect the ray.</p><p>In this second section, we will discuss an alternative picking solution called color coding that can solve some of the issues mentioned. The principle behind color coding is also not difficult. we encode each object's id as a unique color. For RGB color, we can encode 2^24 objects, which should be enough for most of the use cases. We then render the scene using these false color and read back what we have rendered. For this step, we need to be careful by not enabling any process that can potentially alter the color values, such as blending and anti-aliasing. Once the rendering is read back, we recover objects' id from the colors and see what color is currently under the mouse cursor. we don't have to read the whole image, but just a small patch under the mouse should be enough and also we can render the scene not necessary in the full resolution, but a smaller resolution to improve performance, as picking is often not required to be pixel level accurate.</p><p>The benefit of color coding is obvious. By rendering the scene, only the front most and front facing object is checked for selection. There is also no coarse proxy object, so we can do precise picking using the actual geometry. but unlike the ray casting approach, the color coding implementation requires a shader code and the javascript code to work jointly.</p><p>Now let's look at the code:</p><pre><code>    @vertex
+    fn vs_main(
+        @builtin(instance_index) instanceIdx : u32,
+        @location(0) inPos: vec3&lt;f32&gt;,
+        @location(1) color: vec4&lt;u32&gt;
+    ) -&gt; VertexOutput {
+        var out: VertexOutput;
+        out.clip_position = projection * modelView * teapotTransformationMat[instanceIdx] * vec4&lt;f32&gt;(inPos, 1.0);
+        out.color = color.xyz;
+        return out;
+    }
+    
+    // Fragment shader
+    
+    @fragment
+    fn fs_main(in: VertexOutput) -&gt; @location(0) vec4&lt;u32&gt; {
+        return vec4&lt;u32&gt;( in.color.xyz ,255);
+    }</code></pre><p>There are two shaders involved here. The first shader is the normal rendering shader, which we will skip. The second shader is for color coded rendering. the color coded rendering is actually even simpler. the color codes are passed in via vertex attribute and passed to the fragment shader. The fragment shader simply renders this color. the transparency channel is set as fully opaque. The output format is u32 because we don't want to scale the color to float point numbers to avoid altering the color codes.</p><pre><code class="language-javascript code-block">        async function pick(x, y) {
+            if (inRendering) {
+                return 17;
+            }
+            inRendering = true;
+           
+           ...
+                passEncoder = commandEncoder.beginRenderPass(renderPassDescColorCode);
+
+                passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+                teapot.encodeForColorCoding(passEncoder);
+
+                passEncoder.end();
+                commandEncoder.copyTextureToBuffer({ texture: colorCodeTexture, origin: { x, y } }, { buffer: copiedBuffer, bytesPerRow: bufferWidth }, { width: 2, height: 2 });
+                device.queue.submit([commandEncoder.finish()]);
+
+                await device.queue.onSubmittedWorkDone();
+            ...
+
+                await copiedBuffer.mapAsync(GPUMapMode.READ, 0, bufferWidth * 2);
+
+                const d = new Uint8ClampedArray(copiedBuffer.getMappedRange());
+                const picked = d[0];
+                console.log('pick ', picked);
+
+                copiedBuffer.unmap();
+                inRendering = false;
+
+                return picked;
+        }</code></pre><p>first of all, we don't want the pick function be called before a previous call has finished, because in the pick function, we need to write to some temporary buffer. calling this function more than once at the same time will cause issues, such as being written when mapped. To avoid it, we simply use a flag to check if a previous execution is unfinished.</p><p>after rendering, we copy the framebuffer to a temporary copiedBuffer. the copiedBuffer is smaller than the framebuffer, we only copy a 2x2 window underneath the current mouse cursor. However, notice the parameter called bytesPerRow, according to the spec, it must be a multiple of 256. so we have to allocate more than required to fulfill this requirement.</p><p>And once the command queue is done, we map the copied buffer for read access. A more surfascated implementation might check for the most dominant color to get the most likely object, here I just check the first pixel's red channel. The object index should be recovered from the color, but since in the demo, we only have 16 objects, the red channel alone should be enough to save all indices. So I just be lazy here.</p><p>Now let's look at the pipeline setup code, the first part is how do we encode object indices into colors when setting up teapot instances, we basically encode the object index in RGB in using little endianess.</p><pre><code class="language-javascript code-block">for (let i = 0; i &lt; this.instanceCount; ++i) {
+
+...
+                colorCodes.set([i &amp; 0b11111111,
+                (i &gt;&gt; 8) &amp; 0b11111111, (i &gt;&gt; 16) &amp; 0b11111111, (i &gt;&gt; 24) &amp; 0b11111111], i * 4 + 0);
+            }</code></pre><p>the last piece of the puzzle is creating the target texture to render the color coded scene:</p><pre><code class="language-javascript code-block">
+            const colorCodeTextureDesc = {
+                size: [canvas.width, canvas.height, 1],
+                dimension: '2d',
+                format: 'rgba8uint',
+                usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC
+            };
+
+            ...
+
+            bufferWidth = Math.ceil(2 * 4 / 256.0) * 256;
+            copiedBuffer = createGPUBuffer(device, new Uint8Array(bufferWidth * 2), GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
+</code></pre><p>we use the rgba8uint format for the texture to match the output format of the shader. For the readback buffer, notice how do we obtain the bufferWidth. since we want read a 2x2 window, a single row should be 4*2 bytes, but we need to round it up to the closest multiple of 256, as this is required for GPUImageCopyBuffer.</p><p>the above concludes the picking part. We also have the normal rendering part, which we will skip.</p>
+        </article>
+    </div>
+    <!-- The Modal -->
+    <div id="img-modal" class="modal">
+        <!-- The Close Button -->
+        <span class="close" id="img-close">&times;</span>
+        <!-- Modal Content (The Image) -->
+        <img class="modal-content" id="img01">
+
+        <!-- Modal Caption (Image Text) -->
+        <div id="caption"></div>
+    </div>
+    <script>
+        function openImage(img) {
+            let modal = document.getElementById("img-modal");
+            let modalImg = document.getElementById("img01");
+            modal.style.display = "block";
+            if (img.getAttribute("original_src")) {
+                modalImg.src = img.getAttribute("original_src");
+            } else {
+                modalImg.src = img.src;
+            }
+            let captionText = document.getElementById("caption");
+
+            captionText.innerText = img.alt;
+
+            let sources = JSON.parse(img.getAttribute("sources"));
+
+            for (let i = 0; i < sources.length; ++i) {
+                if (sources.length == 1) {
+                    captionText.innerHTML += "<a href='" + sources[i] + "' target='_blank' class='img-source'>SOURCE</a>";
+                } else {
+                    captionText.innerHTML += "<a href='" + sources[i] + "' target='_blank' class='img-source'>SOURCE " + (i + 1) + "</a>";
+                }
+            }
+        }
+        // Get the <span> element that closes the modal
+        var closeButton = document.getElementById("img-close");
+
+        // When the user clicks on <span> (x), close the modal
+        closeButton.onclick = function () {
+            var modal = document.getElementById("img-modal");
+            modal.style.display = "none";
+        }
+    </script>
+
+<script type="module">
+    const macros = {};
+    const mathElementsBlock = document.getElementsByClassName("math-block");
+    for (let element of mathElementsBlock) {
+        katex.render(element.textContent, element, {
+            throwOnError: false,
+            displayMode: true,
+            macros
+        });
+    }
+
+    const mathElementsInline = document.getElementsByClassName("math-inline");
+    for (let element of mathElementsInline) {
+        katex.render(element.textContent, element, {
+            throwOnError: false,
+            macros
+        });
+    }
+
+    hljs.highlightAll();
+
+</script>
+</body>
+
+</html>

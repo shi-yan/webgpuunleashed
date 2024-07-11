@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <!-- Primary Meta Tags -->
+    <title>: WebGPU Unleashed: A Practical Tutorial</title>
+    <meta name="title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta name="description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://shi-yan.github.io/WebGPUUnleashed/Basics/lighting.html" />
+    <meta property="og:title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta property="og:description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+    <meta property="og:image" content="/WebGPUUnleashed/meta.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://shi-yan.github.io/WebGPUUnleashed/Basics/lighting.html" />
+    <meta property="twitter:title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta property="twitter:description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+    <meta property="twitter:image" content="/WebGPUUnleashed/meta.png" />
+
+    <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+
+
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/default-dark.min.css"
+        integrity="sha512-EF2rc4QyBiRAGUMVm+EjFPBbdVGaN/pwZhtuKyrC/dM+hcwTxI5BsEDUkrMRI77z4VlDAt/qVopePXB5+ZZ8Gw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="
+        https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js
+        "></script>
+    <link href="
+        https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css
+        " rel="stylesheet" />
+
+    <script>
+        function fold(e) {
+            const sub = e.currentTarget.parentElement.getElementsByTagName("ul")[0];
+            console.log("sub", e.currentTarget, sub);
+            if (sub.style.display === "block") {
+                sub.style.display = "none";
+            } else {
+                sub.style.display = "block";
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <nav role="navigation">
+        <div id="menuToggle">
+            <input type="checkbox" />
+            <span></span>
+            <span></span>
+            <span></span>
+            <ul id="menu">
+                <!--<li><a href="#">Home</a></li>
+                <li><a href="#">About</a></li>
+                <li><a id="test" href="#" onclick="fold(event)">Info</a>
+                    <ul class="sub-menu">
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                    </ul>
+                </li>
+                <li><a href="#">Contact</a></li>
+                <li><a href="https://erikterwan.com/" target="_blank">Show me more</a></li>-->
+                <li><a href="#" onclick="fold(event)">Intro</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Introduction/the_gpu_driver.html">The GPU Driver</a></li>
+                        <li><a href="/WebGPUUnleashed/Introduction/the_gpu_pipeline.html">The GPU Pipeline</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Basics</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Basics/creating_an_empty_canvas.html">Creating an Empty Canvas</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_triangle.html">Drawing a Triangle</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_triangle_with_defined_vertices.html">Drawing a Triangle with Defined Vertices</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/applying_hardcoded_vertex_colors.html">Applying Hardcoded Vertex Colors</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/using_different_vertex_colors.html">Using Different Vertex Colors</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_colored_triangle_with_a_single_buffer.html">Drawing a Colored Triangle with a Single Buffer</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/understanding_uniforms.html">Understanding Uniforms</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/working_with_textures.html">Working with Textures</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/utilizing_transformation_matrices.html">Utilizing Transformation Matrices</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/implementing_cameras.html">Implementing Cameras</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/triangle_strips.html">Triangle Strips</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/front_and_back_face_culling.html">Front and Back Face Culling</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/depth_testing.html">Depth Testing</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/index_buffers.html">Index Buffers</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/loading_3d_models.html">Loading 3D Models</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/understanding_normals.html">Understanding Normals</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/lighting.html">Lighting</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/multi_sample_anti_aliasing.html">Multi-Sample Anti-Aliasing</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/mipmapping_and_anisotropic_filtering.html">Mipmapping and Anisotropic Filtering</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">2D Techniques</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/rendering_to_textures.html">Rendering to Textures</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/orthogonal_cameras.html">Orthogonal Cameras</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/implementing_gaussian_blur.html">Implementing Gaussian Blur</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/video_rendering.html">Video Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/text_rendering.html">Text Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/billboarding.html">Billboarding</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/implementing_fake_3d.html">Implementing Fake 3D</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Control</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Control/canvas_resizing.html">Canvas Resizing</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/arcball_camera_control.html">Arcball Camera Control</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/object_picking.html">Object Picking</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/saving_images_and_videos.html">Saving Images and Videos</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/using_web_workers.html">Using Web Workers</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/error_handling_and_limits.html">Error Handling and Limits</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Compute</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Compute/prefix_sum.html">Prefix Sum</a></li>
+                        <li><a href="/WebGPUUnleashed/Compute/radix_sort.html">Radix Sort</a></li>
+                        <li><a href="/WebGPUUnleashed/Compute/reaction_diffusion.html">Reaction Diffusion</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Advanced</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Advanced/stencil_buffer.html">Stencil Buffer</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/shadow_mapping.html">Shadow Mapping</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/toon_shading.html">Toon Shading</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/equirectangular_rendering.html">Equirectangular Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/mega_texture.html">Mega Texture</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/transparency_with_depth_peeling.html">Transparency with Depth Peeling</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/skeleton_animation.html">Skeleton Animation</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/normal_mapping_and_bump_mapping.html">Normal Mapping and Bump Mapping</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/gaussian_splatting.html">Gaussian Splatting</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div id="article-container">
+        <article>
+            <h2 >1.16 Lighting</h2><p>In this section, we'll dive into the fascinating world of lighting in computer graphics. Like cameras, there is no direct concept of lighting within the GPU pipeline. Lighting calculations are left to us, the developers. Lighting is one of the oldest and most extensive topics in computer graphics, with new developments still ongoing.</p><p>All lighting solutions involve a trade-off between image quality and rendering speed. Historically, lighting methods fell into two distinct categories. One aimed for the highest possible image quality and was often used in movies, where rendering could take ample time using large computer clusters. The other category is real-time lighting, prioritizing responsiveness in rendering but sacrificing some visual quality. Real-time lighting techniques are prevalent in games and interactive applications.</p><p>In recent years, the increasing power of GPUs has blurred the lines between these two categories. Video games have become cinematic and highly realistic, adopting technologies that were once exclusive to the movie industry.</p><p>For this tutorial, we will implement a simple yet performant lighting method known as the Phong shading method. Phong shading is the most widely used lighting solution with a rich history, making it the default choice for many applications. We'll break down this tutorial into two parts: per-vertex lighting and per-fragment lighting. Per-vertex lighting calculates lighting effects at each vertex and interpolates between them to simulate the effects across the entire surface. This approach is highly efficient because it calculates lighting sparsely on vertices.</p><p>The second solution is per-fragment lighting. Instead of only calculating lighting at vertices, we interpolate the vertex normals and calculate lighting during the fragment shader stage. This approach yields better results with smoother surfaces, as it provides more accurate normals crucial for correct lighting calculations.</p><h3 >Phong Shading Theory</h3><p>The Phong reflection model, named after its creator Bui Tuong Phong, aims to simulate a wide range of lighting effects while maintaining real-time performance.</p><p>The core concept of Phong lighting is breaking down the light effect into three channels: ambient, diffuse, and specular.</p><ul><li><p><strong>Ambient channel</strong>: This simulates environmental illumination and applies a uniform color to the 3D object.</p></li><li><p><strong>Diffuse channel</strong>: This replicates the light effect of a diffuse, rough surface. It's calculated using the incoming light direction and the surface normal, simulating how light scatters on uneven surfaces.</p></li><li><p><strong>Specular channel</strong>: This models a perfect reflective surface. The intensity of this reflection effect is determined by the reflection direction and the view direction. It creates highlight spots on the surface, with intensity controlled by a shininess value.</p></li></ul><p>The specular channel behaves differently from the diffuse channel. While diffuse lighting is unaffected by viewing angles, specular lighting is highly dependent on the viewer's angle. A small change in the viewing angle can significantly affect the specular highlight.</p><h3 >Per-vertex lighting</h3><p>For this tutorial, we will simplify the lighting equation to support a single light source. In a complete Phong shading model, multiple light sources are handled by summing up the contributions from each light source. However, for simplicity, we'll focus on one light source.</p><p>Here are the key shader changes:</p><pre><code class="language-javascript code-block">...
+@group(0) @binding(3) 
+var&lt;uniform&gt; lightDirection: vec3&lt;f32&gt;;
+@group(0) @binding(4)
+var&lt;uniform&gt; viewDirection: vec3&lt;f32&gt;;
+...</code></pre><p>We introduce two new uniform variables: <code>lightDirection</code> and <code>viewDirection</code>. In this example, we assume the light source is at the same position as the camera, making both directions identical.</p><pre><code class="language-javascript code-block">...
+const ambientColor:vec4&lt;f32&gt; = vec4&lt;f32&gt;(0.15, 0.0, 0.0, 1.0);
+const diffuseColor:vec4&lt;f32&gt; = vec4&lt;f32&gt;(0.25, 0.25, 0.25, 1.0);
+const specularColor:vec4&lt;f32&gt; = vec4&lt;f32&gt;(1.0, 1.0, 1.0, 1.0);
+
+const shininess:f32 = 20.0;
+...</code></pre><p>Following the new uniforms, we define constants for material colors: <code>ambient</code>, <code>diffuse</code>, and <code>specular</code>, along with a shininess value controlling specular highlight intensity.</p><pre><code class="language-javascript code-block">...
+const diffuseConstant:f32 = 1.0;
+const specularConstant:f32 = 1.0;
+const ambientConstant: f32 = 1.0;
+...</code></pre><p>Additionally, we define three constants: <code>diffuseConstant</code>, <code>specularConstant</code>, and <code>ambientConstant</code>. These constants determine the intensity of each lighting channel, allowing us to adjust the strength of each effect. For now, they are all set to 1.</p><p>We also create two functions to encapsulate the calculations for specular and diffuse lighting:</p><pre><code class="language-javascript code-block">...
+fn specular(lightDir:vec3&lt;f32&gt;, viewDir:vec3&lt;f32&gt;, normal:vec3&lt;f32&gt;,  specularColor:vec3&lt;f32&gt;, 
+     shininess:f32) -&gt; vec3&lt;f32&gt; {
+    var reflectDir:vec3&lt;f32&gt; = reflect(-lightDir, normal);
+    var specDot:f32 = max(dot(reflectDir, viewDir), 0.0);
+    return pow(specDot, shininess) * specularColor;
+}
+...</code></pre><p>The specular function calculates the specular color, taking into account the light direction, view direction, surface normal, specular color, and shininess. It calculates the reflection direction and the intensity of the reflection, applying the shininess to control the size of the specular highlight. Luckily, WebGPU has a built-in function called <code>reflect()</code> to calculate the reflection direction for us. All we need to do is providing the light direction and the surface normal.</p><pre><code class="language-javascript code-block">...
+fn diffuse(lightDir:vec3&lt;f32&gt;, normal:vec3&lt;f32&gt;,  diffuseColor:vec3&lt;f32&gt;) -&gt; vec3&lt;f32&gt;{
+    return max(dot(lightDir, normal), 0.0) * diffuseColor;
+}
+...</code></pre><p>The diffuse function calculates the diffuse color, considering the light direction, surface normal, and diffuse color.</p><pre><code class="language-javascript code-block">...
+@vertex
+fn vs_main(
+    @location(0) inPos: vec3&lt;f32&gt;,
+    @location(1) inNormal: vec3&lt;f32&gt;
+) -&gt; VertexOutput {
+    var n:vec3&lt;f32&gt; = normalize((normalMatrix * vec4&lt;f32&gt;(inNormal, 0.0)).xyz);
+    var viewDir:vec3&lt;f32&gt; = normalize((normalMatrix * vec4&lt;f32&gt;(-viewDirection, 0.0)).xyz);
+    var lightDir:vec3&lt;f32&gt; = normalize((normalMatrix * vec4&lt;f32&gt;(-lightDirection, 0.0)).xyz);
+
+    var radiance:vec3&lt;f32&gt;  = ambientColor.rgb * ambientConstant + 
+        diffuse(lightDir, n, diffuseColor.rgb)* diffuseConstant +
+        specular(lightDir, viewDir, n, specularColor.rgb, shininess) * specularConstant;
+  
+    var out: VertexOutput;
+    out.clip_position = projection * modelView * vec4&lt;f32&gt;(inPos, 1.0);
+    out.color = radiance;
+    return out;
+}</code></pre><p>In this vertex shader <code>vs_main</code>, we start by normalizing the surface normal using the provided normalMatrix. Next, we normalize both the view direction and the light direction. These directions are initially defined in world space, and to make them compatible with the camera's coordinate system, we apply the same transformations as the surface normal.</p><p>The correct lighting calculation requires that the view direction, light direction, and surface normal are all normalized.</p><p>We then calculate the radiance, which represents the resulting color under the given light conditions. It's a combination of the ambient color, diffuse color, and specular color, with their respective contributions controlled by reflection constants.</p><p>Finally, we prepare the output by setting the clip position and radiance color.</p><pre><code class="language-javascript code-block">    ...
+    const lightDirectionUniformBuffer = createGPUBuffer(device, new Float32Array([-1.0, -1.0, -1.0]), GPUBufferUsage.UNIFORM);
+
+    const viewDirectionUniformBuffer = createGPUBuffer(device, new Float32Array([-1.0, -1.0, -1.0]), GPUBufferUsage.UNIFORM);
+    ...</code></pre><p>Now, let's examine the corresponding changes in the JavaScript code. We start by adding two new uniforms: one for the light direction and one for the view direction. Initially, we set both directions to <code>[-1, -1, -1]</code>, assuming that the light source is at the same position as the camera <code>[3,3,3]</code>, pointing in the opposite direction.</p><pre><code class="language-javascript code-block">    ...
+    let uniformBindGroupLayout = device.createBindGroupLayout({
+        entries: [
+            ...
+            {
+                binding: 3,
+                visibility: GPUShaderStage.VERTEX,
+                buffer: {}
+            },
+            {
+                binding: 4,
+                visibility: GPUShaderStage.VERTEX,
+                buffer: {}
+            }
+        ]
+    });
+
+    let uniformBindGroup = device.createBindGroup({
+        layout: uniformBindGroupLayout,
+        entries: [
+            ...
+            {
+                binding: 3,
+                resource: {
+                    buffer: lightDirectionUniformBuffer
+                }
+            },
+            {
+                binding: 4,
+                resource: {
+                    buffer: viewDirectionUniformBuffer
+                }
+            }
+        ]
+    });
+    ...</code></pre><p>In the JavaScript code, we need to update the uniform bind group layout to include these two new uniforms. Similarly, when creating the uniform bind group, we include entries for both the light direction and view direction buffers.</p><p>These changes ensure that the lighting information is correctly passed to the GPU for rendering.</p><h3 >Per-fragment lighting</h3><p>Now, let's transition to per-fragment shading. In our previous approach, we interpolated the lighting effects across a flat triangle, which introduced flatness artifacts. With per-fragment shading, we move away from calculating lighting at each vertex. Instead, we pass the view direction, light direction, and surface normal directly to the fragment shader stage, where the lighting effects are computed.</p><p>The key distinction here is that we're only interpolating the surface normal. Consider a surface with curvature; with per-vertex lighting, we calculate final colors at vertices and then linearly interpolate these colors across the triangle's surface. This process flattens the curvature, treating all triangles as flat. It's important to remember that triangles are merely approximations of surfaces. Even though, by definition, a triangle lacks curvature, the actual surface it approximates might possess curvature.</p><p>In the case of per-fragment shading, we interpolate the normal directions instead. During the fragment shader stage, we approximate the true normal direction for each fragment by interpolating the vertex normals. While this is still not the exact normal direction, it provides a more accurate representation than assuming that all triangles are flat surfaces. With this improved normal information, we can calculate more realistic lighting for each fragment.</p><pre><code class="language-javascript code-block">...
+@vertex
+fn vs_main(
+    @location(0) inPos: vec3&lt;f32&gt;,
+    @location(1) inNormal: vec3&lt;f32&gt;
+) -&gt; VertexOutput {
+    var out: VertexOutput;
+
+    out.viewDir = normalize((normalMatrix * vec4&lt;f32&gt;(-viewDirection, 0.0)).xyz);
+    out.lightDir = normalize((normalMatrix * vec4&lt;f32&gt;(-lightDirection, 0.0)).xyz);
+    out.normal = normalize(normalMatrix * vec4&lt;f32&gt;(inNormal, 0.0)).xyz;  
+  
+    out.clip_position = projection * modelView * vec4&lt;f32&gt;(inPos, 1.0);
+    return out;
+}
+...</code></pre><p>Let's examine the shader code changes that facilitate the transition to per-fragment shading. We're retaining the same logic for calculating each lighting channel, but the vertex shader now serves a different purpose. Instead of computing the final lighting at the vertex level, it focuses on passing the view direction and light direction to the fragment shader.</p><pre><code class="language-javascript code-block">@fragment
+fn fs_main(in: VertexOutput) -&gt; @location(0) vec4&lt;f32&gt; {
+
+    var lightDir:vec3&lt;f32&gt; = in.lightDir;
+    var n:vec3&lt;f32&gt; = normalize(in.normal);
+    var viewDir: vec3&lt;f32&gt; = in.viewDir;
+
+    var radiance:vec3&lt;f32&gt;  = ambientColor.rgb * ambientConstant + 
+        diffuse(lightDir, n, diffuseColor.rgb)* diffuseConstant +
+        specular(lightDir, viewDir, n, specularColor.rgb, shininess) * specularConstant;
+      
+    return vec4&lt;f32&gt;(radiance ,1.0);
+}</code></pre><p>In the fragment shader stage, it's crucial to normalize the interpolated normals. Interpolation can affect the length of these normals, and for precise lighting calculations, they must be normalized. However, this normalization isn't required for the light and view directions, as their values remain consistent across all vertices.</p><p>With normalized normals and stable light and view directions, we proceed to calculate the radiance in the fragment shader, which serves as the output color.</p><p>With per-fragment lighting, we can observe a significant improvement in the surface's smoothness.</p>
+        </article>
+    </div>
+    <!-- The Modal -->
+    <div id="img-modal" class="modal">
+        <!-- The Close Button -->
+        <span class="close" id="img-close">&times;</span>
+        <!-- Modal Content (The Image) -->
+        <img class="modal-content" id="img01">
+
+        <!-- Modal Caption (Image Text) -->
+        <div id="caption"></div>
+    </div>
+    <script>
+        function openImage(img) {
+            let modal = document.getElementById("img-modal");
+            let modalImg = document.getElementById("img01");
+            modal.style.display = "block";
+            if (img.getAttribute("original_src")) {
+                modalImg.src = img.getAttribute("original_src");
+            } else {
+                modalImg.src = img.src;
+            }
+            let captionText = document.getElementById("caption");
+
+            captionText.innerText = img.alt;
+
+            let sources = JSON.parse(img.getAttribute("sources"));
+
+            for (let i = 0; i < sources.length; ++i) {
+                if (sources.length == 1) {
+                    captionText.innerHTML += "<a href='" + sources[i] + "' target='_blank' class='img-source'>SOURCE</a>";
+                } else {
+                    captionText.innerHTML += "<a href='" + sources[i] + "' target='_blank' class='img-source'>SOURCE " + (i + 1) + "</a>";
+                }
+            }
+        }
+        // Get the <span> element that closes the modal
+        var closeButton = document.getElementById("img-close");
+
+        // When the user clicks on <span> (x), close the modal
+        closeButton.onclick = function () {
+            var modal = document.getElementById("img-modal");
+            modal.style.display = "none";
+        }
+    </script>
+
+<script type="module">
+    const macros = {};
+    const mathElementsBlock = document.getElementsByClassName("math-block");
+    for (let element of mathElementsBlock) {
+        katex.render(element.textContent, element, {
+            throwOnError: false,
+            displayMode: true,
+            macros
+        });
+    }
+
+    const mathElementsInline = document.getElementsByClassName("math-inline");
+    for (let element of mathElementsInline) {
+        katex.render(element.textContent, element, {
+            throwOnError: false,
+            macros
+        });
+    }
+
+    hljs.highlightAll();
+
+</script>
+</body>
+
+</html>

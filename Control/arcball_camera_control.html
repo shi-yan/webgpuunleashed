@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <!-- Primary Meta Tags -->
+    <title>: WebGPU Unleashed: A Practical Tutorial</title>
+    <meta name="title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta name="description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://shi-yan.github.io/WebGPUUnleashed/Control/arcball_camera_control.html" />
+    <meta property="og:title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta property="og:description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+    <meta property="og:image" content="/WebGPUUnleashed/meta.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://shi-yan.github.io/WebGPUUnleashed/Control/arcball_camera_control.html" />
+    <meta property="twitter:title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta property="twitter:description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+    <meta property="twitter:image" content="/WebGPUUnleashed/meta.png" />
+
+    <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+
+
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/default-dark.min.css"
+        integrity="sha512-EF2rc4QyBiRAGUMVm+EjFPBbdVGaN/pwZhtuKyrC/dM+hcwTxI5BsEDUkrMRI77z4VlDAt/qVopePXB5+ZZ8Gw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="
+        https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js
+        "></script>
+    <link href="
+        https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css
+        " rel="stylesheet" />
+
+    <script>
+        function fold(e) {
+            const sub = e.currentTarget.parentElement.getElementsByTagName("ul")[0];
+            console.log("sub", e.currentTarget, sub);
+            if (sub.style.display === "block") {
+                sub.style.display = "none";
+            } else {
+                sub.style.display = "block";
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <nav role="navigation">
+        <div id="menuToggle">
+            <input type="checkbox" />
+            <span></span>
+            <span></span>
+            <span></span>
+            <ul id="menu">
+                <!--<li><a href="#">Home</a></li>
+                <li><a href="#">About</a></li>
+                <li><a id="test" href="#" onclick="fold(event)">Info</a>
+                    <ul class="sub-menu">
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                    </ul>
+                </li>
+                <li><a href="#">Contact</a></li>
+                <li><a href="https://erikterwan.com/" target="_blank">Show me more</a></li>-->
+                <li><a href="#" onclick="fold(event)">Intro</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Introduction/the_gpu_driver.html">The GPU Driver</a></li>
+                        <li><a href="/WebGPUUnleashed/Introduction/the_gpu_pipeline.html">The GPU Pipeline</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Basics</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Basics/creating_an_empty_canvas.html">Creating an Empty Canvas</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_triangle.html">Drawing a Triangle</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_triangle_with_defined_vertices.html">Drawing a Triangle with Defined Vertices</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/applying_hardcoded_vertex_colors.html">Applying Hardcoded Vertex Colors</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/using_different_vertex_colors.html">Using Different Vertex Colors</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_colored_triangle_with_a_single_buffer.html">Drawing a Colored Triangle with a Single Buffer</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/understanding_uniforms.html">Understanding Uniforms</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/working_with_textures.html">Working with Textures</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/utilizing_transformation_matrices.html">Utilizing Transformation Matrices</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/implementing_cameras.html">Implementing Cameras</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/triangle_strips.html">Triangle Strips</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/front_and_back_face_culling.html">Front and Back Face Culling</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/depth_testing.html">Depth Testing</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/index_buffers.html">Index Buffers</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/loading_3d_models.html">Loading 3D Models</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/understanding_normals.html">Understanding Normals</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/lighting.html">Lighting</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/multi_sample_anti_aliasing.html">Multi-Sample Anti-Aliasing</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/mipmapping_and_anisotropic_filtering.html">Mipmapping and Anisotropic Filtering</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">2D Techniques</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/rendering_to_textures.html">Rendering to Textures</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/orthogonal_cameras.html">Orthogonal Cameras</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/implementing_gaussian_blur.html">Implementing Gaussian Blur</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/video_rendering.html">Video Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/text_rendering.html">Text Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/billboarding.html">Billboarding</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/implementing_fake_3d.html">Implementing Fake 3D</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Control</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Control/canvas_resizing.html">Canvas Resizing</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/arcball_camera_control.html">Arcball Camera Control</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/object_picking.html">Object Picking</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/saving_images_and_videos.html">Saving Images and Videos</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/using_web_workers.html">Using Web Workers</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/error_handling_and_limits.html">Error Handling and Limits</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Compute</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Compute/prefix_sum.html">Prefix Sum</a></li>
+                        <li><a href="/WebGPUUnleashed/Compute/radix_sort.html">Radix Sort</a></li>
+                        <li><a href="/WebGPUUnleashed/Compute/reaction_diffusion.html">Reaction Diffusion</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Advanced</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Advanced/stencil_buffer.html">Stencil Buffer</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/shadow_mapping.html">Shadow Mapping</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/toon_shading.html">Toon Shading</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/equirectangular_rendering.html">Equirectangular Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/mega_texture.html">Mega Texture</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/transparency_with_depth_peeling.html">Transparency with Depth Peeling</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/skeleton_animation.html">Skeleton Animation</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/normal_mapping_and_bump_mapping.html">Normal Mapping and Bump Mapping</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/gaussian_splatting.html">Gaussian Splatting</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div id="article-container">
+        <article>
+            <h2 >3.1 Arcball Camera Control</h2><p>another common interaction we want to have is being able to rotate the 3d object we are rendering. this is often implemented via a concept called Arcball. The idea is simple, we enclose the 3d object inside a virtual 3d sphere, and we use mouse to rotate this 3d sphere. The mouse cursor move in a 2D plan, but 3d sphere rotation is 3d. how can a 2d movement control a 3d rotation. because for 3d rotation, we can rotate in 3 different directions, raw pitch and yaw.</p><p>we can handle this situation by projecting our virtual sphere onto the screen plane. when the mouse cursor is moving within the projected area, we use the x axis to do yaw and the y axis to do pitch. But when our mouse cursor is outside the projected area, we will rotate the object along the roll direction.</p><p>In this demo, we want to visualize the projected sphere by drawing a ring that highlights the silluatte of the sphere. Rendering this ring is a very standard operation, which we have seen many times in this book, I will hence skip the details here. please refer to the sample code for the implementation details.</p><p>One thing to note when rendering this ring is that we are using the line-strip type for geometry primitive for the pipeline.</p><p>For visualization, we will be rendering the same teapot. The difference is that we can rotate this teapot freely this time. I will again skip the details, as it's almost the same as before.</p><p>For the Arcball, we would like to enclose its implementation in a class:</p><pre><code class="language-javascript code-block">    class Arcball {
+        constructor() {
+            this.radius = 5.0;
+            this.forwardVector = glMatrix.vec4.fromValues(this.radius, 0.0, 0.0, 0.0);
+            this.upVector = glMatrix.vec4.fromValues(0.0, 0.0, 1.0, 0.0);
+            this.currentRotation = glMatrix.mat4.create();
+        }
+        ...
+    }</code></pre><p>let me explain the members, radius is the distance between the focal point or the rotation center and the camera. The forward vector defines viewing direction from the camera's position to the focal point. The forward vector is initialized by (radius, 0.0, 0.0), meaning the camera is initialized at the (radius, 0.0, 0.0) and looking at the origin. The up vector is the direction perpendicular to the forward vector and point towards the up direction of the camera.</p><p>The current rotation is the rotation matrix of our Arcball.</p><pre><code class="language-javascript code-block">    class Arcball {
+        ...
+        yawPitch(originalX, originalY, currentX, currentY) {
+
+            let originalPoint = glMatrix.vec3.fromValues(1.0, originalX, originalY);
+            let newPoint = glMatrix.vec3.fromValues(1.0, currentX, currentY);
+
+            let rotationAxis = glMatrix.vec3.cross(glMatrix.vec3.create(), originalPoint, newPoint);
+
+            rotationAxis = glMatrix.vec4.fromValues(rotationAxis[0], rotationAxis[1], rotationAxis[2], 0.0);
+
+            rotationAxis = glMatrix.vec4.transformMat4(glMatrix.mat4.create(), rotationAxis, this.currentRotation);
+
+            rotationAxis = glMatrix.vec3.normalize(glMatrix.vec3.create(), glMatrix.vec3.fromValues(rotationAxis[0], rotationAxis[1], rotationAxis[2]));
+
+            let sin = glMatrix.vec3.length(rotationAxis) / (glMatrix.vec3.length(originalPoint) * glMatrix.vec3.length(newPoint));
+
+            let rotationMatrix = glMatrix.mat4.fromRotation(glMatrix.mat4.create(), Math.asin(sin) * -0.03, rotationAxis);
+
+            if (rotationMatrix !== null) {
+                this.currentRotation = glMatrix.mat4.multiply(glMatrix.mat4.create(), rotationMatrix, this.currentRotation);
+                this.forwardVector = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), this.forwardVector, rotationMatrix);
+                this.upVector = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), this.upVector, rotationMatrix);
+            }
+        }
+        ...
+    }</code></pre><p>the first function we look at controls the yaw and pitch. this function takes two inputs, the original vector is the original location in the screen space. And the current is the current mouse position in the screen space. because our camera was initially positioned at (radius, 0, 0), the plane that parallel to the screen is the yz plane. The first step is projecting the original and current points in the screen space to the yz plane: (1.0, originalX, originalY), (1.0, currentX, currentY). notice that we are not using the coordinates (radius, originalX, originalY) and (radius, currentX, currentY), because we want to simplify our calculation by treating our immaginary sphere to have a radius of 1. Even the actual radius is not necessary 1. This doesn't affect the correctness, as we basically perform our calculation in the sphere's coordinate system.</p><p>Next, we need to calculate the axis around which we will apply the rotation. This axis is perpendicular to the plane formed by the original and the current vectors. Hence we get it by performing a cross product of the two vectors.</p><p>the above calculation is assuming there is no previous rotation in the system, hence the yz plane is still aligned with the screen plane. If there has been previous rotations, we need to also apply the previous rotations to the rotation axis. and finally we normalize this rotation axis to a unit vector.</p><p>next, we need to obtain the rotation angle. which is derived by first getting the sin value and an arcsin. Since the maximum rotation angle is less than 90 degrees.</p><p>finally, we will calculate the rotation matrix by using the axis and the rotation angle. in the code, we need to check the null of the rotation matrix, because when the original and the current vectors are very close, we might get an invalid rotation matrix due to numerical instability.</p><p>if we actually have a valid rotation matrix, we then merge the exisiting rotation with the new rotation matrix and use them to rotate the camera's forward and up vectors.</p><pre><code class="language-javascript code-block">
+
+    class Arcball {
+        ...
+
+        roll(originalX, originalY, currentX, currentY) {
+
+            const originalVec = glMatrix.vec3.fromValues(originalX, originalY, 0.0);
+            const currentVec = glMatrix.vec3.fromValues(currentX, currentY, 0.0);
+
+            const crossProd = glMatrix.vec3.cross(glMatrix.vec3.create(), originalVec, currentVec);
+
+
+            let rad = glMatrix.vec3.dot(glMatrix.vec3.normalize(glMatrix.vec3.create(), originalVec),
+                glMatrix.vec3.normalize(glMatrix.vec3.create(), currentVec));
+
+            if (rad &gt; 1.0) {
+                // cross product can be larger than 1.0 due to numerical error
+                rad = Math.PI * Math.sign(crossProd[2]);
+            }
+            else {
+                rad = Math.acos(rad) * Math.sign(crossProd[2]);
+            }
+
+            let rotationMatrix = glMatrix.mat4.fromRotation(glMatrix.mat4.create(), -rad, this.forwardVector);
+            if (rotationMatrix !== null) {
+                this.currentRotation = glMatrix.mat4.multiply(glMatrix.mat4.create(), rotationMatrix, this.currentRotation);
+                this.upVector = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), this.upVector, rotationMatrix);
+            }
+        }
+        ...
+    }</code></pre><p>The second function to look at is the roll function. This function is triggered when the mouse cursor is dragged outside the ring. for rolling, the rotation axis is always pointing at the viewer or pointing away (perpendicular to the screen plane), this time, we will perform our calculation in the screen plane's coordinate. hence the original and the current vectors are (originalX, originalY, 0.0) and (currentX, currentY, 0.0).</p><p>We again calculate the cross product to get the rotation axis. Ideally this axis should be either (0,0,1) or (0,0,-1), what maters to us is only the last component for the rotation direction.</p><p>for the rotation angle, we are gonna calculate it by the cross product and arccos. Because some numerical error could result in the dot product being larger than 1, this will cause the arccos to return NAN. hence we simply treat this rotation angle as either the PI or -PI. otherwise, we rely on the arccos value for the angle and the direction for the sign (the last component of the rotation axis).</p><p>Finally we convert the rotation angle into a rotation matrix. notice that the above is calulate in the screen plane. But when we apply the rotation angle, we need to do it in the camera's coordinate system. Since the rotation angle is the same as the camera's forward vector for rolling, we simply create the rotation matrix by using the forward vector and the rotation angle.</p><p>And again, we apply the exisiting rotation and update the upvector, since rolling won't change the forward vector.</p><pre><code class="language-javascript code-block">        getMatrices() {
+            let modelViewMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
+                glMatrix.vec3.fromValues(this.forwardVector[0], this.forwardVector[1], this.forwardVector[2]),
+                glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(this.upVector[0], this.upVector[1], this.upVector[2]));
+
+            return modelViewMatrix;
+        }</code></pre><p>finally, in the Arcball class, we need a function for us to get the modelViewMatrix according to the updated forward and up vectors. We can do this simply by calling the lookAt helper function provided by glMatrix. When we render our 3D object, we only need to call the function to get the modelViewMatrix.</p><p>next, let's look at how to handle the mouse event</p><pre><code class="language-javascript code-block">
+
+        let prevX = 0.0;
+        let prevY = 0.0;
+        let isDragging = false;
+        const yawPitch = 1;
+        const roll = 2;
+
+        canvas.onmousedown = (event) =&gt; {
+            var rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            const width = rect.right - rect.left;
+            const height = rect.bottom - rect.top;
+
+            let radius = width;
+
+            if (height &lt; radius) {
+                radius = height;
+            }
+
+            radius *= 0.5;
+
+            const originX = width * 0.5;
+            const originY = height * 0.5;
+
+            prevX = (x - originX) / radius;
+            prevY = (originY - y) / radius;
+
+            if ((prevX * prevX + prevY * prevY) &lt; 0.64) {
+                isDragging = yawPitch;
+            }
+            else {
+                isDragging = roll;
+            }
+
+        }</code></pre><p>in the mousedown event handler, our main goal is to figure out the movement type. whether it is yawPitch or roll. Recall that if the cursor is within the projected sphere, we will do yaw and pitch, but when it is outside, we do roll. I will explain what this function does section by section:</p><pre><code class="language-javascript code-block">            var rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            const width = rect.right - rect.left;
+            const height = rect.bottom - rect.top;</code></pre><p>these lines are a common formula to get the mouse cursor position within a canvas, using the top left corner as the origin.</p><pre><code class="language-javascript code-block">            let radius = width;
+
+            if (height &lt; radius) {
+                radius = height;
+            }
+
+            radius *= 0.5;</code></pre><p>these lines select the minimum of the width and the height, and halve that and use it as the radius. We do this because we don't want the projected sphere to be outside the screen area. hence the radius can as large as the shorter side of the screen.</p><pre><code class="language-javascript code-block">            const originX = width * 0.5;
+            const originY = height * 0.5;
+
+            prevX = (x - originX) / radius;
+            prevY = (originY - y) / radius;</code></pre><p>these lines tries to transform the coordinate system from using the top left corner as the origin to using the center of the screen plane as the origin. The reason we flip the Y axis is that the canvas coordinate system has the y axis pointing downwards whereas the screen coordinate has it pointing up.</p><p>we also normalize the coordinates by the radius. Because we want the rotation sensitivity is unaffected by the size of the canvas.</p><pre><code class="language-javascript code-block">            if ((prevX * prevX + prevY * prevY) &lt; 0.64) {
+                isDragging = yawPitch;
+            }
+            else {
+                isDragging = roll;
+            }</code></pre><p>finally, we calculate the distance from the mouse cursor to the screen center, and use the fix threshold 0.64 to determine the rotation type. If the cursor falls within 0.8 of the shortest side of the canvas, we think it's yaw and pitch, otherwise it is roll;</p><pre><code class="language-javascript code-block">        canvas.onmousemove = (event) =&gt; {
+            if (isDragging != 0) {
+                ...
+
+                if (isDragging == yawPitch) {
+                    arcball.yawPitch(prevX, prevY, currX, currY);
+                }
+                else if (isDragging == roll) {
+                    arcball.roll(prevX, prevY, currX, currY);
+                }
+                prevX = currX;
+                prevY = currY;
+                requestAnimationFrame(render);
+            }
+        }
+
+        canvas.onmouseup = (event) =&gt; {
+            isDragging = 0;
+        }</code></pre><p>Next, let's look at the mousemove function. What's omitted in the above function snipet is the same as that of the mousedown function. hence I only show the difference here. We basically call the corresponding rotation functions based on previously determined rotation type. And after that, we request for a new frame.</p><p>I will skip the rendering code, there is nothing special here. All we need to do for rendering is obtaining the latest modelView matrix from the arcball and update all necessary uniform buffers, for example the normal matrix.</p>
+        </article>
+    </div>
+    <!-- The Modal -->
+    <div id="img-modal" class="modal">
+        <!-- The Close Button -->
+        <span class="close" id="img-close">&times;</span>
+        <!-- Modal Content (The Image) -->
+        <img class="modal-content" id="img01">
+
+        <!-- Modal Caption (Image Text) -->
+        <div id="caption"></div>
+    </div>
+    <script>
+        function openImage(img) {
+            let modal = document.getElementById("img-modal");
+            let modalImg = document.getElementById("img01");
+            modal.style.display = "block";
+            if (img.getAttribute("original_src")) {
+                modalImg.src = img.getAttribute("original_src");
+            } else {
+                modalImg.src = img.src;
+            }
+            let captionText = document.getElementById("caption");
+
+            captionText.innerText = img.alt;
+
+            let sources = JSON.parse(img.getAttribute("sources"));
+
+            for (let i = 0; i < sources.length; ++i) {
+                if (sources.length == 1) {
+                    captionText.innerHTML += "<a href='" + sources[i] + "' target='_blank' class='img-source'>SOURCE</a>";
+                } else {
+                    captionText.innerHTML += "<a href='" + sources[i] + "' target='_blank' class='img-source'>SOURCE " + (i + 1) + "</a>";
+                }
+            }
+        }
+        // Get the <span> element that closes the modal
+        var closeButton = document.getElementById("img-close");
+
+        // When the user clicks on <span> (x), close the modal
+        closeButton.onclick = function () {
+            var modal = document.getElementById("img-modal");
+            modal.style.display = "none";
+        }
+    </script>
+
+<script type="module">
+    const macros = {};
+    const mathElementsBlock = document.getElementsByClassName("math-block");
+    for (let element of mathElementsBlock) {
+        katex.render(element.textContent, element, {
+            throwOnError: false,
+            displayMode: true,
+            macros
+        });
+    }
+
+    const mathElementsInline = document.getElementsByClassName("math-inline");
+    for (let element of mathElementsInline) {
+        katex.render(element.textContent, element, {
+            throwOnError: false,
+            macros
+        });
+    }
+
+    hljs.highlightAll();
+
+</script>
+</body>
+
+</html>

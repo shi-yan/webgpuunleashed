@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <!-- Primary Meta Tags -->
+    <title>: WebGPU Unleashed: A Practical Tutorial</title>
+    <meta name="title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta name="description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://shi-yan.github.io/WebGPUUnleashed/Introduction/the_gpu_pipeline.html" />
+    <meta property="og:title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta property="og:description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+    <meta property="og:image" content="/WebGPUUnleashed/meta.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://shi-yan.github.io/WebGPUUnleashed/Introduction/the_gpu_pipeline.html" />
+    <meta property="twitter:title" content="WebGPU Unleashed: A Practical Tutorial" />
+    <meta property="twitter:description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
+    <meta property="twitter:image" content="/WebGPUUnleashed/meta.png" />
+
+    <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
+    <script src="
+        https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js
+        "></script>
+    <link href="
+        https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css
+        " rel="stylesheet" />
+
+    <script>
+        function fold(e) {
+            const sub = e.currentTarget.parentElement.getElementsByTagName("ul")[0];
+            console.log("sub", e.currentTarget, sub);
+            if (sub.style.display === "block") {
+                sub.style.display = "none";
+            } else {
+                sub.style.display = "block";
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <nav role="navigation">
+        <div id="menuToggle">
+            <input type="checkbox" />
+            <span></span>
+            <span></span>
+            <span></span>
+            <ul id="menu">
+                <!--<li><a href="#">Home</a></li>
+                <li><a href="#">About</a></li>
+                <li><a id="test" href="#" onclick="fold(event)">Info</a>
+                    <ul class="sub-menu">
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                        <li><a href="#">test menu;</a></li>
+                    </ul>
+                </li>
+                <li><a href="#">Contact</a></li>
+                <li><a href="https://erikterwan.com/" target="_blank">Show me more</a></li>-->
+                <li><a href="#" onclick="fold(event)">Intro</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Introduction/the_gpu_driver.html">The GPU Driver</a></li>
+                        <li><a href="/WebGPUUnleashed/Introduction/the_gpu_pipeline.html">The GPU Pipeline</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Basics</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Basics/creating_an_empty_canvas.html">Creating an Empty Canvas</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_triangle.html">Drawing a Triangle</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_triangle_with_defined_vertices.html">Drawing a Triangle with Defined Vertices</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/applying_hardcoded_vertex_colors.html">Applying Hardcoded Vertex Colors</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/using_different_vertex_colors.html">Using Different Vertex Colors</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/drawing_a_colored_triangle_with_a_single_buffer.html">Drawing a Colored Triangle with a Single Buffer</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/understanding_uniforms.html">Understanding Uniforms</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/working_with_textures.html">Working with Textures</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/utilizing_transformation_matrices.html">Utilizing Transformation Matrices</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/implementing_cameras.html">Implementing Cameras</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/triangle_strips.html">Triangle Strips</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/front_and_back_face_culling.html">Front and Back Face Culling</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/depth_testing.html">Depth Testing</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/index_buffers.html">Index Buffers</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/loading_3d_models.html">Loading 3D Models</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/understanding_normals.html">Understanding Normals</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/lighting.html">Lighting</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/multi_sample_anti_aliasing.html">Multi-Sample Anti-Aliasing</a></li>
+                        <li><a href="/WebGPUUnleashed/Basics/mipmapping_and_anisotropic_filtering.html">Mipmapping and Anisotropic Filtering</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">2D Techniques</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/rendering_to_textures.html">Rendering to Textures</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/orthogonal_cameras.html">Orthogonal Cameras</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/implementing_gaussian_blur.html">Implementing Gaussian Blur</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/video_rendering.html">Video Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/text_rendering.html">Text Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/billboarding.html">Billboarding</a></li>
+                        <li><a href="/WebGPUUnleashed/2D_Techniques/implementing_fake_3d.html">Implementing Fake 3D</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Control</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Control/canvas_resizing.html">Canvas Resizing</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/arcball_camera_control.html">Arcball Camera Control</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/object_picking.html">Object Picking</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/saving_images_and_videos.html">Saving Images and Videos</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/using_web_workers.html">Using Web Workers</a></li>
+                        <li><a href="/WebGPUUnleashed/Control/error_handling_and_limits.html">Error Handling and Limits</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Compute</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Compute/prefix_sum.html">Prefix Sum</a></li>
+                        <li><a href="/WebGPUUnleashed/Compute/radix_sort.html">Radix Sort</a></li>
+                        <li><a href="/WebGPUUnleashed/Compute/reaction_diffusion.html">Reaction Diffusion</a></li>
+                    </ul>
+                </li>
+                <li><a href="#" onclick="fold(event)">Advanced</a>
+                    <ul class="sub-menu">
+                        <li><a href="/WebGPUUnleashed/Advanced/stencil_buffer.html">Stencil Buffer</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/shadow_mapping.html">Shadow Mapping</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/toon_shading.html">Toon Shading</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/equirectangular_rendering.html">Equirectangular Rendering</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/mega_texture.html">Mega Texture</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/transparency_with_depth_peeling.html">Transparency with Depth Peeling</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/skeleton_animation.html">Skeleton Animation</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/normal_mapping_and_bump_mapping.html">Normal Mapping and Bump Mapping</a></li>
+                        <li><a href="/WebGPUUnleashed/Advanced/gaussian_splatting.html">Gaussian Splatting</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div id="article-container">
+        <article>
+            <h2 >0.1 The GPU Pipeline</h2><p>Previously, we learned how applications connect with GPUs through drivers. But once a drawing request has been sent to a GPU, what happens next? In this lecture, we will explore how a GPU processes draw commands and produces pixels.</p><p>First, let's clarify what data and commands are sent to the GPU. So far, we have been referring to these as draw commands or draw requests, but what do these actually consist of?</p><p>When programming a GPU, we need to provide it with three types of data in order to work.</p><p>First, we need to define or configure the GPU pipeline. To use a metaphor, if the GPU is a versatile artist, we can configure it to draw in the style of Da Vinci or Rubens by providing shader programs. Shader programs are programs that run on the GPU and determine how pixels should be colored. However, shader programs are not the only data required for configuration. There are additional steps involved, which we will learn about in future chapters.</p><p>Second, once the GPU pipeline is configured, it is ready to produce pixels. We now need to feed it with raw inputs, typically hundreds or millions of triangles, which the GPU pipeline will convert into pixels.</p><p>Finally, there may be other metadata required during the above process. The specific metadata required will depend on the specific situation.</p><p>We have mentioned the GPU pipeline a few times, but have not yet explained it in detail. In fact, the GPU pipeline is a theoretical abstraction of the GPU hardware. While it may not necessarily match the actual hardware implementation, it is the most important concept for real-time 3D programming from a software engineering perspective, as all of our programming activities revolve around making use of the GPU pipeline.</p><p>A good way to understand the GPU pipeline is to imagine the GPU as a factory. The raw materials, in this case, are geometric shapes represented using triangles, and the end products are pixels. The GPU pipeline is the process by which the raw materials are transformed into the final products.</p><p>In the 3D world, triangles are the fundamental building blocks for all shapes, just as pixels are for 2D graphics. Why use triangles, you might ask? It is because using triangles is the most cost-effective way of representing arbitrary surfaces in a watertight manner.</p><p>Watertightness is a concept in computer graphics. A mesh is watertight if it does not contain holes and has a clearly defined inside and outside. For a more rigorous definition of water tightness, you can visit <a class="link" href="https://davidstutz.de/a-formal-definition-of-watertight-meshes/" target="_blank">this blog</a> and <a class="link" href="https://www.youtube.com/watch?v=lRd6qylwFqg" target="_blank">this video</a>.</p><p>While using triangles is not the only way to represent 3D shapes, it is the most effective. For example, in point-based rendering, small disks are used to represent the surface of a 3D shape. However, these disks must be densely sampled on the underlying 3D surface in order to avoid gaps and prevent artifacts from appearing. Even when densely sampled, if we zoom in enough, gaps may still be visible. On the other hand, triangles can be used to cover a surface without any gaps, even when zoomed in. For instance, a 3D model of a sphere can be represented using a mesh of triangles, with each triangle smoothly transitioning to the adjacent triangles to form a seamless, gap-free surface. This allows the 3D shape to be accurately rendered even when viewed at high magnification.</p><p>Inside the GPU factory, triangles go through a series of steps to become pixels. These steps make up the GPU pipeline. In the past, the GPU pipeline was fixed and could only produce pixels in a predefined manner. However, it has since become programmable, allowing us to write GPU programs called shaders and define our own way of producing pixels.</p><p>The graphics pipeline is the single most important concept in this tutorial. The core activities of GPU programming involve defining pipelines and providing shader programs. Therefore, it is crucial to have a good understanding of the GPU pipeline.</p><p>The classic GPU pipeline consists of four stages: vertex, rasterization, fragment, and blending. While the modern pipeline has introduced a few additional stages, we only need to focus on these four for most graphics tasks. Out of these four stages, only the vertex and fragment stages are programmable.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="projection3.png" alt="Applying a Projection Matrix Is Like Fitting an Object Onto the Screen . \Label{Proj}" sources='[]' /><div class="img-title">Applying a Projection Matrix Is Like Fitting an Object Onto the Screen . \Label{Proj}</div></div></p><p>The first step in turning 3D geometries into 2D pixels is to "squeeze" 3D objects into 2D space. This is done by the first stage of the pipeline, called the vertex stage. The input to this stage is mainly triangles in a 3D coordinate system called world space. The output of this stage is still triangles, but they have been "squeezed" into the 2D screen coordinate system, or screen space (also known as clip space). Exactly how to convert coordinates from world space to screen space is determined by us in the vertex shader program. The goal is to project 3D objects onto a 2D plane in order to sample them into pixels.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="culling.png" alt="Back Face Culling Rejects Triangles That Don't Contribute to the Final Image." sources='[]' /><div class="img-title">Back Face Culling Rejects Triangles That Don't Contribute to the Final Image.</div></div></p><p>The second stage is called rasterization. Rasterization is a computer graphics term that describes the process of turning a 2D shape into pixels that cover the same area. The output of this step is called fragments. It is important to note that fragments are not yet pixels. While both are dots in a 2D plane, pixels have color and are displayable, while fragments are dots with arbitrary data. The specific data attached to fragments is up to the programmer and can include texture coordinates, depth, and colors. However, fragments are not yet displayable because their final colors have not been determined. This is the job of the next stage.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="clip.png" alt="Clipping Removes Triangles Outside the Visible Area." sources='[]' /><div class="img-title">Clipping Removes Triangles Outside the Visible Area.</div></div></p><p>When programming the GPU pipeline, a programmer's role is to assign metadata, such as texture coordinates, to vertices. The rasterization stage then uses interpolation to generate the corresponding metadata for all fragments. In addition to performing rasterization, this stage also performs optimization techniques to reduce the workload of subsequent stages. These techniques can include culling, which removes triangles that are facing away from the view, and clipping, which eliminates fragments that are outside the visible area.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="ras.png" alt="Rasterization Covers Each Triangle With Fragments." sources='[]' /><div class="img-title">Rasterization Covers Each Triangle With Fragments.</div></div></p><p>With the fragments generated, we can move on to the Fragment stage. In this stage, we assign a color to each fragment, effectively turning it into a pixel. The coloring logic is determined by the fragment shader program that we provide.</p><p>(animation 6, blending)</p><p>Finally, the blending stage applies each newly generated pixel to the existing image in the frame buffer. The frame buffer contains the current state of the image, including all previously drawn elements. In the blending stage, we have the option to either completely overwrite existing pixels or mix the new pixels with the existing ones. This is useful for implementing transparent effects.</p><p>Once the drawing is complete, the frame buffer is presented to the user, concluding one frame of rendering. WebGPU and other 3D graphics APIs provide the tools we need to define the graphics pipeline and send resources to the GPU memory.</p><p>Before we conclude this section, let's discuss why we need GPUs in the first place. Why can't we just use powerful CPUs to handle graphics work? To use an analogy, imagine that you're a factory owner. Would you always want to hire employees with Ph.D.s? If you're building a patent factory, hiring Ph.D.s makes perfect sense. However, if you're building a banana can factory and the task is simply peeling bananas, hiring 100 monkeys might be a better choice. With the same number of resources, you would be able to maintain a much larger team of monkeys. Ph.D.s are very capable and can collaborate well on research projects, but peeling bananas doesn't require extensive research capabilities or collaboration. CPUs are like Ph.D.s in that they are very capable and are designed to handle synchronization well. GPUs, on the other hand, contain massive arrays of small computation units that can quickly handle simpler tasks, especially when the task is independent and doesn't require collaboration. When it comes to flattening triangles and coloring pixels, both of these tasks are simple and independent, so a GPU is the ideal hardware for them. In the past, GPUs were only used for graphics, but as soon as they became programmable, we started seeing more and more use cases that could benefit from them, such as artificial intelligence, physics simulation, video and image processing.</p><p>In summary, this lesson provided an overview of the GPU driver and the graphics pipeline, and explained how the pipeline converts triangles to pixels. In the next lesson, we will learn how to configure our first WebGPU pipeline to render a simple scene.</p><table class="footnote-def"><tr class="footnote-row" id="footnote_1"><td>[1]: </td><td><p>The Camera model used in diagrams throughout this book, <a class="link" href="https://skfb.ly/6SKrW" target="_blank">"1930's Movie Camera"</a> by Daz, is licensed under <a class="link" href="http://creativecommons.org/licenses/by/4.0/" target="_blank">Creative Commons Attribution</a>.</p></td></tr></table>
+        </article>
+    </div>
+    <!-- The Modal -->
+    <div id="img-modal" class="modal">
+        <!-- The Close Button -->
+        <span class="close" id="img-close">&times;</span>
+        <!-- Modal Content (The Image) -->
+        <img class="modal-content" id="img01">
+
+        <!-- Modal Caption (Image Text) -->
+        <div id="caption"></div>
+    </div>
+    <script>
+        function openImage(img) {
+            let modal = document.getElementById("img-modal");
+            let modalImg = document.getElementById("img01");
+            modal.style.display = "block";
+            if (img.getAttribute("original_src")) {
+                modalImg.src = img.getAttribute("original_src");
+            } else {
+                modalImg.src = img.src;
+            }
+            let captionText = document.getElementById("caption");
+
+            captionText.innerText = img.alt;
+
+            let sources = JSON.parse(img.getAttribute("sources"));
+
+            for (let i = 0; i < sources.length; ++i) {
+                if (sources.length == 1) {
+                    captionText.innerHTML += "<a href='" + sources[i] + "' target='_blank' class='img-source'>SOURCE</a>";
+                } else {
+                    captionText.innerHTML += "<a href='" + sources[i] + "' target='_blank' class='img-source'>SOURCE " + (i + 1) + "</a>";
+                }
+            }
+        }
+        // Get the <span> element that closes the modal
+        var closeButton = document.getElementById("img-close");
+
+        // When the user clicks on <span> (x), close the modal
+        closeButton.onclick = function () {
+            var modal = document.getElementById("img-modal");
+            modal.style.display = "none";
+        }
+    </script>
+
+<script type="module">
+    const macros = {};
+    const mathElementsBlock = document.getElementsByClassName("math-block");
+    for (let element of mathElementsBlock) {
+        katex.render(element.textContent, element, {
+            throwOnError: false,
+            displayMode: true,
+            macros
+        });
+    }
+
+    const mathElementsInline = document.getElementsByClassName("math-inline");
+    for (let element of mathElementsInline) {
+        katex.render(element.textContent, element, {
+            throwOnError: false,
+            macros
+        });
+    }
+
+
+</script>
+</body>
+
+</html>
