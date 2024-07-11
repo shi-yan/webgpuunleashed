@@ -4,7 +4,7 @@ var __publicField = (obj, key, value) => {
   __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
   return value;
 };
-import { m as monaco_editor_core_star } from "./index.js";
+import { m as monaco_editor_core_star } from "./app.js";
 /*!-----------------------------------------------------------------------------
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Version: 0.44.0(3e047efd345ff102c8c61b5398fb30845aaac166)

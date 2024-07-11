@@ -133,30 +133,30 @@
                 workgroupBarrier();      
             }
 
-            var count0:u32 = temp0[bank_conflict_free_idx(2*255)];
-            var count1:u32 = temp1[bank_conflict_free_idx(2*255)];
-            var count2:u32 = temp2[bank_conflict_free_idx(2*255)];
-            var count3:u32 = temp3[bank_conflict_free_idx(2*255)];
-
-            var last:u32 =  (input[2*((WorkgroupID.x+1) * 256-1)] & mask)  >> (radixMaskId << 1); 
-            switch(last) {
-                case 0: {count0 += 1;}
-                case 1: {count1 += 1;}
-                case 2: {count2 += 1;}
-                case 3: {count3 += 1;}
-                default {}
-            }
-
-            last =  (input[2*((WorkgroupID.x+1) * 256-1)+1] & mask)  >> (radixMaskId << 1); 
-            switch(last) {
-                case 0: {count0 += 1;}
-                case 1: {count1 += 1;}
-                case 2: {count2 += 1;}
-                case 3: {count3 += 1;}
-                default {}
-            }
-
             if (thid == 0) {
+                var count0:u32 = temp0[bank_conflict_free_idx(2*255)];
+                var count1:u32 = temp1[bank_conflict_free_idx(2*255)];
+                var count2:u32 = temp2[bank_conflict_free_idx(2*255)];
+                var count3:u32 = temp3[bank_conflict_free_idx(2*255)];
+
+                var last:u32 =  (input[2*((WorkgroupID.x+1) * 256-1)] & mask)  >> (radixMaskId << 1); 
+                switch(last) {
+                    case 0: {count0 += 1;}
+                    case 1: {count1 += 1;}
+                    case 2: {count2 += 1;}
+                    case 3: {count3 += 1;}
+                    default {}
+                }
+
+                last =  (input[2*((WorkgroupID.x+1) * 256-1)+1] & mask)  >> (radixMaskId << 1); 
+                switch(last) {
+                    case 0: {count0 += 1;}
+                    case 1: {count1 += 1;}
+                    case 2: {count2 += 1;}
+                    case 3: {count3 += 1;}
+                    default {}
+                }
+
                 sums[WorkgroupID.x * 4] = count0;
                 sums[WorkgroupID.x * 4+1] = count1;
                 sums[WorkgroupID.x * 4+2] = count2;
@@ -403,12 +403,17 @@
         }
         const adapter = await navigator.gpu.requestAdapter();
         console.log(adapter);
-        const hasTimestampQuery = adapter.features.has('timestamp-query');
+        const hasTimestampQuery = false;// adapter.features.has('timestamp-query');
+        console.log("hasTimestampQuery",hasTimestampQuery)
 
         let device = await adapter.requestDevice({
             requiredFeatures: hasTimestampQuery ? ["timestamp-query"] : [],
         });
         console.log(device);
+
+        for (let f of device.features) {
+            console.log(f)
+        }
 
         const capacity = 3;//Max number of timestamps we can store
         const querySet = hasTimestampQuery ? device.createQuerySet({
@@ -870,9 +875,9 @@
 
         const d = new Uint32Array(readOutputArrayBuffer.getMappedRange());
 
-        for (let i = 0; i < d.length; ++i) {
+        /*for (let i = 0; i < d.length; ++i) {
             console.log("d", (d[i]));
-        }
+        }*/
 
         readOutputArrayBuffer.unmap();
 
@@ -889,7 +894,6 @@
         }
 
         readOutputIdArrayBuffer.unmap();
-
 
         await readOutputSumArrayBuffer.mapAsync(GPUMapMode.READ, 0, sumSize * 4 * 4);
 

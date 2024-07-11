@@ -159,7 +159,7 @@
 
 <script id="object_with_shadow_ani_shader" type="wgsl">
     // Vertex shader
-    
+//cs_start: animation_shader
     @group(0) @binding(0)
     var<uniform> modelView: mat4x4<f32>;
     @group(0) @binding(1)
@@ -251,7 +251,8 @@
 
         return out;
     }
-    
+//cs_end: animation_shader
+
     // Fragment shader
     @group(0) @binding(9)
     var t_depth: texture_depth_2d;
@@ -662,7 +663,7 @@
             this.objBody = null;
         }
 
-
+//cs_start: update_animation
         updateAnimation(time) {
             let boneTransforms = new Float32Array(16 * 16);
 
@@ -843,7 +844,7 @@
             return boneTransforms;
 
         }
-
+//cs_end: update_animation
         async setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer,
             depthTexture, sampler, lightModelViewMatrixUniformBuffer, lightProjectionMatrixUniformBuffer) {
             let shaderModule = shaderModuleFromCode(device, 'object_with_shadow_ani_shader');
@@ -853,7 +854,7 @@
             this.objBody = await objResponse.json();
 
             console.log(this.objBody);
-
+//cs_start: bone_weights
             let boneWeights = new Float32Array(this.objBody.vert.length * 16 / 3);
 
             function assignBoneWeightsToVerticesHelper(bone) {
@@ -877,14 +878,15 @@
             for (let i = 0; i < this.objBody.skeleton.length; ++i) {
                 assignBoneWeightsToVerticesHelper(this.objBody.skeleton[i]);
             }
-
+//cs_end: bone_weights
             console.log("assigned bone weights", boneWeights);
 
             const boneTransforms = this.updateAnimation(0);
 
             this.boneTransformUniformBuffer = createGPUBuffer(device, boneTransforms, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
-
+//cs_start: bone_weight_buffer
             this.boneWeightBuffer = createGPUBuffer(device, boneWeights, GPUBufferUsage.VERTEX);
+//cs_end: bone_weight_buffer
             this.positionBuffer = createGPUBuffer(device, new Float32Array(this.objBody.vert), GPUBufferUsage.VERTEX);
 
             this.indexSize = this.objBody.indices.length;
@@ -1129,7 +1131,7 @@
                 arrayStride: 4 * 6,
                 stepMode: 'vertex'
             };
-
+//cs_start: bone_weight_buffer
             const boneWeight0AttribDesc = {
                 shaderLocation: 2,
                 offset: 0,
@@ -1159,14 +1161,14 @@
                 arrayStride: 4 * 16,
                 stepMode: 'vertex'
             };
-
+//cs_end: bone_weight_buffer
             const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout, uniformBindGroupLayoutBone] };
             const layout = device.createPipelineLayout(pipelineLayoutDesc);
 
             const colorState = {
                 format: 'bgra8unorm'
             };
-
+//cs_start: bone_weight_buffer
             const pipelineDesc = {
                 layout,
                 vertex: {
@@ -1192,7 +1194,7 @@
                     format: 'depth32float'
                 }
             };
-
+//cs_end: bone_weight_buffer
             this.pipeline = device.createRenderPipeline(pipelineDesc);
 
             const lightPipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayoutLight, uniformBindGroupLayoutBone] };
@@ -1471,21 +1473,22 @@
 
         let startTime = undefined;
         async function render(timestamp) {
+//cs_start: render_loop
             if (!startTime) {
                 startTime = timestamp;
             }
             const elapsed = timestamp - startTime;
-
+//cs_end: render_loop
             const devicePixelRatio = window.devicePixelRatio || 1;
             let currentCanvasWidth = canvas.clientWidth * devicePixelRatio;
             let currentCanvasHeight = canvas.clientHeight * devicePixelRatio;
 
             let projectionMatrixUniformBufferUpdate = null;
 
-
+//cs_start: render_loop
             const boneTransforms = runCube.updateAnimation(elapsed);
             let boneTransformBufferUpdate = createGPUBuffer(device, boneTransforms, GPUBufferUsage.COPY_SRC);
-
+//cs_end: render_loop
 
             if (depthTexture === null || currentCanvasWidth != canvas.width || currentCanvasHeight != canvas.height) {
                 canvas.width = currentCanvasWidth;
@@ -1576,8 +1579,10 @@
                 commandEncoder.copyBufferToBuffer(projectionMatrixUniformBufferUpdate, 0,
                     projectionMatrixUniformBuffer, 0, projectionMatrix.byteLength);
             }
+//cs_start: render_loop
             commandEncoder.copyBufferToBuffer(boneTransformBufferUpdate, 0,
                 runCube.boneTransformUniformBuffer, 0, boneTransforms.byteLength);
+//cs_end: render_loop
             commandEncoder.copyBufferToBuffer(lightModelViewMatrixUniformBufferUpdate, 0,
                 lightModelViewMatrixUniformBuffer, 0, lightModelViewMatrix.byteLength);
             commandEncoder.copyBufferToBuffer(modelViewMatrixUniformBufferUpdate, 0,

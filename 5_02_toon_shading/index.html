@@ -34,8 +34,7 @@
 <script src="../utils/utils.js"></script>
 
 <script id="object_outline_shader" type="wgsl">
-    // Vertex shader
-    
+//cs_start: outline_shader    
     @group(0) @binding(0)
     var<uniform> modelView: mat4x4<f32>;
     @group(0) @binding(1)
@@ -68,11 +67,10 @@
     fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         return vec4<f32>( 0.0,0.0,0.0,1.0);
     }
+//cs_end: outline_shader    
 </script>
 
 <script id="object_with_shadow_shader" type="wgsl">
-    // Vertex shader
-    
     @group(0) @binding(0)
     var<uniform> modelView: mat4x4<f32>;
     @group(0) @binding(1)
@@ -85,19 +83,15 @@
     var<uniform> viewDirection: vec3<f32>;
     
     @group(0) @binding(5)
-    var<uniform> ambientColor:vec4<f32>;// = vec4<f32>(0.15, 0.10, 0.10, 1.0);
-    @group(0) @binding(6)
-    var<uniform> diffuseColor:vec4<f32>;// = vec4<f32>(0.55, 0.55, 0.55, 1.0);
-    @group(0) @binding(7)
-    var<uniform> specularColor:vec4<f32>;// = vec4<f32>(1.0, 1.0, 1.0, 1.0);
-    
-    @group(0) @binding(8)
     var<uniform> shininess:f32;// = 20.0;
-        
+
+//cs_start: painterly_shader
+    // Instead of setting colors as RGB, we use scalars here as we only want to calculate intensity.
     const diffuseConstant:f32 = 1.0;
     const specularConstant:f32 = 0.0;
-    const ambientConstant: f32 = 0.0;
-    
+    const ambientConstant:f32 = 0.0;
+//cs_end: painterly_shader
+
     struct VertexOutput {
         @builtin(position) clip_position: vec4<f32>,
         @location(0) viewDir: vec3<f32>,
@@ -129,17 +123,17 @@
     }
     
     // Fragment shader
-    @group(0) @binding(9)
+    @group(0) @binding(6)
     var t_depth: texture_depth_2d;
-    @group(0) @binding(10)
+    @group(0) @binding(7)
     var s_depth: sampler_comparison;
-    @group(0) @binding(11)
+    @group(0) @binding(8)
     var<uniform> lightModelViewMatrix: mat4x4<f32>;
-    @group(0) @binding(12)
+    @group(0) @binding(9)
     var<uniform> lightProjectionMatrix: mat4x4<f32>;
-    @group(0) @binding(13)
+    @group(0) @binding(10)
     var t_shade: texture_1d<f32>;
-    @group(0) @binding(14)
+    @group(0) @binding(11)
     var s_shade: sampler;
 
     fn specular(lightDir:vec3<f32>, viewDir:vec3<f32>, normal:vec3<f32>, 
@@ -175,8 +169,12 @@
             }
         }
         visibility /= 25.0;
+//cs_start: painterly_shader
+        // We apply the same Phong shading, but instead of deriving the final color, we obtain an intensity.
         var intensity:f32 = max(dot(-lightDir, n), 0.0)* diffuseConstant + specular(-lightDir, viewDir, n, shininess) * specularConstant;
-        var diffuse:vec3<f32> = textureSample(t_shade, s_shade,   intensity * visibility ).xyz;
+        // With the light intensity, we look up the final color.
+        var diffuse:vec3<f32> = textureSample(t_shade, s_shade, intensity * visibility).xyz;
+//cs_end: painterly_shader
 
         if (face) {
             var wldLoc2light:vec3<f32> = in.wldLoc-lightLoc;
@@ -258,19 +256,24 @@
             let shaderModule = shaderModuleFromCode(device, 'object_with_shadow_shader');
             let shaderModuleLight = shaderModuleFromCode(device, 'light_view_shader');
             let shaderModuleOutline = shaderModuleFromCode(device, 'object_outline_shader');
-
+//cs_start: outline_pipeline
             let { positionBuffer, normalBuffer, indexBuffer, indexSize } = await loadObj(device, '../data/teapot.obj');
             this.positionBuffer = positionBuffer;
+            // The normal buffer contains vertex normals calculated as averages of adjacent surface normals.
             this.normalBuffer = normalBuffer;
             this.indexBuffer = indexBuffer;
             this.indexSize = indexSize;
+//cs_end: outline_pipeline
 
+//cs_start: 1d_lookup_texture_setup
+            // 1D texture, width is hardcoded to 128.
             const shadeTextureDesc = {
                 size: [128],
                 dimension: '1d',
                 format: "rgba8unorm",
                 usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.TEXTURE_BINDING
             };
+            // Populate color data. This lookup table defines 4 color bands.
             let shadeTextureColors = [];
             for (let i = 0; i < 128; ++i) {
                 if (i < 40) {
@@ -298,14 +301,16 @@
                     shadeTextureColors.push(255);
                 }
             }
-
+            // Create a texture and copy data to it.
             let shadeTexture = device.createTexture(shadeTextureDesc);
             device.queue.writeTexture({ texture: shadeTexture }, new Uint8Array(shadeTextureColors), {
                 offset: 0,
                 bytesPerRow: 128 * 4,
                 rowsPerImage: 1
             }, { width: 128 });
+            // Wait for completion.
             await device.queue.onSubmittedWorkDone();
+//cs_end: 1d_lookup_texture_setup
 
             let uniformBindGroupLayoutLight = device.createBindGroupLayout({
                 entries: [
@@ -402,12 +407,16 @@
                     {
                         binding: 6,
                         visibility: GPUShaderStage.FRAGMENT,
-                        buffer: {}
+                        texture: {
+                            sampleType: "depth"
+                        }
                     },
                     {
                         binding: 7,
                         visibility: GPUShaderStage.FRAGMENT,
-                        buffer: {}
+                        sampler: {
+                            type: 'comparison',
+                        },
                     },
                     {
                         binding: 8,
@@ -417,45 +426,23 @@
                     {
                         binding: 9,
                         visibility: GPUShaderStage.FRAGMENT,
-                        texture: {
-                            sampleType: "depth"
-                        }
+                        buffer: {}
                     },
                     {
                         binding: 10,
-                        visibility: GPUShaderStage.FRAGMENT,
-                        sampler: {
-                            type: 'comparison',
-                        },
-                    },
-                    {
-                        binding: 11,
-                        visibility: GPUShaderStage.FRAGMENT,
-                        buffer: {}
-                    },
-                    {
-                        binding: 12,
-                        visibility: GPUShaderStage.FRAGMENT,
-                        buffer: {}
-                    },
-                    {
-                        binding: 13,
                         visibility: GPUShaderStage.FRAGMENT,
                         texture: {
                             viewDimension: '1d'
                         }
                     },
                     {
-                        binding: 14,
+                        binding: 11,
                         visibility: GPUShaderStage.FRAGMENT,
                         sampler: {}
                     }
                 ]
             });
 
-            const ambientUniformBuffer = createGPUBuffer(device, new Float32Array([0.15, 0.10, 0.10, 1.0]), GPUBufferUsage.UNIFORM);
-            const diffuseUniformBuffer = createGPUBuffer(device, new Float32Array([0.55, 0.55, 0.55, 1.0]), GPUBufferUsage.UNIFORM);
-            const specularUniformBuffer = createGPUBuffer(device, new Float32Array([1.0, 1.0, 1.0, 1.0]), GPUBufferUsage.UNIFORM);
             const shininessUniformBuffer = createGPUBuffer(device, new Float32Array([20.0]), GPUBufferUsage.UNIFORM);
 
             const shadeSampler = device.createSampler({
@@ -532,54 +519,36 @@
                     {
                         binding: 5,
                         resource: {
-                            buffer: ambientUniformBuffer
-                        }
-                    },
-                    {
-                        binding: 6,
-                        resource: {
-                            buffer: diffuseUniformBuffer
-                        }
-                    },
-                    {
-                        binding: 7,
-                        resource: {
-                            buffer: specularUniformBuffer
-                        }
-                    },
-                    {
-                        binding: 8,
-                        resource: {
                             buffer: shininessUniformBuffer
                         }
                     },
                     {
-                        binding: 9,
+                        binding: 6,
                         resource: depthTexture.createView()
                     },
                     {
-                        binding: 10,
+                        binding: 7,
                         resource:
                             sampler
                     },
                     {
-                        binding: 11,
+                        binding: 8,
                         resource: {
                             buffer: lightModelViewMatrixUniformBuffer
                         }
                     },
                     {
-                        binding: 12,
+                        binding: 9,
                         resource: {
                             buffer: lightProjectionMatrixUniformBuffer
                         }
                     },
                     {
-                        binding: 13,
+                        binding: 10,
                         resource: shadeTexture.createView()
                     },
                     {
-                        binding: 14,
+                        binding: 11,
                         resource:
                             shadeSampler
                     },
@@ -672,7 +641,7 @@
             this.lightPipeline = device.createRenderPipeline(lightPipelineDesc);
 
             const outlinePipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayoutOutline] };
-
+            //cs_start: outline_pipeline
             const outlinePipelineDesc = {
                 layout: device.createPipelineLayout(outlinePipelineLayoutDesc),
                 vertex: {
@@ -696,6 +665,7 @@
                     format: 'depth32float'
                 }
             }
+            //cs_end: outline_pipeline
 
             this.outlinePipeline = device.createRenderPipeline(outlinePipelineDesc);
         }

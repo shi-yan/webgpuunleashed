@@ -116,10 +116,10 @@
         var n:vec3<f32> = normalize(in.normal);
         var viewDir: vec3<f32> = in.viewDir;
 
-        var fragmentPosInScreenSpace: vec4<f32> = lightProjectionMatrix * lightModelViewMatrix * vec4(in.inPos, 1.0);
-        fragmentPosInScreenSpace = fragmentPosInScreenSpace / fragmentPosInScreenSpace.w;
-        var depth: f32 = fragmentPosInScreenSpace.z;
-        var uv:vec2<f32> = 0.5*(fragmentPosInScreenSpace.xy + vec2(1.0,1.0));
+        var fragmentPosInShadowMapSpace: vec4<f32> = lightProjectionMatrix * lightModelViewMatrix * vec4(in.inPos, 1.0);
+        fragmentPosInShadowMapSpace = fragmentPosInShadowMapSpace / fragmentPosInShadowMapSpace.w;
+        var depth: f32 = fragmentPosInShadowMapSpace.z;
+        var uv:vec2<f32> = 0.5*(fragmentPosInShadowMapSpace.xy + vec2(1.0,1.0));
 
         var visibility = 0.0;
             let oneOverShadowDepthTextureSize = 1.0 / 1024.0;

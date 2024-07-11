@@ -1,5 +1,5 @@
 import { conf as conf$1, language as language$1 } from "./typescript.js";
-import "./index.js";
+import "./app.js";
 /*!-----------------------------------------------------------------------------
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Version: 0.44.0(3e047efd345ff102c8c61b5398fb30845aaac166)
