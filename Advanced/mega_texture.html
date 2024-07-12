@@ -25,6 +25,16 @@
     <meta property="twitter:image" content="/WebGPUUnleashed/meta.png" />
 
     <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+
+
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/default-dark.min.css"
+        integrity="sha512-EF2rc4QyBiRAGUMVm+EjFPBbdVGaN/pwZhtuKyrC/dM+hcwTxI5BsEDUkrMRI77z4VlDAt/qVopePXB5+ZZ8Gw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
     <script src="
         https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js
         "></script>
@@ -613,6 +623,7 @@ let projectionMatrixUniformBuffer = createGPUBuffer(device, orthProjMatrix, GPUB
         });
     }
 
+    hljs.highlightAll();
 
 </script>
 </body>
