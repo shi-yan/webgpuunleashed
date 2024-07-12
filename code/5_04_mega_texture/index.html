@@ -1,0 +1,799 @@
+<html>
+
+<head>
+    <style>
+        html {
+            position: relative;
+            height: 100%;
+        }
+
+        body {
+            margin: 0px;
+            position: relative;
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="canvas" width="640" height="480"></canvas>
+</body>
+<script src="../utils/gl-matrix.js">
+    //https://www.renaudpradenc.com/?tag=megatexture
+    //https://publications.lib.chalmers.se/records/fulltext/155126.pdf
+    //http://holger.dammertz.org/stuff/notes_VirtualTexturing.html
+    //https://silverspaceship.com/src/svt/
+    //https://webbtelescope.org/contents/media/images/2023/137/01HBBMDH12APPEGB8DXVVEP8XA?news=true
+</script>
+<script src="../utils/utils.js">
+    //talk about debugging max(level, 0); id out of range *4
+</script>
+<script id="tile_visibility_shader" type="wgsl">
+//cs_start: visibility_shader
+@group(0) @binding(0)
+var<uniform> transform: mat4x4<f32>;
+@group(0) @binding(1)
+var<uniform> projection: mat4x4<f32>;
+
+const tileSizeWithoutPadding:f32 = 256.0;
+
+struct VertexOutput {
+    @builtin(position) clip_position: vec4<f32>,
+    @location(0) tex:vec2<f32>,
+    @location(1) @interpolate(flat) tile:vec2<u32>
+};
+
+@vertex
+fn vs_main(
+    @location(0) inPos: vec4<f32>,
+    @location(1) loc: vec2<u32>
+) -> VertexOutput {
+    var out: VertexOutput;
+    out.tile = loc;
+    out.tex = inPos.zw ;
+    out.clip_position = projection * transform * vec4<f32>(inPos.xy + vec2<f32>(loc)*tileSizeWithoutPadding, 0.0, 1.0);
+    return out;
+}
+
+@group(0)
+@binding(2)
+var<uniform> level_tile_count: array<vec4<u32>, 8>; //must align to 16bytes
+@group(0)
+@binding(3)
+var<storage,read_write> visible_tiles: array<u32>;
+@fragment
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+    var dx:vec2<f32> = dpdx(in.tex * tileSizeWithoutPadding);
+    var dy:vec2<f32> = dpdy(in.tex * tileSizeWithoutPadding);
+    var d:f32 = max(dot(dx, dx), dot(dy, dy));
+    var level:f32 = min(max(f32(floor(0.5*log2(d))),0.0),8.0);
+
+    var edge_size:f32 = pow(2, level) * tileSizeWithoutPadding;
+
+    var x:f32 = (f32(in.tile.x) * tileSizeWithoutPadding + in.tex.x*tileSizeWithoutPadding) / edge_size;
+    var y:f32 = (f32(in.tile.y) * tileSizeWithoutPadding + in.tex.y*tileSizeWithoutPadding) / edge_size;
+
+    var base:i32 = 0;
+    if (level > 0) {
+        for(var i:i32 = 0;i<i32(level);i+=1) {
+            base += i32(level_tile_count[i].x * level_tile_count[i].y);
+        }
+    }
+    base += i32(floor(x) + floor(y)*f32(level_tile_count[i32(level)].x));
+    visible_tiles[base] = 1;
+    discard;
+    return vec4(1.0,0.0,0.0,1.0);
+}
+//cs_end: visibility_shader
+</script>
+
+<script id="tile_shader" type="wgsl">
+
+    @group(0) @binding(0)
+    var<uniform> transform: mat4x4<f32>;
+    @group(0) @binding(1)
+    var<uniform> projection: mat4x4<f32>;
+
+    const tileSizeWithoutPadding:f32 = 256.0;
+    const textureSizeWithoutPadding:f32 = 2048.0;
+    const padding:f32 = 2.0;
+    
+    struct VertexOutput {
+        @builtin(position) clip_position: vec4<f32>,
+        @location(0) tex:vec2<f32>,
+        @location(1) @interpolate(flat) tile:vec2<u32>
+    };
+    
+    @vertex
+    fn vs_main(
+        @location(0) inPos: vec4<f32>,
+        @location(1) loc: vec2<u32>
+    ) -> VertexOutput {
+        var out: VertexOutput;
+        out.tile = loc;
+        out.tex = inPos.zw ;
+        out.clip_position = projection * transform * vec4<f32>(inPos.xy + vec2<f32>(loc)*tileSizeWithoutPadding, 0.0, 1.0);
+        return out;
+    }
+    
+    // Fragment shader
+//cs_start: tile_render_shader
+    @group(0)
+    @binding(2)
+    var<uniform> level_tile_count: array<vec4<u32>, 8>; //must align to 16bytes
+    @group(0)
+    @binding(3)
+    var<storage,read> hash: array<vec2<f32> >;
+    @group(0) @binding(4)
+    var t_diffuse: texture_2d<f32>;
+    @group(0) @binding(5)
+    var s_diffuse: sampler;
+
+    @fragment
+    fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+        var dx:vec2<f32> = dpdxFine(in.tex * tileSizeWithoutPadding);
+        var dy:vec2<f32> = dpdyFine(in.tex * tileSizeWithoutPadding);
+        var d:f32 = max(dot(dx, dx), dot(dy, dy));
+        var level:f32 = min(max(f32(floor(0.5*log2(d))),0.0), 8.0);
+        var edge_size:f32 =  pow(2, level) * tileSizeWithoutPadding;
+    
+        var x:f32 = (f32(in.tile.x) * tileSizeWithoutPadding + in.tex.x * tileSizeWithoutPadding) / edge_size;
+        var y:f32 = (f32(in.tile.y) * tileSizeWithoutPadding + in.tex.y * tileSizeWithoutPadding) / edge_size;
+    
+        var base:i32 = 0;
+        if (level > 0) {
+            for(var i:i32 = 0;i<i32(level);i+=1){
+                base += i32(level_tile_count[i].x * level_tile_count[i].y);
+            }
+        }
+        base += i32(floor(x) + floor(y)*f32(level_tile_count[i32(level)].x));
+
+        return textureSampleLevel(t_diffuse, s_diffuse,hash[base]+ vec2(((x-floor(x))*tileSizeWithoutPadding + padding) * tileSizeWithoutPadding/ ((padding*2 + tileSizeWithoutPadding)*textureSizeWithoutPadding),
+        ((y-floor(y))*tileSizeWithoutPadding + padding) * tileSizeWithoutPadding/ ((padding*2 + tileSizeWithoutPadding)*textureSizeWithoutPadding)
+        ), 0);
+    }
+//cs_end: tile_render_shader
+</script>
+
+<script>
+    //cs_start: basic_setup
+    const imageWidth = 10752;
+    const imageHeight = 9216;
+    const tileSizeWithoutPadding = 256;
+    const textureSizeWithoutPadding = 2048;
+    const padding = 2;
+    const maxVisibleTileCountOnTexture = textureSizeWithoutPadding * textureSizeWithoutPadding / (tileSizeWithoutPadding * tileSizeWithoutPadding);
+    const levelCount = Math.log2(tileSizeWithoutPadding) + 1;
+
+    const tileH = Math.ceil(imageWidth / tileSizeWithoutPadding);
+    const tileV = Math.ceil(imageHeight / tileSizeWithoutPadding);
+
+    let levelTileCount = [];
+    //cs_end: basic_setup
+    let isDragging = false;
+    let prevX = 0;
+    let prevY = 0;
+    let pivotX = 0;
+    let pivotY = 0;
+    let scale = 1.0;
+    //cs_start: basic_setup
+    for (let l = 0; l < levelCount; ++l) {
+        const leveltileSizeWithoutPadding = tileSizeWithoutPadding * Math.pow(2, l);
+
+        const levelTileH = Math.ceil(imageWidth / leveltileSizeWithoutPadding);
+        const levelTileV = Math.ceil(imageHeight / leveltileSizeWithoutPadding);
+
+        levelTileCount.push(...[levelTileH, levelTileV, leveltileSizeWithoutPadding, 0]);
+    }
+
+    let overallTileCount = 0;
+
+    for (let i = 0; i < levelCount; ++i) {
+        overallTileCount += levelTileCount[i * 4] * levelTileCount[i * 4 + 1];
+    }
+    //cs_end: basic_setup
+    //cs_start: tile_key
+    function keyToLevel(key) {
+        let keyRemain = key;
+        let level = 0;
+
+        while (keyRemain >= levelTileCount[level * 4] * levelTileCount[level * 4 + 1]) {
+            keyRemain -= levelTileCount[level * 4] * levelTileCount[level * 4 + 1];
+            level += 1;
+        }
+
+        return { level, tileH: levelTileCount[level * 4], tileV: levelTileCount[level * 4 + 1], tileSizeWithoutPadding: levelTileCount[level * 4 + 2], keyRemain }
+    }
+
+    function key(width, height, x, y, level) {
+        let base = 0;
+        let tileH = 0;
+        let tileV = 0;
+        for (let i = 0; i < level; ++i) {
+            tileH = Math.ceil(width / (tileSizeWithoutPadding * Math.pow(2, level)));
+            tileV = Math.ceil(height / (tileSizeWithoutPadding * Math.pow(2, level)));
+            base += tileH * tileV;
+        }
+
+        return y * tileH + x + base;
+    }
+    //cs_end: tile_key
+    console.log("overalltilecount", overallTileCount);
+//cs_start: key_id_manager
+    class KeyIdManager {
+
+        constructor() {
+            this.used = new Map();
+            this.available = [];
+
+            for (let i = 0; i < maxVisibleTileCountOnTexture; ++i) {
+                this.available.push(i);
+            }
+        }
+
+        async generate(keys, loadTileIntoTexture) {
+            let newUsed = new Map();
+            let result = [];
+
+            //1. gather tiles that should be visible for the next round
+            let keySet = new Set();
+            for (let k of keys) {
+                keySet.add(k);
+            }
+
+            //2. eliminate tiles that are not visible this round but was visible in the previous round, by
+            // adding them into the available array
+            for (const [uk, uv] of this.used) {
+                if (!keySet.has(uk)) {
+                    this.available.push(uv);
+                }
+            }
+
+            //3. for all visible tiles
+            console.log("number of keys", keys);
+            for (let k of keys) {
+
+                const l = keyToLevel(k);
+                console.log("debug level", l)
+
+                // if this tile was visible before, skip updating texture map
+                if (this.used.has(k)) {
+                    const id = this.used.get(k);
+                    newUsed.set(k, id);
+                    result.push({ key: k, id });
+                }
+                else {
+                    const id = this.available.shift();
+                    newUsed.set(k, id);
+                    result.push({ key: k, id });
+                    const level = l.level;
+                    const x = l.keyRemain % l.tileH;
+                    const y = Math.floor(l.keyRemain / l.tileH);
+                    console.log("debug load tex", x, y, level);
+                    loadTileIntoTexture(x, y, level, k, id);
+                }
+            }
+            this.used = newUsed;
+            return result;
+        }
+    }
+//cs_end: key_id_manager
+//cs_start: visible_tile_manager
+    class VisibleTileHashTable {
+        constructor() {
+            this.texture = null;
+            this.tileTexCoordBuffer = null;
+            this.tileTexCoordBufferUpdate = null;
+            this.keyIdManager = new KeyIdManager();
+        }
+
+        setup(device) {
+            const textureDesc = {
+                size: [textureSizeWithoutPadding + textureSizeWithoutPadding / tileSizeWithoutPadding * padding * 2, textureSizeWithoutPadding + textureSizeWithoutPadding / tileSizeWithoutPadding * padding * 2, 1],
+                dimension: '2d',
+                format: 'rgba8unorm',
+                usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.COPY_SRC
+            };
+            this.texture = device.createTexture(textureDesc);
+            this.tileTexCoordBuffer = createGPUBuffer(device, new Float32Array(overallTileCount * 2), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST);
+            this.tileTexCoordBufferUpdate = createGPUBuffer(device, new Float32Array(overallTileCount * 2), GPUBufferUsage.COPY_SRC | GPUBufferUsage.MAP_WRITE);
+        }
+//cs_end: visible_tile_manager
+//cs_start: texture_loading_helper
+        async loadTileIntoTexture(device, bufferUpdate, imageWidth, imageHeight, x, y, level, tileKey, id) {
+            const writeArray = new Float32Array(bufferUpdate.getMappedRange(tileKey * 2 * 4, 8));
+            writeArray.set([(tileSizeWithoutPadding / textureSizeWithoutPadding) * (id % (textureSizeWithoutPadding / tileSizeWithoutPadding)),
+            (tileSizeWithoutPadding / textureSizeWithoutPadding) * Math.floor(id / (textureSizeWithoutPadding / tileSizeWithoutPadding))]);
+
+            const url = '../crab_nebula/crab_' + level + '_' + y + '_' + x + '.png';
+
+            const response = await fetch(url);
+            const blob = await response.blob();
+            const imgBitmap = await createImageBitmap(blob);
+            //console.log(url,imgBitmap.width, imgBitmap.height,{ width: tileSizeWithoutPadding+padding*2, height: tileSizeWithoutPadding+padding*2 });
+
+            device.queue.copyExternalImageToTexture({ source: imgBitmap }, {
+                texture: this.texture,
+                origin: { x: (padding * 2 + tileSizeWithoutPadding) * (id % (textureSizeWithoutPadding / tileSizeWithoutPadding)), y: (padding * 2 + tileSizeWithoutPadding) * Math.floor(id / (textureSizeWithoutPadding / tileSizeWithoutPadding)) }
+            }, { width: tileSizeWithoutPadding + padding * 2, height: tileSizeWithoutPadding + padding * 2 });
+        }
+//cs_end: texture_loading_helper
+//cs_start: visible_tile_manager
+        async assembleTexture(device, imageWidth, imageHeight, tiles) {
+            await this.tileTexCoordBufferUpdate.mapAsync(GPUMapMode.WRITE, 0, overallTileCount * 2 * 4);
+
+            tiles = await this.keyIdManager.generate(tiles, async (x, y, level, k, id) => {
+                await this.loadTileIntoTexture(device, this.tileTexCoordBufferUpdate, imageWidth, imageHeight, x, y, level, k, id);
+            });
+
+            console.log(tiles);
+
+            this.tileTexCoordBufferUpdate.unmap();
+        }
+    }
+//cs_end: visible_tile_manager
+    class Tile {
+        constructor() {
+            this.visibilityPipeline = null;
+            this.tilePipeline = null;
+            this.uniformBindGroupVisibility = null;
+            this.tileLocBuffer = null;
+            this.tileVisibilityBufferZeros = null;
+            this.tileVisibilityBuffer = null;
+            this.tileVisibilityBufferRead = null;
+        }
+
+        async setup(device, translateMatrixUniformBuffer, projectionMatrixUniformBuffer, tileTexCoordBuffer, assembledTexture) {
+            let codeVisibility = document.getElementById('tile_visibility_shader').innerText;
+
+            const shaderDescVisibility = { code: codeVisibility };
+            let shaderModuleVisibility = device.createShaderModule(shaderDescVisibility);
+
+            let codeTile = document.getElementById('tile_shader').innerText;
+
+            const shaderDescTile = { code: codeTile };
+            let shaderModuleTile = device.createShaderModule(shaderDescTile);
+//cs_start: visibility_js
+            const positionAttribDesc = {
+                shaderLocation: 0, // @location(0)
+                offset: 0,
+                format: 'float32x4'
+            };
+
+            const positionBufferLayoutDesc = {
+                attributes: [positionAttribDesc],
+                arrayStride: 4 * 4, // sizeof(float) * 4
+                stepMode: 'vertex'
+            };
+
+            const positions = new Float32Array([
+                tileSizeWithoutPadding, 0.0, 1.0, 0.0,
+                tileSizeWithoutPadding, tileSizeWithoutPadding, 1.0, 1.0,
+                0.0, 0.0, 0.0, 0.0,
+                0.0, tileSizeWithoutPadding, 0.0, 1.0
+            ]);
+
+            this.positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
+
+            let tiles = [];
+
+            for (let y = 0; y < tileV; ++y) {
+                for (let x = 0; x < tileH; ++x) {
+                    tiles.push(x);
+                    tiles.push(y);
+                }
+            }
+
+            const tileLocAttribDesc = {
+                shaderLocation: 1, // @location(0)
+                offset: 0,
+                format: 'uint32x2'
+            };
+
+            const tileLocBufferLayoutDesc = {
+                attributes: [tileLocAttribDesc],
+                arrayStride: 4 * 2, // sizeof(int) * 3
+                stepMode: 'instance'
+            };
+
+            this.tileLocBuffer = createGPUBuffer(device, new Uint32Array(tiles), GPUBufferUsage.VERTEX);
+
+            const levelTileCountBuffer = createGPUBuffer(device, new Uint32Array(levelTileCount), GPUBufferUsage.UNIFORM);
+
+            this.tileVisibilityBufferZeros = createGPUBuffer(device, new Uint32Array(overallTileCount), GPUBufferUsage.COPY_SRC);
+            this.tileVisibilityBuffer = createGPUBuffer(device, new Uint32Array(overallTileCount), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST);
+            this.tileVisibilityBufferRead = createGPUBuffer(device, new Uint32Array(overallTileCount), GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
+//cs_end: visibility_js
+            let uniformBindGroupLayoutVisibility = device.createBindGroupLayout({
+                entries: [
+                    {
+                        binding: 0,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    },
+                    {
+                        binding: 1,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    },
+                    {
+                        binding: 2,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        buffer: {}
+                    },
+                    {
+                        binding: 3,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        buffer: { type: "storage" }
+                    }
+                ]
+            });
+
+            this.uniformBindGroupVisibility = device.createBindGroup({
+                layout: uniformBindGroupLayoutVisibility,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: {
+                            buffer: translateMatrixUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 1,
+                        resource: {
+                            buffer: projectionMatrixUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 2,
+                        resource: {
+                            buffer: levelTileCountBuffer
+                        }
+                    },
+                    {
+                        binding: 3,
+                        resource: {
+                            buffer: this.tileVisibilityBuffer
+                        }
+                    }
+                ]
+            });
+
+            let uniformBindGroupLayoutTile = device.createBindGroupLayout({
+                entries: [
+                    {
+                        binding: 0,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    },
+                    {
+                        binding: 1,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    },
+                    {
+                        binding: 2,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        buffer: {}
+                    },
+                    {
+                        binding: 3,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        buffer: { type: "read-only-storage" }
+                    },
+                    {
+                        binding: 4,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        texture: {}
+                    },
+                    {
+                        binding: 5,
+                        visibility: GPUShaderStage.FRAGMENT,
+                        sampler: {}
+                    }
+                ]
+            });
+            const sampler = device.createSampler({
+                addressModeU: 'clamp-to-edge',
+                addressModeV: 'clamp-to-edge',
+                magFilter: 'linear',
+                minFilter: 'linear',
+                mipmapFilter: 'linear'
+            });
+            this.uniformBindGroupTile = device.createBindGroup({
+                layout: uniformBindGroupLayoutTile,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: {
+                            buffer: translateMatrixUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 1,
+                        resource: {
+                            buffer: projectionMatrixUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 2,
+                        resource: {
+                            buffer: levelTileCountBuffer
+                        }
+                    },
+                    {
+                        binding: 3,
+                        resource: {
+                            buffer: tileTexCoordBuffer
+                        }
+                    },
+                    {
+                        binding: 4,
+                        resource: assembledTexture.createView()
+                    },
+                    {
+                        binding: 5,
+                        resource:
+                            sampler
+                    }
+                ]
+            });
+
+            const pipelineVisibilityLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayoutVisibility] };
+            const visibilityLayout = device.createPipelineLayout(pipelineVisibilityLayoutDesc);
+
+            const colorState = {
+                format: 'bgra8unorm'
+            };
+
+            const visibilityPipelineDesc = {
+                layout: visibilityLayout,
+                vertex: {
+                    module: shaderModuleVisibility,
+                    entryPoint: 'vs_main',
+                    buffers: [positionBufferLayoutDesc, tileLocBufferLayoutDesc]
+                },
+                fragment: {
+                    module: shaderModuleVisibility,
+                    entryPoint: 'fs_main',
+                    targets: [colorState]
+                },
+                primitive: {
+                    topology: 'triangle-strip',
+                    frontFace: 'ccw',
+                    cullMode: 'none'
+                }
+            };
+
+            this.visibilityPipeline = device.createRenderPipeline(visibilityPipelineDesc);
+
+            const pipelineTileLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayoutTile] };
+            const tileLayout = device.createPipelineLayout(pipelineTileLayoutDesc);
+
+            const tilePipelineDesc = {
+                layout: tileLayout,
+                vertex: {
+                    module: shaderModuleTile,
+                    entryPoint: 'vs_main',
+                    buffers: [positionBufferLayoutDesc, tileLocBufferLayoutDesc]
+                },
+                fragment: {
+                    module: shaderModuleTile,
+                    entryPoint: 'fs_main',
+                    targets: [colorState]
+                },
+                primitive: {
+                    topology: 'triangle-strip',
+                    frontFace: 'ccw',
+                    cullMode: 'none'
+                }
+            };
+
+            this.tilePipeline = device.createRenderPipeline(tilePipelineDesc);
+        }
+//cs_start: visibility_js
+        encodeVisibility(encoder) {
+            encoder.setPipeline(this.visibilityPipeline);
+            encoder.setBindGroup(0, this.uniformBindGroupVisibility);
+            encoder.setVertexBuffer(0, this.positionBuffer);
+            encoder.setVertexBuffer(1, this.tileLocBuffer);
+            encoder.draw(4, tileH * tileV);
+        }
+//cs_end: visibility_js
+        encodeTile(encoder) {
+            encoder.setPipeline(this.tilePipeline);
+            encoder.setBindGroup(0, this.uniformBindGroupTile);
+            encoder.setVertexBuffer(0, this.positionBuffer);
+            encoder.setVertexBuffer(1, this.tileLocBuffer);
+            encoder.draw(4, tileH * tileV);
+        }
+    }
+
+    async function webgpu() {
+        if (!navigator.gpu) {
+            showWarning("WebGPU support is not available. A WebGPU capable browser is required to run this sample.");
+            throw new Error("WebGPU support is not available");
+        }
+        const adapter = await navigator.gpu.requestAdapter();
+        console.log(adapter);
+
+        let device = await adapter.requestDevice();
+        console.log(device);
+
+        let context = configContext(device, canvas);
+//cs_start: navigation
+        let translateMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
+            glMatrix.vec3.fromValues(0, 0, 10), glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(0.0, 1.0, 0.0));
+
+        let orthProjMatrix = glMatrix.mat4.ortho(glMatrix.mat4.create(), canvas.width * -0.5 * scale, canvas.width * 0.5 * scale, canvas.height * 0.5 * scale, canvas.height * -0.5 * scale, -1000.0, 1000.0);
+
+        let translateMatrixUniformBuffer = createGPUBuffer(device, translateMatrix, GPUBufferUsage.UNIFORM);
+
+        let projectionMatrixUniformBuffer = createGPUBuffer(device, orthProjMatrix, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+//cs_end: navigation
+        let visibleTiles = new VisibleTileHashTable();
+        visibleTiles.setup(device);
+
+        let tile = new Tile();
+        await tile.setup(device, translateMatrixUniformBuffer, projectionMatrixUniformBuffer, visibleTiles.tileTexCoordBuffer, visibleTiles.texture);
+
+        const colorTextureForVisibilityDesc = {
+            size: [canvas.width, canvas.height, 1],
+            dimension: '2d',
+            format: 'bgra8unorm',
+            usage: GPUTextureUsage.RENDER_ATTACHMENT
+        };
+        let colorTextureForVisibility = device.createTexture(colorTextureForVisibilityDesc);
+
+        let updatedProjectionMatrix = null;
+        let hasDumped = false;
+        render = async () => {
+
+            let projectionMatrixUniformBufferUpdate = null;
+            // what happens if we use the canvas texture here
+            let colorAttachment = {
+                view: colorTextureForVisibility.createView(),
+                clearValue: { r: 1, g: 0, b: 0, a: 1 },
+                loadOp: 'clear',
+                storeOp: 'discard'
+            };
+
+            const renderPassDesc = {
+                colorAttachments: [colorAttachment]
+            };
+            const commandEncoder = device.createCommandEncoder();
+
+            if (updatedProjectionMatrix) {
+                projectionMatrixUniformBufferUpdate = createGPUBuffer(device, updatedProjectionMatrix, GPUBufferUsage.COPY_SRC);
+
+                commandEncoder.copyBufferToBuffer(projectionMatrixUniformBufferUpdate, 0,
+                    projectionMatrixUniformBuffer, 0, updatedProjectionMatrix.byteLength);
+            }
+//cs_start: visibility_js
+            commandEncoder.copyBufferToBuffer(tile.tileVisibilityBufferZeros, 0,
+                tile.tileVisibilityBuffer, 0, overallTileCount * 4);
+            const passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
+            passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+            tile.encodeVisibility(passEncoder);
+            passEncoder.end();
+            commandEncoder.copyBufferToBuffer(tile.tileVisibilityBuffer, 0,
+                tile.tileVisibilityBufferRead, 0, overallTileCount * 4);
+//cs_end: visibility_js
+            device.queue.submit([commandEncoder.finish()]);
+            await device.queue.onSubmittedWorkDone();
+
+            if (projectionMatrixUniformBufferUpdate) {
+                projectionMatrixUniformBufferUpdate.destroy();
+                updatedProjectionMatrix = null;
+            }
+//cs_start: read_back_result
+            await tile.tileVisibilityBufferRead.mapAsync(GPUMapMode.READ, 0, overallTileCount * 4);
+
+            let vb = tile.tileVisibilityBufferRead.getMappedRange(0, overallTileCount * 4);
+
+            vb = new Uint32Array(vb);
+            let vt = [];
+            for (let i = 0; i < overallTileCount; ++i) {
+                if (vb[i] == 1) {
+                    vt.push(i);
+                }
+            }
+            tile.tileVisibilityBufferRead.unmap();
+
+            await visibleTiles.assembleTexture(device, imageWidth,
+                imageHeight, vt);
+//cs_end: read_back_result
+            /*if (!hasDumped) {
+                await downloadTexture(device, visibleTiles.texture);
+            }*/
+
+            const commandEncoder2 = device.createCommandEncoder();
+
+            commandEncoder2.copyBufferToBuffer(visibleTiles.tileTexCoordBufferUpdate, 0,
+                visibleTiles.tileTexCoordBuffer, 0, overallTileCount * 2 * 4);
+
+            let colorTexture2 = context.getCurrentTexture();
+            let colorTextureView2 = colorTexture2.createView();
+
+            let colorAttachment2 = {
+                view: colorTextureView2,
+                clearValue: { r: 1, g: 0, b: 0, a: 1 },
+                loadOp: 'clear',
+                storeOp: 'store'
+            };
+            const renderPassDesc2 = {
+                colorAttachments: [colorAttachment2]
+            };
+            const passEncoder2 = commandEncoder2.beginRenderPass(renderPassDesc2);
+
+            passEncoder2.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+            tile.encodeTile(passEncoder2);
+            passEncoder2.end();
+
+            device.queue.submit([commandEncoder2.finish()]);
+
+            await device.queue.onSubmittedWorkDone();
+
+            requestAnimationFrame(render);
+        }
+
+        requestAnimationFrame(render);
+//cs_start: navigation
+        canvas.onmousedown = (e) => {
+            isDragging = true;
+            var rect = canvas.getBoundingClientRect();
+            prevX = event.clientX - rect.left;
+            prevY = event.clientY - rect.top;
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        canvas.onmousemove = (e) => {
+            if (isDragging) {
+                var rect = canvas.getBoundingClientRect();
+                x = event.clientX - rect.left;
+                y = event.clientY - rect.top;
+
+                let deltaX = prevX - x;
+                let deltaY = prevY - y;
+
+                pivotX += deltaX * scale;
+                pivotY += deltaY * scale;
+
+                updatedProjectionMatrix = glMatrix.mat4.ortho(glMatrix.mat4.create(), pivotX - canvas.width * 0.5 * scale, pivotX + canvas.width * 0.5 * scale, pivotY + canvas.height * 0.5 * scale, pivotY - canvas.height * 0.5 * scale, -1000.0, 1000.0);
+
+                prevX = x;
+                prevY = y;
+                //requestAnimationFrame(render);
+            }
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        canvas.onmouseup = (e) => {
+            isDragging = false;
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        canvas.onwheel = (e) => {
+            scale += e.deltaY * 0.01
+            if (scale < 0.01) {
+                scale = 0.01;
+            }
+            else if (scale > 100.0) {
+                scale = 100.0;
+            }
+
+            console.log(scale);
+            e.preventDefault();
+            e.stopPropagation();
+
+            updatedProjectionMatrix = glMatrix.mat4.ortho(glMatrix.mat4.create(), pivotX - canvas.width * 0.5 * scale, pivotX + canvas.width * 0.5 * scale, pivotY + canvas.height * 0.5 * scale, pivotY - canvas.height * 0.5 * scale, -1000.0, 1000.0);
+        }
+    }
+//cs_end: navigation
+    webgpu();
+</script>
+
+</html>

@@ -1,0 +1,866 @@
+<html>
+
+<head>
+    <style>
+        html {
+            position: relative;
+            height: 100%;
+        }
+
+        body {
+            margin: 0px;
+            position: relative;
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="canvas" width="640" height="480" style="width:100%;height:100%"></canvas>
+</body>
+<script src="../utils/gl-matrix.js">
+    //picking, instancing
+</script>
+<script src="../utils/OBJFile.js"> </script>
+<script src="../utils/utils.js"></script>
+
+
+<script id="ring_shader" type="wgsl">
+    // Vertex shader
+    
+    @group(0) @binding(0)
+    var<uniform> modelView: mat4x4<f32>;
+    @group(0) @binding(1)
+    var<uniform> projection: mat4x4<f32>;
+    @group(0) @binding(2)
+    var<uniform> teapotTransformationMat : array<mat4x4<f32>, 16>;
+
+    struct VertexOutput {
+        @builtin(position) clip_position: vec4<f32>
+    };
+    
+    @vertex
+    fn vs_main(
+        @builtin(instance_index) instanceIdx : u32,
+        @location(0) inPos: vec3<f32>
+    ) -> VertexOutput {
+        var out: VertexOutput;
+        out.clip_position = projection * modelView * teapotTransformationMat[instanceIdx] * vec4<f32>(inPos, 1.0);
+        return out;
+    }
+    
+    // Fragment shader
+    
+    @fragment
+    fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -> @location(0) vec4<f32> {
+        return vec4<f32>(0.0, 1.0, 0.0 ,1.0);
+    }
+</script>
+
+<script id="teapot_shader" type="wgsl">
+    // Vertex shader
+    
+    @group(0) @binding(0)
+    var<uniform> modelView: mat4x4<f32>;
+    @group(0) @binding(1)
+    var<uniform> projection: mat4x4<f32>;
+    @group(0) @binding(2)
+    var<uniform> normalMatrix: mat4x4<f32>;
+    @group(0) @binding(3)
+    var<uniform> teapotTransformationMat : array<mat4x4<f32>, 16>;
+    @group(0) @binding(4)
+    var<uniform> teapotNormalMat : array<mat4x4<f32>, 16>;
+    @group(0) @binding(5)
+    var<uniform> selected: u32;
+    @group(0) @binding(6) 
+    var<uniform> lightDirection: vec3<f32>;
+    @group(0) @binding(7)
+    var<uniform> viewDirection: vec3<f32>;
+
+    const ambientColor:vec4<f32> = vec4<f32>(0.0, 0.0, 0.0, 1.0);
+    const diffuseColor:vec4<f32> = vec4<f32>(0.45, 0.45, 0.45, 1.0);
+    const specularColor:vec4<f32> = vec4<f32>(1.0, 1.0, 1.0, 1.0);
+                
+    const shininess:f32 = 20.0;
+                
+    const diffuseConstant:f32 = 1.0;
+    const specularConstant:f32 = 1.0;
+    const ambientConstant: f32 = 1.0;
+            
+    fn specular(lightDir:vec3<f32>, viewDir:vec3<f32>, normal:vec3<f32>,  specularColor:vec3<f32>, 
+        shininess:f32) -> vec3<f32> {
+        let reflectDir:vec3<f32> = reflect(-lightDir, normal);
+        let specDot:f32 = max(dot(reflectDir, viewDir), 0.0);
+        return pow(specDot, shininess) * specularColor;
+    }
+            
+    fn diffuse(lightDir:vec3<f32>, normal:vec3<f32>,  diffuseColor:vec3<f32>) -> vec3<f32>{
+        return max(dot(lightDir, normal), 0.0) * diffuseColor;
+    }
+
+    struct VertexOutput {
+        @builtin(position) clip_position: vec4<f32>,
+        @location(0) viewDir: vec3<f32>,
+        @location(1) normal: vec3<f32>,
+        @location(2) lightDir: vec3<f32>
+    };
+    
+    @vertex
+    fn vs_main(
+        @builtin(instance_index) instanceIdx : u32,
+        @location(0) inPos: vec3<f32>,
+        @location(1) inNormal: vec3<f32>
+        //,@location(2) transformation: mat4x4<f32>
+    ) -> VertexOutput {
+        var out: VertexOutput;
+        out.viewDir = normalize((normalMatrix * vec4<f32>(-viewDirection, 0.0)).xyz);
+        out.lightDir = normalize((normalMatrix * vec4<f32>(-lightDirection, 0.0)).xyz);
+        out.normal = normalize(normalMatrix * teapotNormalMat[instanceIdx] * vec4<f32>(inNormal, 0.0)).xyz;  
+        
+        out.clip_position = projection * modelView * teapotTransformationMat[instanceIdx] * vec4<f32>(inPos, 1.0);
+
+        if (selected == instanceIdx) {
+            out.normal = vec3<f32>(0.0, 0.0, 0.0);
+        }
+        return out;
+    }
+    
+    // Fragment shader
+    
+    @fragment
+    fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -> @location(0) vec4<f32> {
+        if (face) {
+            var lightDir:vec3<f32> = in.lightDir;
+            var n:vec3<f32> = normalize(in.normal);
+            var viewDir: vec3<f32> = in.viewDir;
+            
+            var radiance:vec3<f32>  = ambientColor.rgb * ambientConstant + 
+                diffuse(lightDir, n, diffuseColor.rgb)* diffuseConstant +
+                specular(lightDir, viewDir, n, specularColor.rgb, shininess) * specularConstant;
+                  
+            return vec4<f32>(radiance ,1.0);
+        }
+        else {
+            return vec4<f32>(0.0, 1.0, 0.0 ,1.0);
+        }
+    }
+</script>
+
+<script>
+    class Teapot {
+        constructor() {
+            this.pipeline = null;
+            this.positionBuffer = null;
+            this.normalBuffer = null;
+            this.indexBuffer = null;
+            this.uniformBindGroup = null;
+            this.indexSize = null;
+            this.instanceCount = 16;
+            this.instanceCenters = [];
+            this.teapotRadius = 0;
+            this.selectionUniformBuffer = null;
+        }
+
+        async setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer) {
+            let shaderModule = shaderModuleFromCode(device, 'teapot_shader')
+            let ringShaderModule = shaderModuleFromCode(device, 'ring_shader')
+
+            let { positionBuffer, normalBuffer, indexBuffer, indexSize, center, radius } = await loadObj(device, '../data/teapot.obj');
+            this.positionBuffer = positionBuffer;
+            this.normalBuffer = normalBuffer;
+            this.indexBuffer = indexBuffer;
+            this.indexSize = indexSize;
+            this.teapotRadius = radius;
+
+            let transformationMats = new Float32Array(16 * this.instanceCount);
+            let normalMats = new Float32Array(16 * this.instanceCount);
+
+            const circleRadius = 12;
+
+            const teapotCenter = glMatrix.vec4.fromValues(center[0], center[1], center[2], 1.0);
+
+            console.log("teapot center", teapotCenter);
+
+            this.ringPositionBuffer = [];
+
+            for (let i = 0; i < 16; ++i) {
+                const angle = 2.0 * Math.PI * i / 16.0;
+                const x = Math.cos(angle) * radius;
+                const y = Math.sin(angle) * radius;
+
+                this.ringPositionBuffer.push(x + center[0]);
+                this.ringPositionBuffer.push(y + center[1]);
+                this.ringPositionBuffer.push(0.0 + center[2]);
+            }
+
+            this.ringPositionBuffer = createGPUBuffer(device, new Float32Array(this.ringPositionBuffer), GPUBufferUsage.VERTEX);
+
+            this.ringPositionBuffer2 = [];
+            for (let i = 0; i < 16; ++i) {
+                const angle = 2.0 * Math.PI * i / 16.0;
+                const x = Math.cos(angle) * radius;
+                const z = Math.sin(angle) * radius;
+
+                this.ringPositionBuffer2.push(x + center[0]);
+                this.ringPositionBuffer2.push(0.0 + center[1]);
+                this.ringPositionBuffer2.push(z + center[2]);
+            }
+
+            this.ringPositionBuffer2 = createGPUBuffer(device, new Float32Array(this.ringPositionBuffer2), GPUBufferUsage.VERTEX);
+
+
+            this.ringPositionBuffer3 = [];
+            for (let i = 0; i < 16; ++i) {
+                const angle = 2.0 * Math.PI * i / 16.0;
+                const y = Math.cos(angle) * radius;
+                const z = Math.sin(angle) * radius;
+
+                this.ringPositionBuffer3.push(0.0 + center[0]);
+                this.ringPositionBuffer3.push(y + center[1]);
+                this.ringPositionBuffer3.push(z + center[2]);
+            }
+            this.ringPositionBuffer3 = createGPUBuffer(device, new Float32Array(this.ringPositionBuffer3), GPUBufferUsage.VERTEX);
+
+
+            for (let i = 0; i < this.instanceCount; ++i) {
+
+                const angle = 2.0 * Math.PI * i / this.instanceCount;
+
+                let translation = glMatrix.mat4.fromTranslation(glMatrix.mat4.create(),
+                    glMatrix.vec3.fromValues(Math.cos(angle) * circleRadius,
+                        Math.sin(angle) * circleRadius, 0));
+                let rotation = glMatrix.mat4.fromRotation(glMatrix.mat4.create(), Math.PI * 0.5 + angle, glMatrix.vec3.fromValues(0.0, 0.0, 1.0));
+
+                const modelViewMatrix = glMatrix.mat4.multiply(glMatrix.mat4.create(), translation, rotation);
+
+                transformationMats.set(modelViewMatrix, i * 16);
+
+
+
+
+                let modelViewMatrixInverse = glMatrix.mat4.invert(glMatrix.mat4.create(), modelViewMatrix);
+
+                let normalMatrix = glMatrix.mat4.transpose(glMatrix.mat4.create(), modelViewMatrixInverse);
+
+                normalMats.set(normalMatrix, i * 16);
+
+                let center = glMatrix.vec4.transformMat4(glMatrix.vec3.create(), teapotCenter, modelViewMatrix);
+                this.instanceCenters.push(glMatrix.vec3.fromValues(center[0], center[1], center[2]));
+
+                console.log('center ', center)
+            }
+
+            let transformationMatUniformBuffer = createGPUBuffer(device, transformationMats, GPUBufferUsage.UNIFORM);
+            let normalMatUniformBuffer = createGPUBuffer(device, normalMats, GPUBufferUsage.UNIFORM);
+            this.selectionUniformBuffer = createGPUBuffer(device, new Uint32Array([17]), GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+
+            let ringUniformBindGroupLayout = device.createBindGroupLayout({
+                entries: [
+                    {
+                        binding: 0,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    },
+                    {
+                        binding: 1,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    },
+                    {
+                        binding: 2,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    },
+
+                ]
+            });
+
+
+
+            let uniformBindGroupLayout = device.createBindGroupLayout({
+                entries: [
+                    {
+                        binding: 0,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    },
+                    {
+                        binding: 1,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    },
+                    {
+                        binding: 2,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    },
+                    {
+                        binding: 3,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    },
+                    {
+                        binding: 4,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    },
+                    {
+                        binding: 5,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    },
+                    {
+                        binding: 6,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    },
+                    {
+                        binding: 7,
+                        visibility: GPUShaderStage.VERTEX,
+                        buffer: {}
+                    }
+                ]
+            });
+
+
+            this.ringUniformBindGroup = device.createBindGroup({
+                layout: ringUniformBindGroupLayout,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: {
+                            buffer: modelViewMatrixUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 1,
+                        resource: {
+                            buffer: projectionMatrixUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 2,
+                        resource: {
+                            buffer: transformationMatUniformBuffer
+                        }
+                    }
+                ]
+            });
+
+
+            this.uniformBindGroup = device.createBindGroup({
+                layout: uniformBindGroupLayout,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: {
+                            buffer: modelViewMatrixUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 1,
+                        resource: {
+                            buffer: projectionMatrixUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 2,
+                        resource: {
+                            buffer: normalMatrixUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 3,
+                        resource: {
+                            buffer: transformationMatUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 4,
+                        resource: {
+                            buffer: normalMatUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 5,
+                        resource: {
+                            buffer: this.selectionUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 6,
+                        resource: {
+                            buffer: lightDirectionUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 7,
+                        resource: {
+                            buffer: viewDirectionUniformBuffer
+                        }
+                    }
+                ]
+            });
+
+            const positionAttribDesc = {
+                shaderLocation: 0, // @location(0)
+                offset: 0,
+                format: 'float32x3'
+            };
+
+            const positionBufferLayoutDesc = {
+                attributes: [positionAttribDesc],
+                arrayStride: 4 * 3, // sizeof(float) * 3
+                stepMode: 'vertex'
+            };
+
+            const normalAttribDesc = {
+                shaderLocation: 1, // @location(1)
+                offset: 0,
+                format: 'float32x3'
+            };
+
+            const normalBufferLayoutDesc = {
+                attributes: [normalAttribDesc],
+                arrayStride: 4 * 3, // sizeof(float) * 3
+                stepMode: 'vertex'
+            };
+
+            const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout] };
+            const ringPipelineLayoutDesc = { bindGroupLayouts: [ringUniformBindGroupLayout] };
+
+            const layout = device.createPipelineLayout(pipelineLayoutDesc);
+            const ringLayout = device.createPipelineLayout(ringPipelineLayoutDesc);
+
+            const colorState = {
+                format: 'bgra8unorm'
+            };
+
+            const pipelineDesc = {
+                layout,
+                vertex: {
+                    module: shaderModule,
+                    entryPoint: 'vs_main',
+                    buffers: [positionBufferLayoutDesc, normalBufferLayoutDesc]
+                },
+                fragment: {
+                    module: shaderModule,
+                    entryPoint: 'fs_main',
+                    targets: [colorState]
+                },
+                primitive: {
+                    topology: 'triangle-list',
+                    frontFace: 'ccw',
+                    cullMode: 'none'
+                },
+                depthStencil: {
+                    depthWriteEnabled: true,
+                    depthCompare: 'less',
+                    format: 'depth24plus-stencil8'
+                }
+            };
+
+
+            const ringPipelineDesc = {
+                layout: ringLayout,
+                vertex: {
+                    module: ringShaderModule,
+                    entryPoint: 'vs_main',
+                    buffers: [positionBufferLayoutDesc]
+                },
+                fragment: {
+                    module: ringShaderModule,
+                    entryPoint: 'fs_main',
+                    targets: [colorState]
+                },
+                primitive: {
+                    topology: 'line-strip'
+                },
+                depthStencil: {
+                    depthWriteEnabled: true,
+                    depthCompare: 'less',
+                    format: 'depth24plus-stencil8'
+                }
+            };
+
+            this.pipeline = device.createRenderPipeline(pipelineDesc);
+            this.ringPipeline = device.createRenderPipeline(ringPipelineDesc);
+        }
+
+        encode(encoder) {
+            encoder.setPipeline(this.pipeline);
+            encoder.setBindGroup(0, this.uniformBindGroup);
+            encoder.setVertexBuffer(0, this.positionBuffer);
+            encoder.setVertexBuffer(1, this.normalBuffer);
+            encoder.setIndexBuffer(this.indexBuffer, 'uint16');
+            encoder.drawIndexed(this.indexSize, this.instanceCount);
+            encoder.setPipeline(this.ringPipeline);
+            encoder.setBindGroup(0, this.ringUniformBindGroup);
+            encoder.setVertexBuffer(0, this.ringPositionBuffer);
+            encoder.draw(16, this.instanceCount);
+            encoder.setVertexBuffer(0, this.ringPositionBuffer2);
+            encoder.draw(16, this.instanceCount);
+            encoder.setVertexBuffer(0, this.ringPositionBuffer3);
+            encoder.draw(16, this.instanceCount);
+        }
+    }
+
+    class Arcball {
+        constructor() {
+            this.radius = 20.0;
+            this.forwardVector = glMatrix.vec4.fromValues(this.radius, 0.0, 0.0, 0.0);
+            this.upVector = glMatrix.vec4.fromValues(0.0, 0.0, 1.0, 0.0);
+            this.currentRotation = glMatrix.mat4.create();
+        }
+
+        yawPitch(originalX, originalY, currentX, currentY) {
+
+            let originalPoint = glMatrix.vec3.fromValues(1.0, originalX, originalY);
+            let newPoint = glMatrix.vec3.fromValues(1.0, currentX, currentY);
+
+            let rotationAxis = glMatrix.vec3.cross(glMatrix.vec3.create(), originalPoint, newPoint);
+
+            rotationAxis = glMatrix.vec4.fromValues(rotationAxis[0], rotationAxis[1], rotationAxis[2], 0.0);
+
+            rotationAxis = glMatrix.vec4.transformMat4(glMatrix.mat4.create(), rotationAxis, this.currentRotation);
+
+            rotationAxis = glMatrix.vec3.normalize(glMatrix.vec3.create(), glMatrix.vec3.fromValues(rotationAxis[0], rotationAxis[1], rotationAxis[2]));
+
+            let sin = glMatrix.vec3.length(rotationAxis) / (glMatrix.vec3.length(originalPoint) * glMatrix.vec3.length(newPoint));
+
+            let rotationMatrix = glMatrix.mat4.fromRotation(glMatrix.mat4.create(), Math.asin(sin) * -0.03, rotationAxis);
+
+            if (rotationMatrix !== null) {
+                this.currentRotation = glMatrix.mat4.multiply(glMatrix.mat4.create(), rotationMatrix, this.currentRotation);
+                this.forwardVector = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), this.forwardVector, rotationMatrix);
+                this.upVector = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), this.upVector, rotationMatrix);
+            }
+        }
+
+        roll(originalX, originalY, currentX, currentY) {
+
+            const originalVec = glMatrix.vec3.fromValues(originalX, originalY, 0.0);
+            const currentVec = glMatrix.vec3.fromValues(currentX, currentY, 0.0);
+
+            const crossProd = glMatrix.vec3.cross(glMatrix.vec3.create(), originalVec, currentVec);
+
+            let rad = glMatrix.vec3.dot(glMatrix.vec3.normalize(glMatrix.vec3.create(), originalVec),
+                glMatrix.vec3.normalize(glMatrix.vec3.create(), currentVec));
+
+            if (rad > 1.0) {
+                // cross product can be larger than 1.0 due to numerical error
+                rad = Math.PI * Math.sign(crossProd[2]);
+            }
+            else {
+                rad = Math.acos(rad) * Math.sign(crossProd[2]);
+            }
+
+            let rotationMatrix = glMatrix.mat4.fromRotation(glMatrix.mat4.create(), rad, this.forwardVector);
+
+            if (rotationMatrix !== null) {
+                this.currentRotation = glMatrix.mat4.multiply(glMatrix.mat4.create(), rotationMatrix, this.currentRotation);
+                this.upVector = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), this.upVector, rotationMatrix);
+            }
+        }
+
+        getMatrices() {
+            let modelViewMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
+                glMatrix.vec3.fromValues(this.forwardVector[0], this.forwardVector[1], this.forwardVector[2]),
+                glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(this.upVector[0], this.upVector[1], this.upVector[2]));
+
+
+
+            return modelViewMatrix;
+        }
+    }
+
+    async function webgpu() {
+        if (!navigator.gpu) {
+            showWarning("WebGPU support is not available. A WebGPU capable browser is required to run this sample.");
+            throw new Error("WebGPU support is not available");
+        }
+        const adapter = await navigator.gpu.requestAdapter();
+
+        let device = await adapter.requestDevice();
+
+        let context = configContext(device, canvas);
+
+        let arcball = new Arcball();
+
+        let modelViewMatrix = arcball.getMatrices();
+
+        let modelViewMatrixUniformBuffer = createGPUBuffer(device, modelViewMatrix, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+
+        let viewDir = glMatrix.vec3.fromValues(10.0, 10.0, 10);
+
+        let viewDirectionUniformBuffer = createGPUBuffer(device, viewDir, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+
+        let lightDirectionUniformBuffer = createGPUBuffer(device, viewDir, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+
+
+        let modelViewMatrixInverse = glMatrix.mat4.invert(glMatrix.mat4.create(), modelViewMatrix);
+
+        let normalMatrix = glMatrix.mat4.transpose(glMatrix.mat4.create(), modelViewMatrixInverse);
+
+        let normalMatrixUniformBuffer = createGPUBuffer(device, normalMatrix, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+
+        let projectionMatrix = glMatrix.mat4.perspective(glMatrix.mat4.create(),
+            1.4, 640.0 / 480.0, 0.1, 1000.0);
+
+        let projectionMatrixUniformBuffer = createGPUBuffer(device, projectionMatrix, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+
+        let teapot = new Teapot();
+        await teapot.setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer, viewDirectionUniformBuffer, lightDirectionUniformBuffer);
+
+        let depthTexture = null;
+
+        async function render() {
+            const devicePixelRatio = window.devicePixelRatio || 1;
+            let currentCanvasWidth = canvas.clientWidth * devicePixelRatio;
+            let currentCanvasHeight = canvas.clientHeight * devicePixelRatio;
+
+            let projectionMatrixUniformBufferUpdate = null;
+
+            if (depthTexture === null || currentCanvasWidth != canvas.width || currentCanvasHeight != canvas.height) {
+                canvas.width = currentCanvasWidth;
+                canvas.height = currentCanvasHeight;
+
+                if (depthTexture !== null) {
+                    depthTexture.destroy();
+                }
+
+                const depthTextureDesc = {
+                    size: [canvas.width, canvas.height, 1],
+                    dimension: '2d',
+                    format: 'depth24plus-stencil8',
+                    usage: GPUTextureUsage.RENDER_ATTACHMENT
+                };
+
+                depthTexture = device.createTexture(depthTextureDesc);
+                let depthTextureView = depthTexture.createView();
+
+                depthAttachment = {
+                    view: depthTextureView,
+                    depthClearValue: 1,
+                    depthLoadOp: 'clear',
+                    depthStoreOp: 'store',
+                    stencilClearValue: 0,
+                    stencilLoadOp: 'clear',
+                    stencilStoreOp: 'store'
+                };
+
+                projectionMatrix = glMatrix.mat4.perspective(glMatrix.mat4.create(),
+                    1.4, canvas.width / canvas.height, 0.1, 1000.0);
+
+                projectionMatrixUniformBufferUpdate = createGPUBuffer(device, projectionMatrix, GPUBufferUsage.COPY_SRC);
+            }
+
+            modelViewMatrix = arcball.getMatrices();
+
+            let modelViewMatrixUniformBufferUpdate = createGPUBuffer(device, modelViewMatrix, GPUBufferUsage.COPY_SRC);
+
+            modelViewMatrixInverse = glMatrix.mat4.invert(glMatrix.mat4.create(), modelViewMatrix);
+
+            if (modelViewMatrixInverse) {
+
+                let normalMatrix = glMatrix.mat4.transpose(glMatrix.mat4.create(), modelViewMatrixInverse);
+
+                let normalMatrixUniformBufferUpdate = createGPUBuffer(device, normalMatrix, GPUBufferUsage.COPY_SRC);
+
+                let viewDir = glMatrix.vec3.fromValues(-arcball.forwardVector[0], -arcball.forwardVector[1], -arcball.forwardVector[2]);
+                let viewDirectionUniformBufferUpdate = createGPUBuffer(device, viewDir, GPUBufferUsage.COPY_SRC);
+
+
+                let colorTexture = context.getCurrentTexture();
+                let colorTextureView = colorTexture.createView();
+
+                let colorAttachment = {
+                    view: colorTextureView,
+                    clearValue: { r: 1, g: 0, b: 0, a: 1 },
+                    loadOp: 'clear',
+                    storeOp: 'store'
+                };
+
+                const renderPassDesc = {
+                    colorAttachments: [colorAttachment],
+                    depthStencilAttachment: depthAttachment
+                };
+
+                commandEncoder = device.createCommandEncoder();
+                if (projectionMatrixUniformBufferUpdate) {
+                    commandEncoder.copyBufferToBuffer(projectionMatrixUniformBufferUpdate, 0,
+                        projectionMatrixUniformBuffer, 0, projectionMatrix.byteLength);
+                }
+
+                commandEncoder.copyBufferToBuffer(modelViewMatrixUniformBufferUpdate, 0,
+                    modelViewMatrixUniformBuffer, 0, modelViewMatrix.byteLength);
+                commandEncoder.copyBufferToBuffer(normalMatrixUniformBufferUpdate, 0,
+                    normalMatrixUniformBuffer, 0, normalMatrix.byteLength);
+                commandEncoder.copyBufferToBuffer(viewDirectionUniformBufferUpdate, 0,
+                    viewDirectionUniformBuffer, 0, viewDir.byteLength);
+                commandEncoder.copyBufferToBuffer(viewDirectionUniformBufferUpdate, 0,
+                    lightDirectionUniformBuffer, 0, viewDir.byteLength);
+                passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
+                passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+                teapot.encode(passEncoder);
+                passEncoder.end();
+                device.queue.submit([commandEncoder.finish()]);
+
+                await device.queue.onSubmittedWorkDone();
+                if (projectionMatrixUniformBufferUpdate) {
+                    projectionMatrixUniformBufferUpdate.destroy();
+                }
+
+                modelViewMatrixUniformBufferUpdate.destroy();
+                normalMatrixUniformBufferUpdate.destroy();
+                viewDirectionUniformBufferUpdate.destroy();
+            }
+        }
+
+        let timeId = null;
+        const resizeObserver = new ResizeObserver((entries) => {
+            if (timeId) {
+                clearTimeout(timeId);
+            }
+            timeId = setTimeout(() => {
+                requestAnimationFrame(render);
+            }, 100);
+        });
+        requestAnimationFrame(render);
+        resizeObserver.observe(canvas);
+
+        let prevX = 0.0;
+        let prevY = 0.0;
+        let isDragging = false;
+        const yawPitch = 1;
+        const roll = 2;
+
+        canvas.onmousedown = (event) => {
+            var rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            const width = rect.right - rect.left;
+            const height = rect.bottom - rect.top;
+
+            let radius = width;
+
+            if (height < radius) {
+                radius = height;
+            }
+
+            radius *= 0.5;
+
+            const originX = width * 0.5;
+            const originY = height * 0.5;
+
+            prevX = (x - originX) / radius;
+            prevY = (originY - y) / radius;
+
+            if ((prevX * prevX + prevY * prevY) < 0.64) {
+                isDragging = yawPitch;
+            }
+            else {
+                isDragging = roll;
+            }
+
+        }
+
+        canvas.onmousemove = (event) => {
+            var rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            const width = rect.right - rect.left;
+            const height = rect.bottom - rect.top;
+            const originX = width * 0.5;
+            const originY = height * 0.5;
+
+            if (isDragging != 0) {
+                let radius = width;
+
+                if (height < radius) {
+                    radius = height;
+                }
+                radius *= 0.5;
+
+                const currX = (x - originX) / radius;
+                const currY = (originY - y) / radius;
+
+                if (isDragging == yawPitch) {
+                    arcball.yawPitch(prevX, prevY, currX, currY);
+                }
+                else if (isDragging == roll) {
+                    arcball.roll(prevX, prevY, currX, currY);
+                }
+                prevX = currX;
+                prevY = currY;
+                requestAnimationFrame(render);
+            }
+            else {
+                //selection mode
+                const currX = (x - originX) * 2.0 / width;
+                const currY = (originY - y) * 2.0 / height;
+
+                //https://gamedev.stackexchange.com/questions/17987/what-does-the-graphics-card-do-with-the-fourth-element-of-a-vector-as-the-final
+                //https://antongerdelan.net/opengl/raycasting.html
+                //https://gamedev.stackexchange.com/questions/153078/what-can-i-do-with-the-4th-component-of-gl-position
+                let projectionMatrixInverse = glMatrix.mat4.invert(glMatrix.mat4.create(), projectionMatrix);
+
+                let clipSpacePosition = glMatrix.vec4.fromValues(currX, currY, 0.0, 1.0);
+
+                let camSpacePosition = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), clipSpacePosition, projectionMatrixInverse);
+
+                //clipSpacePosition[2] = -1;
+                camSpacePosition[3] = 0;
+
+                let dir = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), camSpacePosition, modelViewMatrixInverse);
+
+                dir = glMatrix.vec3.normalize(glMatrix.vec3.create(), dir);
+
+                let found = false;
+                console.log("select", currX, currY, teapot.instanceCount);
+
+                for (let i = 0; i < teapot.instanceCount; ++i) {
+                    let center = teapot.instanceCenters[i];
+                    center = glMatrix.vec3.fromValues(center[0] - arcball.forwardVector[0],
+                        center[1] - arcball.forwardVector[1],
+                        center[2] - arcball.forwardVector[2]);
+
+                    const dot = glMatrix.vec3.dot(center, dir);
+                    const dis = glMatrix.vec3.length(glMatrix.vec3.subtract(glMatrix.vec3.create(), glMatrix.vec3.scale(glMatrix.vec3.create(), dir, dot), center));
+                    console.log("dis ", dis);
+                    if (dis < teapot.teapotRadius) {
+                        console.log('found teapot ', i, dis, teapot.teapotRadius);
+                        const selectionUniformBufferUpdate = createGPUBuffer(device, new Uint32Array([i]), GPUBufferUsage.COPY_SRC);
+                        commandEncoder = device.createCommandEncoder();
+                        commandEncoder.copyBufferToBuffer(selectionUniformBufferUpdate, 0,
+                            teapot.selectionUniformBuffer, 0, 4);
+                        device.queue.submit([commandEncoder.finish()]);
+                        requestAnimationFrame(render);
+                        console.log("update selection")
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found) {
+                    const selectionUniformBufferUpdate = createGPUBuffer(device, new Uint32Array([17]), GPUBufferUsage.COPY_SRC);
+                    commandEncoder = device.createCommandEncoder();
+                    commandEncoder.copyBufferToBuffer(selectionUniformBufferUpdate, 0,
+                        teapot.selectionUniformBuffer, 0, 4);
+                    device.queue.submit([commandEncoder.finish()]);
+                    requestAnimationFrame(render);
+                }
+            }
+        }
+
+        canvas.onmouseup = (event) => {
+            isDragging = 0;
+        }
+    }
+
+    webgpu();
+</script>
+
+</html>

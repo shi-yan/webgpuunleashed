@@ -1,0 +1,473 @@
+<html>
+
+<body>
+    <canvas id="canvas" width="1024" height="1024"></canvas>
+</body>
+<script src="../utils/utils.js">
+    //https://developer.chrome.com/blog/new-in-webgpu-118#htmlimageelement_and_imagedata_support_in_copyexternalimagetotexture
+    // require experimental feature
+</script>
+<script id="shader" type="wgsl">
+    enable chromium_experimental_read_write_storage_texture;
+
+      @binding(0) @group(0) var texSrc : texture_storage_2d<rg32float, read>;
+      @binding(1) @group(0) var texDst : texture_storage_2d<rg32float, write>;
+      @binding(2) @group(0) var<uniform> drawPos : vec3<f32>;
+        
+
+      const imageSize:i32 = 1024;
+
+      @compute @workgroup_size(16, 16)
+      fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>) {
+
+            var centerY:i32 = i32(GlobalInvocationID.y);
+            var centerX:i32 = i32(GlobalInvocationID.x);
+
+            if (drawPos.z > 0.5) {
+                var radius:f32 = sqrt((f32(centerX) - drawPos.x)*(f32(centerX) - drawPos.x) +
+                (f32(centerY) - drawPos.y)*(f32(centerY) - drawPos.y));
+
+                if (radius < 5.0) {
+                    textureStore(texDst, vec2i(GlobalInvocationID.xy), vec4<f32>(0.0,1.0,0.0,0.0));
+                    return;
+                }
+            }
+
+            var data:vec2<f32> = vec2<f32>(0.0,0.0);
+            var original:vec2<f32> = textureLoad(texSrc, GlobalInvocationID.xy).rg;
+
+            for(var y = -1; y<= 1;y++){
+                var accessY:i32 = centerY + y;
+                if (accessY < 0) {
+                    accessY = imageSize-1;
+                }
+                else if (accessY >= imageSize){
+                    accessY = 0;
+                }
+
+                for(var x = -1; x<=1;x++) {
+                    
+                  
+                    var accessX:i32 =centerX+ x;
+
+                    if (accessX < 0) {
+                        accessX = imageSize-1;
+                    }
+                    else if (accessX >= imageSize){
+                        accessX = 0;
+                    }
+
+                    var rate = -1.0;
+                    if (x==0 && y == 0){
+                        rate = -1.0;
+                    }else if (x ==0 || y==0){
+                        rate = 0.2;
+                    }
+                    else {
+                        rate = 0.05;
+                    }
+                    data += textureLoad(texSrc, vec2i(accessX, accessY)).rg * rate;
+                }
+            }
+            const f:f32 = 0.055;
+            const k:f32 = 0.062;
+            data = vec2<f32>(data.x- original.x*original.y*original.y
+                + f * (1.0 - original.x),
+                 data.y*0.5 + original.x*original.y*original.y - (k+f) * original.y) + original;
+            textureStore(texDst, vec2i(GlobalInvocationID.xy), vec4<f32>(data,0.0,0.0));
+                
+      }
+</script>
+<script id="render_shader" type="wgsl">
+    // Vertex shader
+
+    struct VertexOutput {
+        @builtin(position) clip_position: vec4<f32>,
+        @location(0) tex_coords: vec2<f32>,
+    };
+    
+    @vertex
+    fn vs_main(
+        @location(0) inPos: vec4<f32>,
+    ) -> VertexOutput {
+        var out: VertexOutput;
+        out.clip_position = vec4<f32>(inPos.xy,0.0 , 1.0);
+        out.tex_coords = inPos.zw;
+        return out;
+    }
+    
+    // Fragment shader
+    
+    @group(0) @binding(0)
+    var t_diffuse: texture_2d<f32>;
+    @group(0) @binding(1)
+    var s_diffuse: sampler;
+    
+    @fragment
+    fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+        return vec4<f32>(0.0, textureSample(t_diffuse, s_diffuse, in.tex_coords).xy, 1.0);
+    }
+</script>
+<script>
+    let drawPos = new Float32Array(3);
+    async function webgpu() {
+        if (!navigator.gpu) {
+            showWarning("WebGPU support is not available. A WebGPU capable browser is required to run this sample.");
+            throw new Error("WebGPU support is not available");
+        }
+
+        const feature = "chromium-experimental-read-write-storage-texture";
+        const adapter = await navigator.gpu.requestAdapter();
+        console.log(adapter);
+        if (!adapter.features.has(feature)) {
+            showWarning("This sample requires a chrome experimental feature. Please restart chrome with the --enable-dawn-features=allow_unsafe_apis flag.");
+            throw new Error("Read-write storage texture support is not available");
+        }
+        const device = await adapter.requestDevice({
+            requiredFeatures: [feature],
+        });
+        console.log(device);
+
+        const context = configContext(device, canvas)
+
+        // create shaders
+        let shaderModule = shaderModuleFromCode(device, 'shader');
+
+        let uniformBindGroupLayoutCompute = device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.COMPUTE,
+                    storageTexture: {
+                        access: "read-only",
+                        format: "rg32float",
+                    }
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.COMPUTE,
+                    storageTexture: {
+                        access: "write-only",
+                        format: "rg32float",
+                    }
+                },
+                {
+                    binding: 2,
+                    visibility: GPUShaderStage.COMPUTE,
+                    buffer: {}
+                }
+            ]
+        });
+
+        const srcTextureDesc = {
+            size: [1024, 1024, 1],
+            dimension: '2d',
+            format: "rg32float",
+            usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING
+        };
+
+        let textureValues = [];
+
+        for (let y = 0; y < 1024; ++y) {
+            for (let x = 0; x < 1024; ++x) {
+                if (x > 302 && x < 532 && y >= 302 && y < 532) {
+                    textureValues.push(0.0);
+                    textureValues.push(1.0);
+                }
+                else {
+                    textureValues.push(1.0);
+                    textureValues.push(0.0);
+                }
+            }
+        }
+
+        let srcTexture = device.createTexture(srcTextureDesc);
+
+        device.queue.writeTexture({ texture: srcTexture }, new Float32Array(textureValues), {
+            offset: 0,
+            bytesPerRow: 1024 * 8,
+            rowsPerImage: 1024
+        }, { width: 1024, height: 1024 });
+        await device.queue.onSubmittedWorkDone();
+
+        const dstTextureDesc = {
+            size: [1024, 1024, 1],
+            dimension: '2d',
+            format: "rg32float",
+            usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.STORAGE_BINDING | GPUTextureUsage.TEXTURE_BINDING
+        };
+
+        let dstTexture = device.createTexture(dstTextureDesc);
+
+        let drawPosUniformBuffer = createGPUBuffer(device, drawPos, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
+
+        let uniformBindGroupCompute0 = device.createBindGroup({
+            layout: uniformBindGroupLayoutCompute,
+            entries: [
+                {
+                    binding: 0,
+                    resource: srcTexture.createView()
+                },
+                {
+                    binding: 1,
+                    resource: dstTexture.createView()
+                },
+                {
+                    binding: 2,
+                    resource: {
+                        buffer: drawPosUniformBuffer
+                    }
+                }
+            ]
+        });
+
+        let uniformBindGroupCompute1 = device.createBindGroup({
+            layout: uniformBindGroupLayoutCompute,
+            entries: [
+                {
+                    binding: 0,
+                    resource: dstTexture.createView()
+                },
+                {
+                    binding: 1,
+                    resource: srcTexture.createView()
+                },
+                {
+                    binding: 2,
+                    resource: {
+                        buffer: drawPosUniformBuffer
+                    }
+                }
+            ]
+        });
+
+        const computePipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayoutCompute] };
+        const computeLayout = device.createPipelineLayout(computePipelineLayoutDesc);
+        const computePipeline = device.createComputePipeline({
+            layout: computeLayout,
+            compute: {
+                module: shaderModule,
+                entryPoint: 'main',
+            },
+        });
+
+        const sampler = device.createSampler({
+            addressModeU: "clamp-to-edge",
+            addressModeV: "clamp-to-edge",
+            addressModeW: "clamp-to-edge",
+            magFilter: "nearest",
+            minFilter: "nearest",
+            mipmapFilter: "nearest"
+        });
+
+        let uniformBindGroupLayoutRender = device.createBindGroupLayout({
+            entries: [
+                {
+                    binding: 0,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    texture: {
+                        sampleType: "unfilterable-float",
+                    }
+                },
+                {
+                    binding: 1,
+                    visibility: GPUShaderStage.FRAGMENT,
+                    sampler: {
+                        type: "non-filtering",
+                    }
+                }
+            ]
+        });
+
+
+        let uniformBindGroupRender0 = device.createBindGroup({
+            layout: uniformBindGroupLayoutRender,
+            entries: [
+                {
+                    binding: 0,
+                    resource: dstTexture.createView()
+                },
+                {
+                    binding: 1,
+                    resource: sampler
+                }
+            ]
+        });
+
+        let uniformBindGroupRender1 = device.createBindGroup({
+            layout: uniformBindGroupLayoutRender,
+            entries: [
+                {
+                    binding: 0,
+                    resource: srcTexture.createView()
+                },
+                {
+                    binding: 1,
+                    resource: sampler
+                }
+            ]
+        });
+
+        let renderShaderModule = shaderModuleFromCode(device, 'render_shader');
+
+        const positionAttribDesc = {
+            shaderLocation: 0, // @location(0)
+            offset: 0,
+            format: 'float32x4'
+        };
+
+        const positionBufferLayoutDesc = {
+            attributes: [positionAttribDesc],
+            arrayStride: 4 * 4, // sizeof(float) * 4
+            stepMode: 'vertex'
+        };
+
+        const positions = new Float32Array([
+            1.0, 1.0, 1.0, 0.0,
+            1.0, -1.0, 1.0, 1.0,
+            -1.0, 1.0, 0.0, 0.0,
+            -1.0, -1.0, 0.0, 1.0
+        ]);
+
+        let positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
+
+
+
+        const pipelineLayoutDescRender = { bindGroupLayouts: [uniformBindGroupLayoutRender] };
+        const layoutRender = device.createPipelineLayout(pipelineLayoutDescRender);
+
+        const colorState = {
+            format: 'bgra8unorm'
+        };
+
+        const pipelineDescRender = {
+            layout: layoutRender,
+            vertex: {
+                module: renderShaderModule,
+                entryPoint: 'vs_main',
+                buffers: [positionBufferLayoutDesc]
+            },
+            fragment: {
+                module: renderShaderModule,
+                entryPoint: 'fs_main',
+                targets: [colorState]
+            },
+            primitive: {
+                topology: 'triangle-strip',
+                frontFace: 'cw',
+                cullMode: 'none'
+            }
+        };
+
+        const renderPipeline = device.createRenderPipeline(pipelineDescRender);
+        let frame = 0;
+
+        async function render() {
+
+            let colorTexture = context.getCurrentTexture();
+            let colorTextureView = colorTexture.createView();
+
+            let colorAttachment = {
+                view: colorTextureView,
+                clearValue: { r: 0, g: 0, b: 0, a: 1 },
+                loadOp: 'clear',
+                storeOp: 'store'
+            };
+
+            const renderPassDesc = {
+                colorAttachments: [colorAttachment]
+            };
+
+            const drawPosUniformBufferUpdate = createGPUBuffer(device, drawPos, GPUBufferUsage.COPY_SRC);
+            //console.log(drawPos)
+            drawPos = new Float32Array(3);
+            const commandEncoder = device.createCommandEncoder();
+
+            commandEncoder.copyBufferToBuffer(drawPosUniformBufferUpdate, 0,
+                drawPosUniformBuffer, 0, drawPos.byteLength);
+
+            const passEncoder = commandEncoder.beginComputePass(
+                {}
+            );
+            passEncoder.setPipeline(computePipeline);
+            if (frame % 2 == 0) {
+                passEncoder.setBindGroup(0, uniformBindGroupCompute0);
+            }
+            else {
+                passEncoder.setBindGroup(0, uniformBindGroupCompute1);
+            }
+            passEncoder.dispatchWorkgroups(64, 64);
+            passEncoder.end();
+
+            device.queue.submit([commandEncoder.finish()]);
+
+            /*
+                    const bufferWidth = 1024 * 8;
+                    copiedBuffer = createGPUBuffer(device, new Float32Array(1024 * 1024 * 2), GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
+                    commandEncoder.copyTextureToBuffer({ texture: dstTexture, origin: { x: 0, y: 0 } }, { buffer: copiedBuffer, bytesPerRow: bufferWidth }, { width: 1024, height: 1024 });
+            
+                    device.queue.submit([commandEncoder.finish()]);
+                    await device.queue.onSubmittedWorkDone();
+            
+                    await copiedBuffer.mapAsync(GPUMapMode.READ, 0, bufferWidth * 1024);
+                    const d = new Float32Array(copiedBuffer.getMappedRange()).slice(0);
+            
+                    copiedBuffer.unmap();*/
+
+            const commandEncoder2 = device.createCommandEncoder();
+
+            const passEncoder2 = commandEncoder2.beginRenderPass(renderPassDesc);
+            passEncoder2.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+            passEncoder2.setPipeline(renderPipeline);
+            if (frame % 2 == 0) {
+                passEncoder2.setBindGroup(0, uniformBindGroupRender0);
+            }
+            else {
+                passEncoder2.setBindGroup(0, uniformBindGroupRender1);
+            }
+            passEncoder2.setVertexBuffer(0, positionBuffer);
+            passEncoder2.draw(4, 1);
+            passEncoder2.end();
+
+            device.queue.submit([commandEncoder2.finish()]);
+            frame++;
+            drawPosUniformBufferUpdate.destroy();
+            requestAnimationFrame(render);
+        }
+
+        requestAnimationFrame(render);
+        //console.log(d);
+    }
+
+    let prevX = 0.0;
+    let prevY = 0.0;
+    let isDragging = false;
+
+    canvas.onmousedown = (event) => {
+        var rect = canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+
+
+        isDragging = true;
+
+    }
+
+    canvas.onmousemove = (event) => {
+        if (isDragging != 0) {
+            var rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            drawPos.set([x, y, 1.0], 0);
+        }
+    }
+
+    canvas.onmouseup = (event) => {
+        isDragging = 0;
+        drawPos.set([0.0, 0.0, 0.0], 0);
+    }
+
+    webgpu();
+</script>
+
+</html>

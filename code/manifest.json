@@ -1,0 +1,619 @@
+{
+  "default_sample": "5_06_skeleton_animation",
+  "description": "Your ticket to the dynamic world of graphics programming.",
+  "google_analytics_id": "G-G278P1YSJ6",
+  "meta_image": "meta.png",
+  "prefix": "WebGPUUnleashed/code",
+  "readme_folder": "readme",
+  "repo": "https://github.com/shi-yan/WebGPUUnleashed",
+  "target": "../WebGPUUnleashed/code",
+  "title": "WebGPU Unleashed",
+  "url": "https://shi-yan.github.io/WebGPUUnleashed/code",
+  "utilities": [
+    "utils",
+    "data",
+    "shader",
+    "crab_nebula"
+  ],
+  "content": [
+    {
+      "title": "1. Basics",
+      "sub_chapters": [
+        {
+          "folder": "1_00_empty_canvas",
+          "title": "1.0 Empty Canvas",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "1_01_triangle",
+          "title": "1.1 Drawing a Triangle",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "1_02_triangle_with_vertices",
+          "title": "1.2 Drawing a Triangle with Defined Vertices",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "1_03_vertex_color",
+          "title": "1.3 Applying Hardcoded Vertex Colors",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "1_04_different_vertex_colors",
+          "title": "1.4 Different Vertex Colors",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "1_05_colored_triangle_with_a_single_buffer",
+          "title": "1.5 Colored Triangle with a Single Buffer",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "1_06_uniforms",
+          "title": "1.6 Understanding Uniforms",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "1_07_working_with_textures",
+          "title": "1.7 Working with Textures",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "1_08_transformation_matrices",
+          "title": "1.8 Utilizing Transformation Matrices",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "1_09_cameras",
+          "title": "1.9 Cameras",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "1_10_triangle_strips",
+          "title": "1.10 Triangle Strips",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "1_11_front_and_back_faces",
+          "title": "1.11 Front and Back Faces",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "1_12_depth",
+          "title": "1.12 Depth",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "1_13_indices",
+          "title": "1.13 Indices",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "1_14_loading_models",
+          "title": "1.14 Loading Models",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "1_15_normals",
+          "title": "1.15 Normals",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "title": "1.16 Lighting",
+          "sub_chapters": [
+            {
+              "folder": "1_16_1_lighting",
+              "title": "1.16.1 Per-vertex Lighting",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": false
+                }
+              ]
+            },
+            {
+              "folder": "1_16_2_lighting",
+              "title": "1.16.2 Per-fragment Lighting",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": false
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "folder": "1_17_msaa",
+          "title": "1.17 MSAA",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "title": "1.18 Mipmaps",
+          "sub_chapters": [
+            {
+              "folder": "1_18_1_mipmaps",
+              "title": "1.18.1 Mipmaps 1",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": false
+                }
+              ]
+            },
+            {
+              "folder": "1_18_2_mipmaps",
+              "title": "1.18.2 Mipmaps 2",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": false
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "2. 2D Techniques",
+      "sub_chapters": [
+        {
+          "folder": "2_00_render_to_textures",
+          "title": "2.0 Render to Textures",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "2_01_orthogonal_cameras",
+          "title": "2.1 Orthogonal Cameras",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "title": "2.2 Blur",
+          "sub_chapters": [
+            {
+              "folder": "2_02_1_blur_1",
+              "title": "2.2.1 Blur 1",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": false
+                }
+              ]
+            },
+            {
+              "folder": "2_02_2_blur_2",
+              "title": "2.2.2 Blur 2",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": false
+                }
+              ]
+            },
+            {
+              "folder": "2_02_3_blur_3",
+              "title": "2.2.3 Blur 3",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": false
+                }
+              ]
+            },
+            {
+              "folder": "2_02_4_blur_4",
+              "title": "2.2.4 Blur 4",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": false
+                }
+              ]
+            },
+            {
+              "folder": "2_02_5_blur_5",
+              "title": "2.2.5 Blur 5",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": false
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "2.3 Video",
+          "sub_chapters": [
+            {
+              "folder": "2_03_1_video_1",
+              "title": "2.3.1 Video 1",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": false
+                }
+              ]
+            },
+            {
+              "folder": "2_03_2_video_2",
+              "title": "2.3.2 Video 2",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": false
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "folder": "2_04_text",
+          "title": "2.4 Text",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "2_05_billboard",
+          "title": "2.5 Billboard",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "2_06_fake_3d",
+          "title": "2.6 Fake 3D",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "3. Control",
+      "sub_chapters": [
+        {
+          "folder": "3_00_canvas_resizing",
+          "title": "3.0 Canvas Resizing",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "3_01_arcball",
+          "title": "3.1 Arcball",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "title": "3.2 Picking",
+          "sub_chapters": [
+            {
+              "folder": "3_02_1_picking_ray_casting",
+              "title": "3.2.1 Ray Casting",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": false
+                }
+              ]
+            },
+            {
+              "folder": "3_02_2_picking_color_coding",
+              "title": "3.2.2 Color Coding",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": false
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "folder": "3_03_save_image_and_video",
+          "title": "3.3 Save Image and Video",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "3_04_worker",
+          "title": "3.4 Worker",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            },
+            {
+              "filename": "worker.js",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "3_05_error_handling_and_limits",
+          "title": "3.5 Error Handling and Limits",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "4. Compute",
+      "sub_chapters": [
+        {
+          "folder": "4_00_prefix_sum",
+          "title": "4.0 Prefix Sum",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "4_01_radix_sorting",
+          "title": "4.1 Radix Sorting",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "4_02_reaction_diffusion",
+          "title": "4.2 Reaction Diffusion",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "5. Advanced",
+      "sub_chapters": [
+        {
+          "folder": "5_00_stencil",
+          "title": "5.0 Stencil",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "5_01_shadow_maps",
+          "title": "5.1 Shadow Maps",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "5_02_toon_shading",
+          "title": "5.2 Toon Shading",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "5_03_equalrectangle_rendering",
+          "title": "5.3 Equalrectangle Rendering",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "5_04_mega_texture",
+          "title": "5.4 Mega Texture",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "5_05_transparency",
+          "title": "5.5 Transparency",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "5_06_skeleton_animation",
+          "title": "5.6 Skeleton Animation",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "folder": "5_07_bump_map",
+          "title": "5.7 Bump Map",
+          "files": [
+            {
+              "filename": "index.html",
+              "is_readonly": false
+            }
+          ]
+        },
+        {
+          "title": "5.8 Gaussian Splatting",
+          "sub_chapters": [
+            {
+              "folder": "5_08_gaussian_splatting_4",
+              "title": "5.8.1 4x4 covariance",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": false
+                }
+              ]
+            },
+            {
+              "folder": "5_08_gaussian_splatting_6",
+              "title": "5.8.2 3x3 covariance",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": false
+                }
+              ]
+            },
+            {
+              "folder": "5_08_gaussian_splatting_5",
+              "title": "5.8.3 4x4 + Radix sort + rendering",
+              "files": [
+                {
+                  "filename": "index.html",
+                  "is_readonly": false
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

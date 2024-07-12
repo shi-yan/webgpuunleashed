@@ -1,0 +1,154 @@
+<html>
+
+<body>
+    <canvas id="canvas" width="640" height="480"></canvas>
+</body>
+<script src="../utils/utils.js"></script>
+<script id="shader" type="wgsl">
+// Vertex shader
+
+struct VertexOutput {
+    @builtin(position) clip_position: vec4<f32>,
+    @location(0) color: vec3<f32>,
+};
+
+@vertex
+fn vs_main(
+    @location(0) inPos: vec3<f32>,
+    @location(1) inColor: vec3<f32>
+) -> VertexOutput {
+    var out: VertexOutput;
+    out.clip_position = vec4<f32>(inPos, 1.0);
+    out.color = inColor;
+    return out;
+}
+
+// Fragment shader
+
+@fragment
+fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+    return vec4<f32>(in.color, 1.0);
+}
+
+</script>
+
+<script>
+
+    async function webgpu() {
+        if (!navigator.gpu) {
+            showWarning("WebGPU support is not available. A WebGPU capable browser is required to run this sample.");
+            throw new Error("WebGPU support is not available");
+        }
+        const adapter = await navigator.gpu.requestAdapter();
+        console.log(adapter);
+
+        let device = await adapter.requestDevice();
+        console.log(device);
+
+        const context = configContext(device, canvas)
+
+        // create shaders
+        let shaderModule = shaderModuleFromCode(device, 'shader');
+
+        const positionAttribDesc = {
+            shaderLocation: 0, // @location(0)
+            offset: 0,
+            format: 'float32x3'
+        };
+
+        const positionBufferLayoutDesc = {
+            attributes: [positionAttribDesc],
+            arrayStride: 4 * 3, // sizeof(float) * 3
+            stepMode: 'vertex'
+        };
+
+        const colorAttribDesc = {
+            shaderLocation: 1, // @location(1)
+            offset: 0,
+            format: 'float32x3'
+        };
+
+        const colorBufferLayoutDesc = {
+            attributes: [colorAttribDesc],
+            arrayStride: 4 * 3, // sizeof(float) * 3
+            stepMode: 'vertex'
+        };
+
+        const positions = new Float32Array([
+            1.0, -1.0, 0.0, -1.0, -1.0, 0.0, 0.0, 1.0, 0.0
+        ]);
+
+        let positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
+
+        const colors = new Float32Array([
+            1.0,
+            0.0,
+            0.0, // 🔴
+            0.0,
+            1.0,
+            0.0, // 🟢
+            0.0,
+            0.0,
+            1.0 // 🔵
+        ]);
+
+        let colorBuffer = createGPUBuffer(device, colors, GPUBufferUsage.VERTEX);
+
+        const pipelineLayoutDesc = { bindGroupLayouts: [] };
+        const layout = device.createPipelineLayout(pipelineLayoutDesc);
+
+        const colorState = {
+            format: 'bgra8unorm'
+        };
+
+        const pipelineDesc = {
+            layout,
+            vertex: {
+                module: shaderModule,
+                entryPoint: 'vs_main',
+                buffers: [positionBufferLayoutDesc, colorBufferLayoutDesc]
+            },
+            fragment: {
+                module: shaderModule,
+                entryPoint: 'fs_main',
+                targets: [colorState]
+            },
+            primitive: {
+                topology: 'triangle-list',
+                frontFace: 'cw',
+                cullMode: 'back'
+            }
+        };
+
+        pipeline = device.createRenderPipeline(pipelineDesc);
+
+        let colorTexture = context.getCurrentTexture();
+        let colorTextureView = colorTexture.createView();
+
+        let colorAttachment = {
+            view: colorTextureView,
+            clearValue: { r: 1, g: 0, b: 0, a: 1 },
+            loadOp: 'clear',
+            storeOp: 'store'
+        };
+
+        const renderPassDesc = {
+            colorAttachments: [colorAttachment]
+        };
+        commandEncoder = device.createCommandEncoder();
+
+        passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
+        passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+        passEncoder.setPipeline(pipeline);
+        passEncoder.setVertexBuffer(0, positionBuffer);
+        passEncoder.setVertexBuffer(1, colorBuffer);
+        passEncoder.draw(3, 1);
+        passEncoder.end();
+
+        device.queue.submit([commandEncoder.finish()]);
+    }
+
+    webgpu();
+</script>
+
+</html>
