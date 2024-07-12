@@ -308,8 +308,17 @@
         });
     }
 
-    hljs.highlightAll();
-    hljs.initLineNumbersOnLoad();
+        hljs.highlightAll();
+        // hljs.initLineNumbersOnLoad();
+        const codeBlocks = document.getElementsByClassName("code-block");
+        for (let i =0;i<codeBlocks.length;++i) {
+            if ( codeBlocks[i].hasAttribute("startnumber")) {
+                const startFrom = codeBlocks[i].getAttribute("startnumber");
+                hljs.lineNumbersBlock(codeBlocks[i], {startFrom:  parseInt(startFrom, 10)});
+            } else {
+                hljs.lineNumbersBlock(codeBlocks[i]);
+            }
+        }
 
 </script>
 </body>

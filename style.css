@@ -193,6 +193,7 @@ article pre {
     overflow: hidden;
     white-space: pre-wrap;
     word-wrap: break-word;
+    margin: 0;
 }
 
 blockquote {
@@ -219,6 +220,7 @@ blockquote p {
 .code-block {
     border-radius: 8px;
     overflow: hidden;
+    padding-left: 2px !important;
 }
 
 .img-container {
@@ -300,4 +302,48 @@ blockquote p {
 #caption {
     animation-name: zoom;
     animation-duration: 0.6s;
+}
+
+/* for block of numbers */
+.hljs-ln-numbers {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+
+    text-align: right;
+    color: #ccc;
+    border-right: 1px solid #CCC;
+    vertical-align: top;
+    padding-right: 2px !important;
+    width: 40px;
+
+    /* your custom style here */
+}
+
+/* for block of code */
+.hljs-ln-code {
+    padding-left: 6px !important;
+}
+
+.code-fragments {
+    background-color: #f7ca88;
+    border-radius: 8px;
+    padding-bottom: 6px;
+}
+
+.code-fragments-caption {
+    color: #181818;
+    text-align: center;
+    font-size: 16px;
+    font-weight: bold; 
+}
+
+.code-fragments-separator {
+    color: #181818;
+    text-align: center;
+    font-size: 16px;
+    font-weight: bold; 
 }

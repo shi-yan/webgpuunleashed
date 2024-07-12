@@ -28,8 +28,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/plaintext.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
 
 
     <link rel="stylesheet"
@@ -254,8 +254,17 @@ f 2152//24 2158//24 2358//24</code></pre><p>In general, an .obj file consists of
         });
     }
 
-    hljs.highlightAll();
-    hljs.initLineNumbersOnLoad();
+        hljs.highlightAll();
+        // hljs.initLineNumbersOnLoad();
+        const codeBlocks = document.getElementsByClassName("code-block");
+        for (let i =0;i<codeBlocks.length;++i) {
+            if ( codeBlocks[i].hasAttribute("startnumber")) {
+                const startFrom = codeBlocks[i].getAttribute("startnumber");
+                hljs.lineNumbersBlock(codeBlocks[i], {startFrom:  parseInt(startFrom, 10)});
+            } else {
+                hljs.lineNumbersBlock(codeBlocks[i]);
+            }
+        }
 
 </script>
 </body>

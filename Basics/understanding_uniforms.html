@@ -28,8 +28,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/wgsl.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/html.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/wgsl.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
 
 
@@ -336,8 +336,17 @@ uniformBuffer.unmap();</code></pre><ul><li><p>We create a <code>uniformData</cod
         });
     }
 
-    hljs.highlightAll();
-    hljs.initLineNumbersOnLoad();
+        hljs.highlightAll();
+        // hljs.initLineNumbersOnLoad();
+        const codeBlocks = document.getElementsByClassName("code-block");
+        for (let i =0;i<codeBlocks.length;++i) {
+            if ( codeBlocks[i].hasAttribute("startnumber")) {
+                const startFrom = codeBlocks[i].getAttribute("startnumber");
+                hljs.lineNumbersBlock(codeBlocks[i], {startFrom:  parseInt(startFrom, 10)});
+            } else {
+                hljs.lineNumbersBlock(codeBlocks[i]);
+            }
+        }
 
 </script>
 </body>
