@@ -6,7 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
     <!-- Primary Meta Tags -->
-    <title>: WebGPU Unleashed: A Practical Tutorial</title>
+    <title>WebGPU Unleashed: A Practical Tutorial</title>
     <meta name="title" content="WebGPU Unleashed: A Practical Tutorial" />
     <meta name="description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
 
@@ -25,15 +25,6 @@
     <meta property="twitter:image" content="/WebGPUUnleashed/meta.png" />
 
     <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js"></script>
-
-
-    <link rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/default-dark.min.css"
-        integrity="sha512-EF2rc4QyBiRAGUMVm+EjFPBbdVGaN/pwZhtuKyrC/dM+hcwTxI5BsEDUkrMRI77z4VlDAt/qVopePXB5+ZZ8Gw=="
-        crossorigin="anonymous" referrerpolicy="no-referrer" />
     <script src="
         https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js
         "></script>
@@ -149,25 +140,609 @@
     </nav>
     <div id="article-container">
         <article>
-            <h2 >5.6 Skeleton Animation</h2><p>so far we have learned how to create animation for rigid objects by updating model view matrix. in this tutorial, let's look at how to create skeleton animation to animate animals and human figure. unlike rigid objects, they deform while animating.</p><p>fundamentally speaking, simply updating vertex positions, we can achieve any animation we want. but that requires a lot of space for saving the vertex positions, making it impractical for real use. skeleton animation borrows the idea from the great nature, it defines a simplified structure, the skeleton, that is formed by rigid parts called bones connected by joints that can be rotated. The actual vertices of the 3d model is bonded to the bones.</p><p>bones are organized in a hierarchical manner, with the spine being the root, and limbs being the branches and the fingers being the twicks. This way, updating a root bone will affect all attached children bones. This makes bones intuitive to animate.</p><p>hence to derive the actual rotation and translation of a bone, we will have to recursively apply transformations from the root to the end bone.</p><p>each bone has an influential factor for each vertex. With zero means no influential at all. once we have decided each bones transformation, we update the vertices' transformation by applying bone transformations scaled by the bones' influences.</p><p>now let's look at how to implement skeleton animation. First step, we need to create an animate asset. I did this following a simple tutorial in blender. once it is done, we need to export it to a file. not every 3d file format support animation. for example, the obj file formate doesn't. In this example, we will be using the dae file format. Similar to previous tutorials, implementing file parser isn't our focus, we will be using any existing format parser we can find, and convert the data we need into json to load in javascript. This time, we will do the preprocessing in cpp, as our dae file parser is in cpp.</p><pre><code class="language-yaml code-block">file: 5_06_skeleton_animation/preprocess/main.cpp
-id: dae_preprocessor
-title: DAE preprocessor
-lang: cpp</code></pre><p>The library we use to parse the DAE file is called Assimp. it is a generic tool that can parse many common 3D formats. Assimp organizes 3D objects in a scene structure. Since we know that there is only one mesh presents in our demo file, we simply retrieve the mesh zero. after that, we first need to dump the geometry data. this is not different from the obj file. we need to dump vertices along with vertex normals and triangle mesh.</p><p>what we need to focus is how to dump the bones and animations. first of all, the scene struct contains a list of bones, each has a unique name. at the same time, the scene struct also contains an animation list. since we only have one animation, there is actually only one animation object. The animation object has multiple animation channels. each channel is associated with a bone. a channel contains a node name which is the same as the name of the associated bone. using this information, we can establish the correspondence of bones and animations.</p><p>the scene struct organizes the objects in the scene in a hierarchical manner, this is a common approach for scene management in computer graphics. For example, imagine a 3D car model with four wheels. the four wheels are the children of the car body. And in a 3D scene, we might have multiple car models. The scene is the root node and the the cars are the children. And all the parts and accessories, such as wheels and doors are the children of the car nodes. One benefit of this arraignment is that the transformation applied to a parent node will automatically applied to all its children. For example, moving a car will also moving its doors and wheels with the body. Hence when calculating the transformation of a leaf node, we need to apply all the transformation accumulated from the scene root.</p><p>in our demo scene, we only have one object, there doesn't seem to be a need for a complex tree. But in addition to the mesh, we also have the bones. The bones are also organized in hierarchical manner, hence moving the shoulder will affect the forearm and fingers.</p><p>in the second part of data dumping, we need to dump this hierarchical structure. we start from the scene root. the scene root is not actually a 3D object, but the scene itself. since the scene root has no transformation, we simply assign an identity matrix to it. for the rest of the nodes, we need to check if the node is a bone. if it is not a bone, i.e. the 3D mesh, we simply save its transformation. if it is a bone, we will also have to save its offset matrix, weights and animations.</p><p>the offset matrix is an additional offset only presents in bones. the weights are a set of tuples for all vertices. the first element of the tuple is vertex id and the second is an influence number.</p><p>and for the animation, it is a sequence of transformations. The length of the sequence is the number of the key frame. each key frame has a timestamp and three transformations, the translation, the rotation and scaling. translation and scaling are represented as vectors, the rotation is represented as quaternions.</p><pre><code class="language-yaml code-block">file: 5_06_skeleton_animation/index.html
-id: bone_weights
-title: Gather bone weights
-lang: javascript</code></pre><p>the first step of reading the file is creating a flatten vertex bone weight array. we have 16 bones, including the scene itself as the root, hence we for each vertex, we have 16 float numbers. but we actually have 13 bones in total, but we need to round it to a multiply of four, which we will see why later. since the bones are organized in a tree structure, we need to rely on a helper function to recursively visit all bone nodes.</p><pre><code class="language-yaml code-block">file: 5_06_skeleton_animation/index.html
-id: update_animation
-title: Given a timestamp, return the current bone transformations
-lang: javascript</code></pre><p>Next, we will need to look at a helper function. What this function does is that given a timestamp. The function returns the current bone transformations. this function accomplish this step by first obtain all necessary transformations for each bone, this includes the local translation, rotation and scaling, and the accumulated transformations from its parent, as well as the offset matrix. then, the function needs to do an interpolation in the temporal direction, as the requested timestamp is not necessarily one of the key frame timestamps. and finally it needs to recursively process all its children. what this function returns is a flattened transformation array for all bones. we will pass this array as a uniform to our shader.</p><pre><code class="language-yaml code-block">file: 5_06_skeleton_animation/index.html
-id: animation_shader
-title: Animation shader
-lang: javascript</code></pre><p>the shader is modified from the shadow map shader. The fragment shader is the same, hence we only look at the vertex shader. We now pass two additional information: the bone transform is passed as a uniform containing the bone transformations of the current animation frame. And the bone weights, passed in as the vertex attributes. Because vertex attribute doesn't support large data like a matrix, we need to break the weights down into four vectors, each holds four float numbers, hence previously we need to round the number of bones to 16.</p><p>in the vertex shader, we perform a weighted sum of the bone transforms based on bone weights. Then we apply the calculated transform to the vertex followed by the modelView matrix and the project matrix as before.</p><p>notice that we assign a dedicated group id to the bone transformation uniform, because this uniform will be updated frequently, we want to separate it from the rest that will stay stable.</p><pre><code class="language-yaml code-block">file: 5_06_skeleton_animation/index.html
-id: bone_weight_buffer
-title: Setup the bone weight buffer
-lang: javascript</code></pre><p>next, we look at how to setup the bone weight buffer. Previously we have already created the bone weight flat array, now we set it as the source of the four vertex attributes that contains the bone weights.</p><pre><code class="language-yaml code-block">file: 5_06_skeleton_animation/index.html
-id: render_loop
-title: Animation update in the render loop
-lang: javascript</code></pre><p>lastly, let's see how the animation transforms are updated, basically for each frame, we measure the elapsed time, and use that to obtain the bone transforms and load it into the uniform buffer.</p>
+            <h2 >5.6 Skeleton Animation</h2><p>so far we have learned how to create animation for rigid objects by updating model view matrix. in this tutorial, let's look at how to create skeleton animation to animate animals and human figure. unlike rigid objects, they deform while animating.</p><p>fundamentally speaking, simply updating vertex positions, we can achieve any animation we want. but that requires a lot of space for saving the vertex positions, making it impractical for real use. skeleton animation borrows the idea from the great nature, it defines a simplified structure, the skeleton, that is formed by rigid parts called bones connected by joints that can be rotated. The actual vertices of the 3d model is bonded to the bones.</p><p>bones are organized in a hierarchical manner, with the spine being the root, and limbs being the branches and the fingers being the twicks. This way, updating a root bone will affect all attached children bones. This makes bones intuitive to animate.</p><p>hence to derive the actual rotation and translation of a bone, we will have to recursively apply transformations from the root to the end bone.</p><p>each bone has an influential factor for each vertex. With zero means no influential at all. once we have decided each bones transformation, we update the vertices' transformation by applying bone transformations scaled by the bones' influences.</p><p>now let's look at how to implement skeleton animation. First step, we need to create an animate asset. I did this following a simple tutorial in blender. once it is done, we need to export it to a file. not every 3d file format support animation. for example, the obj file formate doesn't. In this example, we will be using the dae file format. Similar to previous tutorials, implementing file parser isn't our focus, we will be using any existing format parser we can find, and convert the data we need into json to load in javascript. This time, we will do the preprocessing in cpp, as our dae file parser is in cpp.</p><div class="code-fragments"><pre><code class="language-cpp code-block">#include &lt;iostream&gt;
+#include &lt;assimp/Importer.hpp&gt;
+#include &lt;assimp/scene.h&gt;
+#include &lt;assimp/postprocess.h&gt;
+#include &lt;fstream&gt;
+#include &lt;unordered_map&gt;
+
+struct Bone
+{
+    aiBone *bone;
+    aiNodeAnim *ani;
+};
+
+void printHierarchy(std::ofstream &amp;outputFile, aiNode *node, int indentation,
+                    std::unordered_map&lt;std::string, Bone&gt; &amp;bones, int &amp;boneId, bool isRoot)
+{
+    std::cout &lt;&lt; std::string(indentation, '-') &lt;&lt; node-&gt;mName.C_Str() &lt;&lt; std::endl;
+
+    const std::string boneName = std::string(node-&gt;mName.C_Str());
+
+    if (bones.find(boneName) != bones.end())
+    {
+        std::cout &lt;&lt; "bone = = " &lt;&lt; boneName &lt;&lt; std::endl;
+        outputFile &lt;&lt; "{\"id\":" &lt;&lt; (boneId++) &lt;&lt; ",\"nodeTransform\":[" &lt;&lt; std::endl;
+
+        outputFile &lt;&lt; node-&gt;mTransformation[0][0] &lt;&lt; "," &lt;&lt; node-&gt;mTransformation[0][1] &lt;&lt; "," &lt;&lt; node-&gt;mTransformation[0][2] &lt;&lt; "," &lt;&lt; node-&gt;mTransformation[0][3] &lt;&lt; "," &lt;&lt; node-&gt;mTransformation[1][0] &lt;&lt; "," &lt;&lt; node-&gt;mTransformation[1][1] &lt;&lt; "," &lt;&lt; node-&gt;mTransformation[1][2] &lt;&lt; "," &lt;&lt; node-&gt;mTransformation[1][3] &lt;&lt; "," &lt;&lt; node-&gt;mTransformation[2][0] &lt;&lt; "," &lt;&lt; node-&gt;mTransformation[2][1] &lt;&lt; "," &lt;&lt; node-&gt;mTransformation[2][2] &lt;&lt; "," &lt;&lt; node-&gt;mTransformation[2][3] &lt;&lt; "," &lt;&lt; node-&gt;mTransformation[3][0] &lt;&lt; "," &lt;&lt; node-&gt;mTransformation[3][1] &lt;&lt; "," &lt;&lt; node-&gt;mTransformation[3][2] &lt;&lt; "," &lt;&lt; node-&gt;mTransformation[3][3] &lt;&lt; std::endl;
+
+        outputFile &lt;&lt; "],\"name\":\"" &lt;&lt; node-&gt;mName.C_Str() &lt;&lt; "\",\"children\":[" &lt;&lt; std::endl;
+
+        for (int i = 0; i &lt; node-&gt;mNumChildren; ++i)
+        {
+            printHierarchy(outputFile, node-&gt;mChildren[i], indentation + 1, bones, boneId, false);
+
+            if (i &lt; node-&gt;mNumChildren - 1)
+            {
+                outputFile &lt;&lt; "," &lt;&lt; std::endl;
+            }
+        }
+
+        outputFile &lt;&lt; "]" &lt;&lt; std::endl;
+
+        aiBone *b = bones[boneName].bone;
+        outputFile &lt;&lt; ", \"offsetMatrix\":[";
+        for (int i = 0; i &lt; 4; ++i)
+        {
+            auto w = b-&gt;mOffsetMatrix[i];
+            outputFile &lt;&lt; w[0] &lt;&lt; "," &lt;&lt; w[1] &lt;&lt; "," &lt;&lt; w[2] &lt;&lt; "," &lt;&lt; w[3];
+            if (i &lt; 3)
+            {
+                outputFile &lt;&lt; ",";
+            }
+        }
+        outputFile &lt;&lt; "],\n \"weights\":[" &lt;&lt; std::endl;
+
+        for (int i = 0; i &lt; b-&gt;mNumWeights; ++i)
+        {
+            outputFile &lt;&lt; "{\"id\":" &lt;&lt; b-&gt;mWeights[i].mVertexId &lt;&lt; ",\"w\":" &lt;&lt; b-&gt;mWeights[i].mWeight &lt;&lt; "}";
+            if (i &lt; b-&gt;mNumWeights - 1)
+            {
+                outputFile &lt;&lt; "," &lt;&lt; std::endl;
+            }
+        }
+        outputFile &lt;&lt; "]";
+
+        aiNodeAnim *ani = bones[boneName].ani;
+
+        if (ani)
+        {
+
+            outputFile &lt;&lt; ",\"ani\":{" &lt;&lt; std::endl;
+
+            if (ani-&gt;mNumPositionKeys &gt; 0)
+            {
+                outputFile &lt;&lt; "\"pos\":[";
+
+                for (int e = 0; e &lt; ani-&gt;mNumPositionKeys; ++e)
+                {
+                    auto pk = ani-&gt;mPositionKeys[e];
+                    outputFile &lt;&lt; "{\"time\":" &lt;&lt; pk.mTime &lt;&lt; ",\"pos\":[" &lt;&lt; pk.mValue[0] &lt;&lt; "," &lt;&lt; pk.mValue[1] &lt;&lt; "," &lt;&lt; pk.mValue[2] &lt;&lt; "]}" &lt;&lt; std::endl;
+                    if (e &lt; ani-&gt;mNumPositionKeys - 1)
+                    {
+                        outputFile &lt;&lt; ",";
+                    }
+                }
+
+                outputFile &lt;&lt; "]" &lt;&lt; std::endl;
+            }
+
+            if (ani-&gt;mNumRotationKeys &gt; 0)
+            {
+                outputFile &lt;&lt; ",\"rot\":[";
+
+                for (int e = 0; e &lt; ani-&gt;mNumRotationKeys; ++e)
+                {
+                    auto rk = ani-&gt;mRotationKeys[e];
+                    outputFile &lt;&lt; "{\"time\":" &lt;&lt; rk.mTime &lt;&lt; ",\"q\":[" &lt;&lt; rk.mValue.w &lt;&lt; "," &lt;&lt; rk.mValue.x &lt;&lt; "," &lt;&lt; rk.mValue.y &lt;&lt; "," &lt;&lt; rk.mValue.z &lt;&lt; "]}" &lt;&lt; std::endl;
+                    if (e &lt; ani-&gt;mNumRotationKeys - 1)
+                    {
+                        outputFile &lt;&lt; ",";
+                    }
+                }
+
+                outputFile &lt;&lt; "]" &lt;&lt; std::endl;
+            }
+
+            if (ani-&gt;mNumScalingKeys &gt; 0)
+            {
+                outputFile &lt;&lt; ",\"scal\":[";
+
+                for (int e = 0; e &lt; ani-&gt;mNumScalingKeys; ++e)
+                {
+                    auto sk = ani-&gt;mScalingKeys[e];
+                    outputFile &lt;&lt; "{\"time\":" &lt;&lt; sk.mTime &lt;&lt; ",\"pos\":[" &lt;&lt; sk.mValue[0] &lt;&lt; "," &lt;&lt; sk.mValue[1] &lt;&lt; "," &lt;&lt; sk.mValue[2] &lt;&lt; "]}" &lt;&lt; std::endl;
+                    if (e &lt; ani-&gt;mNumScalingKeys - 1)
+                    {
+                        outputFile &lt;&lt; ",";
+                    }
+                }
+
+                outputFile &lt;&lt; "]" &lt;&lt; std::endl;
+            }
+
+            outputFile &lt;&lt; "}" &lt;&lt; std::endl;
+        }
+        outputFile &lt;&lt; "}";
+    }
+    else
+    {
+        if (isRoot)
+        {
+            outputFile &lt;&lt; "{\"name\":\"" &lt;&lt; node-&gt;mName.C_Str() &lt;&lt; "\",\"nodeTransform\":[" &lt;&lt; 1 &lt;&lt; "," &lt;&lt; 0 &lt;&lt; "," &lt;&lt; 0 &lt;&lt; "," &lt;&lt; 0 &lt;&lt; "," &lt;&lt; 0 &lt;&lt; "," &lt;&lt; 1 &lt;&lt; "," &lt;&lt; 0 &lt;&lt; "," &lt;&lt; 0 &lt;&lt; "," &lt;&lt; 0 &lt;&lt; "," &lt;&lt; 0 &lt;&lt; "," &lt;&lt; 1 &lt;&lt; "," &lt;&lt; 0 &lt;&lt; "," &lt;&lt; 0 &lt;&lt; "," &lt;&lt; 0 &lt;&lt; "," &lt;&lt; 0 &lt;&lt; "," &lt;&lt; 1 &lt;&lt; std::endl;
+        }
+        else
+        {
+            outputFile &lt;&lt; "{\"name\":\"" &lt;&lt; node-&gt;mName.C_Str() &lt;&lt; "\",\"nodeTransform\":[" &lt;&lt; node-&gt;mTransformation[0][0] &lt;&lt; "," &lt;&lt; node-&gt;mTransformation[0][1] &lt;&lt; "," &lt;&lt; node-&gt;mTransformation[0][2] &lt;&lt; "," &lt;&lt; node-&gt;mTransformation[0][3] &lt;&lt; "," &lt;&lt; node-&gt;mTransformation[1][0] &lt;&lt; "," &lt;&lt; node-&gt;mTransformation[1][1] &lt;&lt; "," &lt;&lt; node-&gt;mTransformation[1][2] &lt;&lt; "," &lt;&lt; node-&gt;mTransformation[1][3] &lt;&lt; "," &lt;&lt; node-&gt;mTransformation[2][0] &lt;&lt; "," &lt;&lt; node-&gt;mTransformation[2][1] &lt;&lt; "," &lt;&lt; node-&gt;mTransformation[2][2] &lt;&lt; "," &lt;&lt; node-&gt;mTransformation[2][3] &lt;&lt; "," &lt;&lt; node-&gt;mTransformation[3][0] &lt;&lt; "," &lt;&lt; node-&gt;mTransformation[3][1] &lt;&lt; "," &lt;&lt; node-&gt;mTransformation[3][2] &lt;&lt; "," &lt;&lt; node-&gt;mTransformation[3][3] &lt;&lt; std::endl;
+        }
+        outputFile &lt;&lt; "],\"children\":[" &lt;&lt; std::endl;
+        for (int i = 0; i &lt; node-&gt;mNumChildren; ++i)
+        {
+            printHierarchy(outputFile, node-&gt;mChildren[i], indentation + 1, bones, boneId, false);
+
+            if (i &lt; node-&gt;mNumChildren - 1)
+            {
+                outputFile &lt;&lt; "," &lt;&lt; std::endl;
+            }
+        }
+
+        outputFile &lt;&lt; "]}";
+    }
+}
+
+int main()
+{
+    std::cout &lt;&lt; "test" &lt;&lt; std::endl;
+    const char *path = "../../../data/cuberun.dae";
+    Assimp::Importer importer;
+    const aiScene *scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs);
+    if (!scene || scene-&gt;mFlags &amp; AI_SCENE_FLAGS_INCOMPLETE || !scene-&gt;mRootNode)
+    {
+        std::cout &lt;&lt; "ERROR::ASSIMP::" &lt;&lt; importer.GetErrorString() &lt;&lt; std::endl;
+        return 1;
+    }
+
+    std::cout &lt;&lt; "mesh count " &lt;&lt; scene-&gt;mNumMeshes &lt;&lt; std::endl;
+
+    const aiMesh *mesh = scene-&gt;mMeshes[0];
+
+    std::cout &lt;&lt; "mesh uv channel " &lt;&lt; mesh-&gt;GetNumUVChannels() &lt;&lt; std::endl;
+
+    // std::cout &lt;&lt; "children count " &lt;&lt; scene-&gt;mRootNode-&gt;mChildren[0]-&gt;mNumChildren &lt;&lt; std::endl;
+
+    std::ofstream outputFile;
+    outputFile.open("cuberun.json");
+    outputFile &lt;&lt; "{\"vert\":[";
+
+    for (unsigned int i = 0; i &lt; mesh-&gt;mNumVertices; i++)
+    {
+        outputFile &lt;&lt; mesh-&gt;mVertices[i][0] &lt;&lt; ", " &lt;&lt; mesh-&gt;mVertices[i][1] &lt;&lt; ", " &lt;&lt; mesh-&gt;mVertices[i][2] &lt;&lt; ", ";
+        outputFile &lt;&lt; mesh-&gt;mNormals[i][0] &lt;&lt; ", " &lt;&lt; mesh-&gt;mNormals[i][1] &lt;&lt; ", " &lt;&lt; mesh-&gt;mNormals[i][2];
+        if (i != mesh-&gt;mNumVertices - 1)
+        {
+            outputFile &lt;&lt; ", " &lt;&lt; std::endl;
+        }
+    }
+    outputFile &lt;&lt; "],\"indices\":[\n";
+
+    for (unsigned int i = 0; i &lt; mesh-&gt;mNumFaces; ++i)
+    {
+        aiFace face = mesh-&gt;mFaces[i];
+
+        // std::cout &lt;&lt; "face ";
+        for (unsigned int f = 0; f &lt; face.mNumIndices; ++f)
+        {
+            outputFile &lt;&lt; face.mIndices[f];
+            if (i != mesh-&gt;mNumFaces - 1 || f != face.mNumIndices - 1)
+            {
+                outputFile &lt;&lt; ", ";
+            }
+        }
+        outputFile &lt;&lt; std::endl;
+    }
+    outputFile &lt;&lt; "],\"skeleton\":[\n";
+
+    std::unordered_map&lt;std::string, Bone&gt; bones;
+
+    if (mesh-&gt;HasBones())
+    {
+        for (int i = 0; i &lt; mesh-&gt;mNumBones; ++i)
+        {
+            bones[std::string(mesh-&gt;mBones[i]-&gt;mName.C_Str())] = {mesh-&gt;mBones[i], nullptr};
+            // std::cout &lt;&lt; "insert bone " &lt;&lt; mesh-&gt;mBones[i]-&gt;mName.C_Str() &lt;&lt; std::endl;
+        }
+        std::cout &lt;&lt; "animation size " &lt;&lt; scene-&gt;mNumAnimations &lt;&lt; std::endl;
+
+        aiAnimation *ani = scene-&gt;mAnimations[0];
+
+        std::cout &lt;&lt; "channel size" &lt;&lt; ani-&gt;mNumChannels &lt;&lt; std::endl;
+
+        for (int i = 0; i &lt; ani-&gt;mNumChannels; ++i)
+        {
+            aiNodeAnim *a = ani-&gt;mChannels[i];
+            std::string boneName = std::string(a-&gt;mNodeName.C_Str());
+            if (bones.find(boneName) != bones.end())
+            {
+                bones[boneName].ani = a;
+            }
+        }
+    }
+    int boneId = 0;
+    printHierarchy(outputFile, scene-&gt;mRootNode, 0, bones, boneId, true);
+
+    outputFile &lt;&lt; "]}";
+
+    outputFile.close();
+
+    /*
+        std::cout &lt;&lt; "has tex " &lt;&lt; mesh-&gt;HasTextureCoords(0) &lt;&lt; std::endl;
+
+        std::cout &lt;&lt; "has bone " &lt;&lt; mesh-&gt;HasBones() &lt;&lt; std::endl;
+
+        std::cout &lt;&lt; "bones " &lt;&lt; mesh-&gt;mNumBones &lt;&lt; std::endl;
+*/
+
+    return 0;
+}
+</pre></code><div class="code-segments-caption">5_06_skeleton_animation/preprocess/main.cpp:1-245 DAE preprocessor</div></div><p>The library we use to parse the DAE file is called Assimp. it is a generic tool that can parse many common 3D formats. Assimp organizes 3D objects in a scene structure. Since we know that there is only one mesh presents in our demo file, we simply retrieve the mesh zero. after that, we first need to dump the geometry data. this is not different from the obj file. we need to dump vertices along with vertex normals and triangle mesh.</p><p>what we need to focus is how to dump the bones and animations. first of all, the scene struct contains a list of bones, each has a unique name. at the same time, the scene struct also contains an animation list. since we only have one animation, there is actually only one animation object. The animation object has multiple animation channels. each channel is associated with a bone. a channel contains a node name which is the same as the name of the associated bone. using this information, we can establish the correspondence of bones and animations.</p><p>the scene struct organizes the objects in the scene in a hierarchical manner, this is a common approach for scene management in computer graphics. For example, imagine a 3D car model with four wheels. the four wheels are the children of the car body. And in a 3D scene, we might have multiple car models. The scene is the root node and the the cars are the children. And all the parts and accessories, such as wheels and doors are the children of the car nodes. One benefit of this arraignment is that the transformation applied to a parent node will automatically applied to all its children. For example, moving a car will also moving its doors and wheels with the body. Hence when calculating the transformation of a leaf node, we need to apply all the transformation accumulated from the scene root.</p><p>in our demo scene, we only have one object, there doesn't seem to be a need for a complex tree. But in addition to the mesh, we also have the bones. The bones are also organized in hierarchical manner, hence moving the shoulder will affect the forearm and fingers.</p><p>in the second part of data dumping, we need to dump this hierarchical structure. we start from the scene root. the scene root is not actually a 3D object, but the scene itself. since the scene root has no transformation, we simply assign an identity matrix to it. for the rest of the nodes, we need to check if the node is a bone. if it is not a bone, i.e. the 3D mesh, we simply save its transformation. if it is a bone, we will also have to save its offset matrix, weights and animations.</p><p>the offset matrix is an additional offset only presents in bones. the weights are a set of tuples for all vertices. the first element of the tuple is vertex id and the second is an influence number.</p><p>and for the animation, it is a sequence of transformations. The length of the sequence is the number of the key frame. each key frame has a timestamp and three transformations, the translation, the rotation and scaling. translation and scaling are represented as vectors, the rotation is represented as quaternions.</p><div class="code-fragments"><pre><code class="language-javascript code-block">let boneWeights = new Float32Array(this.objBody.vert.length * 16 / 3);
+
+function assignBoneWeightsToVerticesHelper(bone) {
+
+    if (bone.weights) {
+        for (let i = 0; i &lt; bone.weights.length; ++i) {
+            const { id, w } = bone.weights[i];
+            boneWeights[id * 16 + bone.id] = w;
+        }
+    }
+
+    if (bone.children) {
+        if (bone.children.length &gt; 0) {
+            for (let i = 0; i &lt; bone.children.length; ++i) {
+                assignBoneWeightsToVerticesHelper(bone.children[i]);
+            }
+        }
+    }
+}
+
+for (let i = 0; i &lt; this.objBody.skeleton.length; ++i) {
+    assignBoneWeightsToVerticesHelper(this.objBody.skeleton[i]);
+}
+</pre></code><div class="code-segments-caption">5_06_skeleton_animation/index.html:853-875 Gather bone weights</div></div><p>the first step of reading the file is creating a flatten vertex bone weight array. we have 16 bones, including the scene itself as the root, hence we for each vertex, we have 16 float numbers. but we actually have 13 bones in total, but we need to round it to a multiply of four, which we will see why later. since the bones are organized in a tree structure, we need to rely on a helper function to recursively visit all bone nodes.</p><div class="code-fragments"><pre><code class="language-javascript code-block">updateAnimation(time) {
+    let boneTransforms = new Float32Array(16 * 16);
+
+    function interpolatedV(time, V, interpolate) {
+
+        time = time % V[V.length - 1].time;
+        /*  while (time &gt; V[V.length - 1].time) {
+              time -= V[V.length - 1].time;
+          }*/
+
+        let firstIndex = -1;
+
+        for (; firstIndex &lt; V.length - 1; ++firstIndex) {
+           // const i = (firstIndex + V.length) % V.length;
+           // console.log(i,firstIndex)
+            if (time &lt; V[firstIndex + 1].time) {
+                break;
+            }
+        }
+
+        const secondIndex = firstIndex + 1;
+
+        let startTime = 0;
+        let endTime = V[secondIndex].time;
+
+        if (firstIndex == -1) {
+            firstIndex = V.length - 1;
+        }
+        else {
+            startTime = V[firstIndex].time;
+        }
+
+        const factor = (time - startTime) / (endTime - startTime);
+
+        return interpolate(V[firstIndex], V[secondIndex], factor);
+    }
+
+
+    function deriveBoneTransformHelper(bone, parentTransform) {
+        if (bone.id !== undefined) {
+            const offsetMatrix = glMatrix.mat4.fromValues(
+                bone.offsetMatrix[0],
+                bone.offsetMatrix[4],
+                bone.offsetMatrix[8],
+                bone.offsetMatrix[12],
+                bone.offsetMatrix[1],
+                bone.offsetMatrix[5],
+                bone.offsetMatrix[9],
+                bone.offsetMatrix[13],
+                bone.offsetMatrix[2],
+                bone.offsetMatrix[6],
+                bone.offsetMatrix[10],
+                bone.offsetMatrix[14],
+                bone.offsetMatrix[3],
+                bone.offsetMatrix[7],
+                bone.offsetMatrix[11],
+                bone.offsetMatrix[15]);
+            if (bone.ani) {
+
+                const interpolatedPos = interpolatedV(time, bone.ani.pos, (pos1, pos2, factor) =&gt; {
+                    return glMatrix.vec3.lerp(glMatrix.vec3.create(), glMatrix.vec3.fromValues(pos1.pos[0], pos1.pos[1], pos1.pos[2]),
+                        glMatrix.vec3.fromValues(pos2.pos[0], pos2.pos[1], pos2.pos[2]), factor);
+                });
+                const translationMatrix = glMatrix.mat4.fromTranslation(glMatrix.mat4.create(),
+                    interpolatedPos);
+
+                const interpolatedQuat = interpolatedV(time, bone.ani.rot, (quat1, quat2, factor) =&gt; {
+                    return glMatrix.quat.lerp(glMatrix.quat.create(),
+                        glMatrix.quat.fromValues(quat1.q[1], quat1.q[2], quat1.q[3], quat1.q[0]),
+                        glMatrix.quat.fromValues(quat2.q[1], quat2.q[2], quat2.q[3], quat2.q[0]),
+                        factor
+                    );
+                });
+
+                const rotationMatrix = glMatrix.mat4.fromQuat(glMatrix.mat4.create(), interpolatedQuat);
+
+                const interpolatedScale = interpolatedV(time, bone.ani.scal, (scal1, scal2, factor) =&gt; {
+                    return glMatrix.vec3.lerp(glMatrix.vec3.create(), glMatrix.vec3.fromValues(scal1.pos[0], scal1.pos[1], scal1.pos[2]),
+                        glMatrix.vec3.fromValues(scal2.pos[0], scal2.pos[1], scal2.pos[2]), factor);
+                });
+
+                const scalingMatrix = glMatrix.mat4.fromScaling(glMatrix.mat4.create(), interpolatedScale);
+
+                const rotation_x_scale = glMatrix.mat4.multiply(glMatrix.mat4.create(),
+                    rotationMatrix, scalingMatrix);
+
+                const locationTransformation = glMatrix.mat4.multiply(glMatrix.mat4.create(),
+                    translationMatrix, rotation_x_scale);
+
+                const globalTransformation = glMatrix.mat4.multiply(glMatrix.mat4.create(),
+                    parentTransform, locationTransformation);
+
+                const finalBoneTransformation = glMatrix.mat4.multiply(glMatrix.mat4.create(),
+                    globalTransformation, offsetMatrix);
+
+                boneTransforms.set(finalBoneTransformation, bone.id * 16);
+                /*
+                                        console.log("bone transform ", bone.name, finalBoneTransformation);
+                                        console.log("node trans", locationTransformation);
+                                        console.log("parent", parentTransform);*/
+
+                if (bone.children.length &gt; 0) {
+                    for (let i = 0; i &lt; bone.children.length; ++i) {
+                        deriveBoneTransformHelper(bone.children[i], globalTransformation);
+                    }
+                }
+            }
+            else {
+                const nodeTransform = glMatrix.mat4.fromValues(bone.nodeTransform[0],
+                    bone.nodeTransform[4],
+                    bone.nodeTransform[8],
+                    bone.nodeTransform[12],
+                    bone.nodeTransform[1],
+                    bone.nodeTransform[5],
+                    bone.nodeTransform[9],
+                    bone.nodeTransform[13],
+                    bone.nodeTransform[2],
+                    bone.nodeTransform[6],
+                    bone.nodeTransform[10],
+                    bone.nodeTransform[14],
+                    bone.nodeTransform[3],
+                    bone.nodeTransform[7],
+                    bone.nodeTransform[11],
+                    bone.nodeTransform[15]);
+
+                const bt = glMatrix.mat4.multiply(glMatrix.mat4.create(), parentTransform, nodeTransform);
+                const bt2 = glMatrix.mat4.multiply(glMatrix.mat4.create(), bt, offsetMatrix);
+                boneTransforms.set(bt2, bone.id * 16);
+                /* console.log("= bone transform ", bone.name, bt2);
+                 console.log("= bone nodeTransform", nodeTransform);
+                 console.log("global ", bt);*/
+
+                if (bone.children.length &gt; 0) {
+                    for (let i = 0; i &lt; bone.children.length; ++i) {
+                        deriveBoneTransformHelper(bone.children[i], bt);
+                    }
+                }
+            }
+        }
+
+        else {
+
+            const nodeTransform = glMatrix.mat4.fromValues(bone.nodeTransform[0],
+                bone.nodeTransform[4],
+                bone.nodeTransform[8],
+                bone.nodeTransform[12],
+                bone.nodeTransform[1],
+                bone.nodeTransform[5],
+                bone.nodeTransform[9],
+                bone.nodeTransform[13],
+                bone.nodeTransform[2],
+                bone.nodeTransform[6],
+                bone.nodeTransform[10],
+                bone.nodeTransform[14],
+                bone.nodeTransform[3],
+                bone.nodeTransform[7],
+                bone.nodeTransform[11],
+                bone.nodeTransform[15]);
+
+            const globalTransformation = glMatrix.mat4.multiply(glMatrix.mat4.create(),
+                parentTransform, nodeTransform);
+
+            // console.log("* bone transform ", bone.name, globalTransformation);
+
+            if (bone.children.length &gt; 0) {
+                for (let i = 0; i &lt; bone.children.length; ++i) {
+                    deriveBoneTransformHelper(bone.children[i], globalTransformation);
+                }
+            }
+        }
+    }
+
+    for (let i = 0; i &lt; this.objBody.skeleton.length; ++i) {
+        deriveBoneTransformHelper(this.objBody.skeleton[i], glMatrix.mat4.identity(glMatrix.mat4.create()));
+    }
+
+    //console.log("bone transformation", boneTransforms);
+    return boneTransforms;
+
+}
+</pre></code><div class="code-segments-caption">5_06_skeleton_animation/index.html:664-843 Given a timestamp, return the current bone transformations</div></div><p>Next, we will need to look at a helper function. What this function does is that given a timestamp. The function returns the current bone transformations. this function accomplish this step by first obtain all necessary transformations for each bone, this includes the local translation, rotation and scaling, and the accumulated transformations from its parent, as well as the offset matrix. then, the function needs to do an interpolation in the temporal direction, as the requested timestamp is not necessarily one of the key frame timestamps. and finally it needs to recursively process all its children. what this function returns is a flattened transformation array for all bones. we will pass this array as a uniform to our shader.</p><div class="code-fragments"><pre><code class="language-javascript code-block">@group(0) @binding(0)
+var&lt;uniform&gt; modelView: mat4x4&lt;f32&gt;;
+@group(0) @binding(1)
+var&lt;uniform&gt; projection: mat4x4&lt;f32&gt;;
+@group(0) @binding(2)
+var&lt;uniform&gt; normalMatrix: mat4x4&lt;f32&gt;;
+@group(0) @binding(3) 
+var&lt;uniform&gt; lightDirection: vec3&lt;f32&gt;;
+@group(0) @binding(4)
+var&lt;uniform&gt; viewDirection: vec3&lt;f32&gt;;
+
+@group(0) @binding(5)
+var&lt;uniform&gt; ambientColor:vec4&lt;f32&gt;;// = vec4&lt;f32&gt;(0.15, 0.10, 0.10, 1.0);
+@group(0) @binding(6)
+var&lt;uniform&gt; diffuseColor:vec4&lt;f32&gt;;// = vec4&lt;f32&gt;(0.55, 0.55, 0.55, 1.0);
+@group(0) @binding(7)
+var&lt;uniform&gt; specularColor:vec4&lt;f32&gt;;// = vec4&lt;f32&gt;(1.0, 1.0, 1.0, 1.0);
+
+@group(0) @binding(8)
+var&lt;uniform&gt; shininess:f32;// = 20.0;
+
+@group(1) @binding(0)
+var&lt;uniform&gt; boneTransforms: array&lt;mat4x4&lt;f32&gt;, 16&gt;;
+    
+const diffuseConstant:f32 = 1.0;
+const specularConstant:f32 = 1.0;
+const ambientConstant: f32 = 1.0;
+
+fn specular(lightDir:vec3&lt;f32&gt;, viewDir:vec3&lt;f32&gt;, normal:vec3&lt;f32&gt;,  specularColor:vec3&lt;f32&gt;, 
+     shininess:f32) -&gt; vec3&lt;f32&gt; {
+    let reflectDir:vec3&lt;f32&gt; = reflect(-lightDir, normal);
+    let specDot:f32 = max(dot(reflectDir, viewDir), 0.0);
+    return pow(specDot, shininess) * specularColor;
+}
+
+fn diffuse(lightDir:vec3&lt;f32&gt;, normal:vec3&lt;f32&gt;,  diffuseColor:vec3&lt;f32&gt;) -&gt; vec3&lt;f32&gt;{
+    return max(dot(lightDir, normal), 0.0) * diffuseColor;
+}
+
+struct VertexOutput {
+    @builtin(position) clip_position: vec4&lt;f32&gt;,
+    @location(0) viewDir: vec3&lt;f32&gt;,
+    @location(1) normal: vec3&lt;f32&gt;,
+    @location(2) lightDir: vec3&lt;f32&gt;,
+    @location(3) wldLoc: vec3&lt;f32&gt;,
+    @location(4) lightLoc: vec3&lt;f32&gt;,
+    @location(5) inPos: vec3&lt;f32&gt;
+};
+
+@vertex
+fn vs_main(
+    @location(0) inPos: vec3&lt;f32&gt;,
+    @location(1) inNormal: vec3&lt;f32&gt;,
+    @location(2) boneWeight0: vec4&lt;f32&gt;,
+    @location(3) boneWeight1: vec4&lt;f32&gt;,
+    @location(4) boneWeight2: vec4&lt;f32&gt;,
+    @location(5) boneWeight3: vec4&lt;f32&gt;
+) -&gt; VertexOutput {
+    var out: VertexOutput;
+    var totalTransform:mat4x4&lt;f32&gt; = mat4x4&lt;f32&gt;(0.0,0.0,0.0,0.0,
+        0.0,0.0,0.0,0.0,
+        0.0,0.0,0.0,0.0,
+        0.0,0.0,0.0,0.0);
+    
+        totalTransform += boneTransforms[0]  * boneWeight0[0];
+        totalTransform += boneTransforms[1] * boneWeight0[1];
+        totalTransform += boneTransforms[2]* boneWeight0[2];
+        totalTransform += boneTransforms[3] * boneWeight0[3];
+        totalTransform += boneTransforms[4] * boneWeight1[0];
+        totalTransform += boneTransforms[5] * boneWeight1[1];
+        totalTransform += boneTransforms[6] * boneWeight1[2];
+        totalTransform += boneTransforms[7] * boneWeight1[3];
+        totalTransform += boneTransforms[8] * boneWeight2[0];
+        totalTransform += boneTransforms[9] * boneWeight2[1];
+        totalTransform += boneTransforms[10]* boneWeight2[2];
+        totalTransform += boneTransforms[11] * boneWeight2[3];
+        totalTransform += boneTransforms[12] * boneWeight3[0];
+
+
+    out.viewDir = normalize((normalMatrix * vec4&lt;f32&gt;(-viewDirection, 0.0)).xyz);
+    out.lightDir = normalize((normalMatrix * vec4&lt;f32&gt;(-lightDirection, 0.0)).xyz);
+    out.normal = normalize(normalMatrix * totalTransform * vec4&lt;f32&gt;(inNormal, 0.0)).xyz;  
+    var wldLoc:vec4&lt;f32&gt; = modelView *totalTransform *vec4(inPos,1.0);
+    out.clip_position = projection * wldLoc;
+    out.wldLoc = wldLoc.xyz / wldLoc.w;
+    out.inPos = (totalTransform *vec4(inPos,1.0)).xyz;
+    var lightLoc:vec4&lt;f32&gt; = modelView * vec4&lt;f32&gt;(lightDirection, 1.0);
+    out.lightLoc = lightLoc.xyz / lightLoc.w;
+
+    return out;
+}
+</pre></code><div class="code-segments-caption">5_06_skeleton_animation/index.html:162-252 Animation shader</div></div><p>the shader is modified from the shadow map shader. The fragment shader is the same, hence we only look at the vertex shader. We now pass two additional information: the bone transform is passed as a uniform containing the bone transformations of the current animation frame. And the bone weights, passed in as the vertex attributes. Because vertex attribute doesn't support large data like a matrix, we need to break the weights down into four vectors, each holds four float numbers, hence previously we need to round the number of bones to 16.</p><p>in the vertex shader, we perform a weighted sum of the bone transforms based on bone weights. Then we apply the calculated transform to the vertex followed by the modelView matrix and the project matrix as before.</p><p>notice that we assign a dedicated group id to the bone transformation uniform, because this uniform will be updated frequently, we want to separate it from the rest that will stay stable.</p><div class="code-fragments"><pre><code class="language-javascript code-block">this.boneWeightBuffer = createGPUBuffer(device, boneWeights, GPUBufferUsage.VERTEX);
+</pre></code><div class="code-segments-separator">...</div><pre><code class="language-javascript code-block">const boneWeight0AttribDesc = {
+    shaderLocation: 2,
+    offset: 0,
+    format: 'float32x4'
+};
+
+const boneWeight1AttribDesc = {
+    shaderLocation: 3,
+    offset: 4 * 4,
+    format: 'float32x4'
+};
+
+const boneWeight2AttribDesc = {
+    shaderLocation: 4,
+    offset: 4 * 8,
+    format: 'float32x4'
+};
+
+const boneWeight3AttribDesc = {
+    shaderLocation: 5,
+    offset: 4 * 12,
+    format: 'float32x4'
+};
+
+const boneWeightBufferLayoutDesc = {
+    attributes: [boneWeight0AttribDesc, boneWeight1AttribDesc, boneWeight2AttribDesc, boneWeight3AttribDesc],
+    arrayStride: 4 * 16,
+    stepMode: 'vertex'
+};
+</pre></code><div class="code-segments-separator">...</div><pre><code class="language-javascript code-block">const pipelineDesc = {
+    layout,
+    vertex: {
+        module: shaderModule,
+        entryPoint: 'vs_main',
+        buffers: [positionBufferLayoutDesc,
+            normalBufferLayoutDesc,
+            boneWeightBufferLayoutDesc]
+    },
+    fragment: {
+        module: shaderModule,
+        entryPoint: 'fs_main',
+        targets: [colorState]
+    },
+    primitive: {
+        topology: 'triangle-list',
+        frontFace: 'ccw',
+        cullMode: 'none'
+    },
+    depthStencil: {
+        depthWriteEnabled: true,
+        depthCompare: 'less',
+        format: 'depth32float'
+    }
+};
+</pre></code><div class="code-segments-caption">5_06_skeleton_animation/index.html:881-1185 Setup the bone weight buffer</div></div><p>next, we look at how to setup the bone weight buffer. Previously we have already created the bone weight flat array, now we set it as the source of the four vertex attributes that contains the bone weights.</p><div class="code-fragments"><pre><code class="language-javascript code-block">if (!startTime) {
+    startTime = timestamp;
+}
+const elapsed = timestamp - startTime;
+</pre></code><div class="code-segments-separator">...</div><pre><code class="language-javascript code-block">const boneTransforms = runCube.updateAnimation(elapsed);
+let boneTransformBufferUpdate = createGPUBuffer(device, boneTransforms, GPUBufferUsage.COPY_SRC);
+</pre></code><div class="code-segments-separator">...</div><pre><code class="language-javascript code-block">commandEncoder.copyBufferToBuffer(boneTransformBufferUpdate, 0,
+    runCube.boneTransformUniformBuffer, 0, boneTransforms.byteLength);
+</pre></code><div class="code-segments-caption">5_06_skeleton_animation/index.html:1464-1567 Animation update in the render loop</div></div><p>lastly, let's see how the animation transforms are updated, basically for each frame, we measure the elapsed time, and use that to obtain the bone transforms and load it into the uniform buffer.</p>
         </article>
     </div>
     <!-- The Modal -->
@@ -233,7 +808,6 @@ lang: javascript</code></pre><p>lastly, let's see how the animation transforms a
         });
     }
 
-    hljs.highlightAll();
 
 </script>
 </body>

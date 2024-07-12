@@ -6,7 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
     <!-- Primary Meta Tags -->
-    <title>: WebGPU Unleashed: A Practical Tutorial</title>
+    <title>WebGPU Unleashed: A Practical Tutorial</title>
     <meta name="title" content="WebGPU Unleashed: A Practical Tutorial" />
     <meta name="description" content="WebGPU Unleashed, your ticket to the dynamic world of graphics programming. Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial." />
 
@@ -25,15 +25,6 @@
     <meta property="twitter:image" content="/WebGPUUnleashed/meta.png" />
 
     <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js"></script>
-
-
-    <link rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/base16/default-dark.min.css"
-        integrity="sha512-EF2rc4QyBiRAGUMVm+EjFPBbdVGaN/pwZhtuKyrC/dM+hcwTxI5BsEDUkrMRI77z4VlDAt/qVopePXB5+ZZ8Gw=="
-        crossorigin="anonymous" referrerpolicy="no-referrer" />
     <script src="
         https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js
         "></script>
@@ -158,31 +149,281 @@ A_{new} &= A_1 + A_2 * (1.0 - A_1)
 \end{aligned}</code></p><p>The weighted average of the two colors is still the same, but we now multiply <code class="language-math math-inline">C_2</code> by its <code class="language-math math-inline">A_2</code> because <code class="language-math math-inline">C_2</code> is not a full bucket.</p><p>The new alpha formula, <code class="language-math math-inline">A_{new} = A_1 + A_2 * (1.0 - A_1)</code>, guarantees that the new alpha never exceeds 1.0, preventing overflow.</p><p>Now, looking at the common equations found online for front-to-back alpha blending, they may not seem to match the above equation at first glance. However, in reality, they are equivalent. First, since it's front-to-back alpha blending, the destination color is the foreground, and the source is the background. Second, the following formula uses <code class="language-math math-inline">A_dst</code> to store the <code class="language-math math-inline">(1.0 - A_1)</code> term from the above equation. If we substitute <code class="language-math math-inline">C_{src}</code> and <code class="language-math math-inline">A_{src}</code> with <code class="language-math math-inline">C_2</code> and <code class="language-math math-inline">A_2</code>, and <code class="language-math math-inline">C_{dst}</code> and <code class="language-math math-inline">A_{dst}</code> with <code class="language-math math-inline">C_1</code> and <code class="language-math math-inline">(1.0 - A_1)</code>, we should arrive at the same equation:</p><p class="katex-display-counter"><code class="language-math math-block">\begin{aligned}
 C_{dst} &= A_{dst} * (A_{src} * C_{src}) + C_{dst} \\
 A_{dst} &= (1 - A_{src}) * A_{dst}
-\end{aligned}</code></p><p>now that we have sorted out the blending equation, now, let's look at the implementation:</p><pre><code class="language-yaml code-block">file: 5_05_transparency/index.html
-id: depth_peel_shader
-title: Depth peeling shader
-lang: javascript</code></pre><p>this shader should look familiar to us. it's almost the same lighting shader with a slight difference. This shader loads a depth map, and does a comparison of the current depth value with what's in the depth map. it renders the fragment only when the new depth is larger than that on the depth map. this is how we peel away things before the depth map.</p><pre><code class="language-yaml code-block">file: 5_05_transparency/index.html
-id: depth_peel_shader_coord
-title: Calculate depth and uv coordinates
-lang: javascript</code></pre><p>What worth noticing is the above logic to calculate the uv coordinates for depth map fetching, as well as the current depth. what may appear strange to you is that I have two variables clip_position and inPos, both seem to save the clip space position vector. they appear to be duplicated.</p><p>I'm doing so intentionally to show you that what has been passed into the clip_position in the vertex shader will be changed before the fragment shader. hence once we read it back in the fragment shader, it is not the same clip position, despite that the variable's name is the same.</p><p>recall when we introduced the gpu pipeline, we learned that during the vertex shader stage, we only sparsely define properties on each vertices. And then we go through a step called rasterization. during rasterization, we convert triangle geometries into fragments similar to laying bricks. the values defined on each fragments are obtained through bilinear interpolation. interpolation can explain some of the value changes, but not all. Another obvious change is that, the pipeline will also alter the coordinate system. for x and y, the pipeline will change it from the clip_space to the normalized device coordinates and then the normalized device coordinates are converted to the framebuffer coordinates (The top-left corner is at (0.0, 0.0). x increases to the right. y increases down.) for x and y. for the z, we will map it to a value in the viewport depth range: vp.minDepth + n.z × ( vp.maxDepth - vp.minDepth );</p><p>there is a technical term to describe the values passed into the fragment shader: <a class="link" href="https://gpuweb.github.io/gpuweb/#rasterizationpoint" target="_blank">RasterizationPoint</a>. bear in mind that there are data changes despite the variable naming might be the same.</p><p>with that in mind, it shouldn't be difficult to understand the uv calculation, we basically map the NDC range in [-1,1] to [0,1]; and we will need to flip the y axis, as for the texture coordinate, y increases down. And for the z value, we just read it from the clip_position.z;</p><p>now, let's see how this pipeline is set up.</p><p>the first thing is that we need to have an empty canvas to serve as the background. the order of the rendering is that we render from the front to the back order and finally we overlay what's been rendered on the background.</p><p>at the beginning of each round, we need to clear our dst texture to (0,0,0,1). This is easy to achieve using the built-in functionality of clearing color attachments when loading, without needing to draw anything. the dst texture is the layer zero for our front-to-back alpha blending. The first layer will blend with this texture, and the second layer will blend with the resulting texture and so on. and finally the dst texture should have all layers composed in the front to back order. we then apply it to a background.</p><p>you may wonder why the dst texture map is cleaned up with the value (0,0,0,1)? rather than (0,0,0,0). shouldn't the layer zero be completely transparent. yes, the first layer should be fully transparent and have the color (0,0,0,0). but recall that when doing the front-to-back blending, we utilize the alpha channel to save (1.0 - A_{dst}) rather than the A_{dst} itself. hence we assign the alpha to 1.0 here.</p><pre><code class="language-yaml code-block">file: 5_05_transparency/index.html
-id: cleanup_pipeline
-title: Clean up the background
-lang: javascript</code></pre><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="An Image to Show Individual Layers" sources='[]' /><div class="img-title">An Image to Show Individual Layers</div></div></p><p>for the actual rendering, we first define two depth maps for alternative usage. This is because for each peeling step, we want to read the depth values from one of them, and write to the other one. since we can't read and write to the same depth map, we need to have two depth maps used in an alternating pattern.</p><pre><code class="language-yaml code-block">file: 5_05_transparency/index.html
-id: pipeline_rest
-title: The actual rendering logic
-lang: javascript</code></pre><p>at the beginning, we set the depth maps to be all ones. because one is the maximum possible value for depth. this is to make sure during the first peeling step, we can render the front most layer.</p><p>for the color attachment, we always clear it to (0,0,0,0) for the front to back rendering.</p><p>notice that we loop the peeling step for 6 times. this is a hardcoded value meaning at most, we can peel 6 layers. if we have more layers in the scene, our program won't be able to handle. this is a draw back of the current implementation, we have to predetermine the maximum number of supported layers.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="An Image to Show the Rendering Order, Front to Back and Then on the Background" sources='[]' /><div class="img-title">An Image to Show the Rendering Order, Front to Back and Then on the Background</div></div></p><p>after rendering objects, we then call into blender to compose the newly rendered layer onto the existing layer. we will explain the blender in detail later.</p><pre><code class="language-yaml code-block">file: 5_05_transparency/index.html
-id: blending_shader
-title: Blending shader
-lang: javascript</code></pre><p>The shader is very simple, it simply load a texture (the rendered layer) and apply it on the framebuffer. the crucial part is the alpha blending setup of the pipeline:</p><pre><code class="language-yaml code-block">file: 5_05_transparency/index.html
-id: blending_config
-title: Blending function setup
-lang: javascript</code></pre><p>Notice that this is the same blending equation we have explained above, under the condition that the src color is already premultiplied (see the shader for object rendering).</p><pre><code class="language-yaml code-block">file: 5_05_transparency/index.html
-id: blend_pass
-title: Render pass for blending
-lang: javascript</code></pre><p>The above is the render pass descriptor. it starts with a cleaned up dst texture. notice that the dst texture was cleaned up with (0,0,0,1) and from then on, we will not clear the texture anymore, we will load it for each blending operation, as the texture contains layers we have already composed.</p><pre><code class="language-yaml code-block">file: 5_05_transparency/index.html
-id: final_shader
-title: Final step
-lang: javascript</code></pre><p>finally, in the very last step, we render the composed layers onto a black background using the back-to-front blending. Since our color is premultiplied, we will be using the <code class="language-math math-inline">C_src+(1-A_src)*C_dst</code> formula.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Image to Show Rendering Result" sources='[]' /><div class="img-title">Image to Show Rendering Result</div></div></p>
+\end{aligned}</code></p><p>now that we have sorted out the blending equation, now, let's look at the implementation:</p><div class="code-fragments"><pre><code class="language-javascript code-block">@group(0) @binding(0)
+var&lt;uniform&gt; modelView: mat4x4&lt;f32&gt;;
+@group(0) @binding(1)
+var&lt;uniform&gt; projection: mat4x4&lt;f32&gt;;
+@group(0) @binding(2)
+var&lt;uniform&gt; normalMatrix: mat4x4&lt;f32&gt;;
+@group(0) @binding(3) 
+var&lt;uniform&gt; lightDirection: vec3&lt;f32&gt;;
+@group(0) @binding(4)
+var&lt;uniform&gt; viewDirection: vec3&lt;f32&gt;;
+
+@group(1) @binding(0)
+var&lt;uniform&gt; offset: vec3&lt;f32&gt;;
+@group(1) @binding(1)
+var&lt;uniform&gt; ambientColor:vec4&lt;f32&gt;;// = vec4&lt;f32&gt;(0.15, 0.10, 0.10, 1.0);
+@group(1) @binding(2)
+var&lt;uniform&gt; diffuseColor:vec4&lt;f32&gt;;// = vec4&lt;f32&gt;(0.55, 0.55, 0.55, 1.0);
+@group(1) @binding(3)
+var&lt;uniform&gt; specularColor:vec4&lt;f32&gt;;// = vec4&lt;f32&gt;(1.0, 1.0, 1.0, 1.0);
+
+@group(1) @binding(4)
+var&lt;uniform&gt; shininess:f32;// = 20.0;
+    
+const diffuseConstant:f32 = 1.0;
+const specularConstant:f32 = 1.0;
+const ambientConstant: f32 = 1.0;
+
+fn specular(lightDir:vec3&lt;f32&gt;, viewDir:vec3&lt;f32&gt;, normal:vec3&lt;f32&gt;,  specularColor:vec3&lt;f32&gt;, 
+     shininess:f32) -&gt; vec3&lt;f32&gt; {
+    let reflectDir:vec3&lt;f32&gt; = reflect(-lightDir, normal);
+    let specDot:f32 = max(dot(reflectDir, viewDir), 0.0);
+    return pow(specDot, shininess) * specularColor;
+}
+
+fn diffuse(lightDir:vec3&lt;f32&gt;, normal:vec3&lt;f32&gt;,  diffuseColor:vec3&lt;f32&gt;) -&gt; vec3&lt;f32&gt;{
+    return max(dot(lightDir, normal), 0.0) * diffuseColor;
+}
+
+struct VertexOutput {
+    @builtin(position) clip_position: vec4&lt;f32&gt;,
+    @location(0) viewDir: vec3&lt;f32&gt;,
+    @location(1) normal: vec3&lt;f32&gt;,
+    @location(2) lightDir: vec3&lt;f32&gt;,
+    @location(3) inPos: vec4&lt;f32&gt;,
+};
+
+@vertex
+fn vs_main(
+    @location(0) inPos: vec3&lt;f32&gt;,
+    @location(1) inNormal: vec3&lt;f32&gt;
+) -&gt; VertexOutput {
+    var out: VertexOutput;
+
+    out.viewDir = normalize((normalMatrix * vec4&lt;f32&gt;(-viewDirection, 0.0)).xyz);
+    out.lightDir = normalize((normalMatrix * vec4&lt;f32&gt;(-lightDirection, 0.0)).xyz);
+    out.normal = normalize(normalMatrix * vec4&lt;f32&gt;(inNormal, 0.0)).xyz;  
+    var wldLoc:vec4&lt;f32&gt; = modelView * vec4&lt;f32&gt;(inPos+offset, 1.0);
+    out.clip_position = projection * wldLoc;
+    out.inPos = projection * wldLoc;
+    return out;
+}
+
+@group(2) @binding(0)
+var t_depth: texture_depth_2d;
+@group(2) @binding(1)
+var s_depth: sampler_comparison;
+@group(2)
+@binding(2)
+var&lt;storage,read_write&gt; debug: vec4&lt;f32&gt;;
+
+@fragment
+fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -&gt; @location(0) vec4&lt;f32&gt; {
+    var uv:vec2&lt;f32&gt; = 0.5*(in.inPos.xy/in.inPos.w + vec2(1.0,1.0));
+    var visibility:f32 = textureSampleCompare(
+        t_depth, s_depth,
+        vec2(uv.x, 1.0-uv.y),  in.clip_position.z - 0.0001
+    );
+
+    debug = in.clip_position;
+    //debug = in.inPos;
+    //debug = vec4(uv,in.inPos.z/in.inPos.w, in.clip_position.z);
+    if (visibility &lt; 0.5) {
+        discard;
+    }
+
+    var lightDir:vec3&lt;f32&gt; = normalize(in.lightDir);
+    var n:vec3&lt;f32&gt; = normalize(in.normal);
+
+    var color:vec3&lt;f32&gt; = diffuseColor.rgb;
+
+    if (!face) {
+        n = normalize(-in.lightDir);
+      //  color = vec3&lt;f32&gt;(0.0, 1.0, 0.0);
+    }
+    var viewDir: vec3&lt;f32&gt; = in.viewDir;
+
+    var radiance:vec3&lt;f32&gt;  = ambientColor.rgb * ambientConstant + 
+                    diffuse(-lightDir, n, color)* diffuseConstant +
+                    specular(-lightDir, viewDir, n, specularColor.rgb, shininess) * specularConstant;
+    //return vec4&lt;f32&gt;(uv.xy,0.0,1.0);
+    return vec4&lt;f32&gt;(radiance * diffuseColor.w, diffuseColor.w);
+}
+</pre></code><div class="code-segments-caption">5_05_transparency/index.html:96-197 Depth peeling shader</div></div><p>this shader should look familiar to us. it's almost the same lighting shader with a slight difference. This shader loads a depth map, and does a comparison of the current depth value with what's in the depth map. it renders the fragment only when the new depth is larger than that on the depth map. this is how we peel away things before the depth map.</p><div class="code-fragments"><pre><code class="language-javascript code-block">out.clip_position = projection * wldLoc;
+out.inPos = projection * wldLoc;
+</pre></code><div class="code-segments-separator">...</div><pre><code class="language-javascript code-block">var uv:vec2&lt;f32&gt; = 0.5*(in.inPos.xy/in.inPos.w + vec2(1.0,1.0));
+var visibility:f32 = textureSampleCompare(
+    t_depth, s_depth,
+    vec2(uv.x, 1.0-uv.y),  in.clip_position.z - 0.0001
+);
+
+debug = in.clip_position;
+//debug = in.inPos;
+//debug = vec4(uv,in.inPos.z/in.inPos.w, in.clip_position.z);
+</pre></code><div class="code-segments-caption">5_05_transparency/index.html:153-176 Calculate depth and uv coordinates</div></div><p>What worth noticing is the above logic to calculate the uv coordinates for depth map fetching, as well as the current depth. what may appear strange to you is that I have two variables clip_position and inPos, both seem to save the clip space position vector. they appear to be duplicated.</p><p>I'm doing so intentionally to show you that what has been passed into the clip_position in the vertex shader will be changed before the fragment shader. hence once we read it back in the fragment shader, it is not the same clip position, despite that the variable's name is the same.</p><p>recall when we introduced the gpu pipeline, we learned that during the vertex shader stage, we only sparsely define properties on each vertices. And then we go through a step called rasterization. during rasterization, we convert triangle geometries into fragments similar to laying bricks. the values defined on each fragments are obtained through bilinear interpolation. interpolation can explain some of the value changes, but not all. Another obvious change is that, the pipeline will also alter the coordinate system. for x and y, the pipeline will change it from the clip_space to the normalized device coordinates and then the normalized device coordinates are converted to the framebuffer coordinates (The top-left corner is at (0.0, 0.0). x increases to the right. y increases down.) for x and y. for the z, we will map it to a value in the viewport depth range: vp.minDepth + n.z × ( vp.maxDepth - vp.minDepth );</p><p>there is a technical term to describe the values passed into the fragment shader: <a class="link" href="https://gpuweb.github.io/gpuweb/#rasterizationpoint" target="_blank">RasterizationPoint</a>. bear in mind that there are data changes despite the variable naming might be the same.</p><p>with that in mind, it shouldn't be difficult to understand the uv calculation, we basically map the NDC range in [-1,1] to [0,1]; and we will need to flip the y axis, as for the texture coordinate, y increases down. And for the z value, we just read it from the clip_position.z;</p><p>now, let's see how this pipeline is set up.</p><p>the first thing is that we need to have an empty canvas to serve as the background. the order of the rendering is that we render from the front to the back order and finally we overlay what's been rendered on the background.</p><p>at the beginning of each round, we need to clear our dst texture to (0,0,0,1). This is easy to achieve using the built-in functionality of clearing color attachments when loading, without needing to draw anything. the dst texture is the layer zero for our front-to-back alpha blending. The first layer will blend with this texture, and the second layer will blend with the resulting texture and so on. and finally the dst texture should have all layers composed in the front to back order. we then apply it to a background.</p><p>you may wonder why the dst texture map is cleaned up with the value (0,0,0,1)? rather than (0,0,0,0). shouldn't the layer zero be completely transparent. yes, the first layer should be fully transparent and have the color (0,0,0,0). but recall that when doing the front-to-back blending, we utilize the alpha channel to save (1.0 - A_{dst}) rather than the A_{dst} itself. hence we assign the alpha to 1.0 here.</p><div class="code-fragments"><pre><code class="language-javascript code-block">const renderPassCleanupDesc = {
+    colorAttachments: [{
+        view: dstTexture.createView(),
+        clearValue: { r: 0, g: 0, b: 0, a: 1 },
+        loadOp: 'clear',
+        storeOp: 'store'
+    }]
+}
+</pre></code><div class="code-segments-separator">...</div><pre><code class="language-javascript code-block">let passEncoderCleanup = commandEncoder.beginRenderPass(renderPassCleanupDesc);
+passEncoderCleanup.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+passEncoderCleanup.end();
+</pre></code><div class="code-segments-caption">5_05_transparency/index.html:1218-1269 Clean up the background</div></div><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="An Image to Show Individual Layers" sources='[]' /><div class="img-title">An Image to Show Individual Layers</div></div></p><p>for the actual rendering, we first define two depth maps for alternative usage. This is because for each peeling step, we want to read the depth values from one of them, and write to the other one. since we can't read and write to the same depth map, we need to have two depth maps used in an alternating pattern.</p><div class="code-fragments"><pre><code class="language-javascript code-block">depthAttachment0 = {
+    view: depthTexture1.createView(),
+    depthClearValue: 1,
+    depthLoadOp: 'clear',
+    depthStoreOp: 'store'
+};
+
+depthAttachment1 = {
+    view: depthTexture0.createView(),
+    depthClearValue: 1,
+    depthLoadOp: 'clear',
+    depthStoreOp: 'store'
+};
+</pre></code><div class="code-segments-separator">...</div><pre><code class="language-javascript code-block">let colorAttachment0 = {
+    view: colorTextureForDebugging.createView(),
+    clearValue: { r: 0, g: 0, b: 0, a: 0 },
+    loadOp: 'clear',
+    storeOp: 'store'
+};
+
+let colorAttachment1 = {
+    view: colorTextureForDebugging.createView(),
+    clearValue: { r: 0, g: 0, b: 0, a: 0 },
+    loadOp: 'clear',
+    storeOp: 'store'
+};
+</pre></code><div class="code-segments-separator">...</div><pre><code class="language-javascript code-block">const renderPassDesc0 = {
+    colorAttachments: [colorAttachment0],
+    depthStencilAttachment: depthAttachment0
+};
+
+const renderPassDesc1 = {
+    colorAttachments: [colorAttachment1],
+    depthStencilAttachment: depthAttachment1
+};
+</pre></code><div class="code-segments-separator">...</div><pre><code class="language-javascript code-block">for (let p = 0; p &lt; 6; ++p) {
+
+    let passEncoder0 = null;
+    if (p % 2 == 0) {
+        passEncoder0 = commandEncoder.beginRenderPass(renderPassDesc0);
+    }
+    else {
+        passEncoder0 = commandEncoder.beginRenderPass(renderPassDesc1);
+    }
+    passEncoder0.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+    teapot.encode(passEncoder0, pipeline, p);
+    plane.encode(passEncoder0, pipeline, p);
+    sphere.encode(passEncoder0, pipeline, p);
+    passEncoder0.end();
+    let passEncoder1 = commandEncoder.beginRenderPass(renderPassBlend);
+    passEncoder1.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+    blender.encode(passEncoder1);
+    passEncoder1.end();
+}
+</pre></code><div class="code-segments-caption">5_05_transparency/index.html:1148-1288 The actual rendering logic</div></div><p>at the beginning, we set the depth maps to be all ones. because one is the maximum possible value for depth. this is to make sure during the first peeling step, we can render the front most layer.</p><p>for the color attachment, we always clear it to (0,0,0,0) for the front to back rendering.</p><p>notice that we loop the peeling step for 6 times. this is a hardcoded value meaning at most, we can peel 6 layers. if we have more layers in the scene, our program won't be able to handle. this is a draw back of the current implementation, we have to predetermine the maximum number of supported layers.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="An Image to Show the Rendering Order, Front to Back and Then on the Background" sources='[]' /><div class="img-title">An Image to Show the Rendering Order, Front to Back and Then on the Background</div></div></p><p>after rendering objects, we then call into blender to compose the newly rendered layer onto the existing layer. we will explain the blender in detail later.</p><div class="code-fragments"><pre><code class="language-javascript code-block">struct VertexOutput {
+    @builtin(position) clip_position: vec4&lt;f32&gt;,
+    @location(0) tex_coords: vec2&lt;f32&gt;
+};
+
+@vertex
+fn vs_main(
+    @location(0) inPos: vec4&lt;f32&gt;
+) -&gt; VertexOutput {
+    var out: VertexOutput;
+    out.clip_position = vec4&lt;f32&gt;(inPos.xy, 0.0, 1.0);
+    out.tex_coords = inPos.zw;
+    return out;
+}
+
+// Fragment shader
+@group(0) @binding(0)
+var t_src: texture_2d&lt;f32&gt;;
+@group(0) @binding(1)
+var s: sampler;
+
+@fragment
+fn fs_main(in: VertexOutput) -&gt; @location(0) vec4&lt;f32&gt; {
+    var color:vec4&lt;f32&gt; = textureSample(t_src, s, in.tex_coords);
+    return color;
+}
+</pre></code><div class="code-segments-caption">5_05_transparency/index.html:38-63 Blending shader</div></div><p>The shader is very simple, it simply load a texture (the rendered layer) and apply it on the framebuffer. the crucial part is the alpha blending setup of the pipeline:</p><div class="code-fragments"><pre><code class="language-javascript code-block">const colorState = {
+    format: 'bgra8unorm',
+    blend: {
+        color: {
+            operation: "add",
+            srcFactor: 'dst-alpha',
+            dstFactor: 'one',
+        },
+        alpha: {
+            operation: "add",
+            srcFactor: 'zero',
+            dstFactor: 'one-minus-src-alpha',
+        }
+    }
+};
+</pre></code><div class="code-segments-caption">5_05_transparency/index.html:387-401 Blending function setup</div></div><p>Notice that this is the same blending equation we have explained above, under the condition that the src color is already premultiplied (see the shader for object rendering).</p><div class="code-fragments"><pre><code class="language-javascript code-block">const renderPassBlend = {
+    colorAttachments: [{
+        view: dstTexture.createView(),
+        clearValue: { r: 0, g: 0, b: 0, a: 0 },
+        loadOp: 'load',
+        storeOp: 'store'
+    }]
+}
+</pre></code><div class="code-segments-separator">...</div><pre><code class="language-javascript code-block">let passEncoder1 = commandEncoder.beginRenderPass(renderPassBlend);
+passEncoder1.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+blender.encode(passEncoder1);
+passEncoder1.end();
+</pre></code><div class="code-segments-caption">5_05_transparency/index.html:1235-1287 Render pass for blending</div></div><p>The above is the render pass descriptor. it starts with a cleaned up dst texture. notice that the dst texture was cleaned up with (0,0,0,1) and from then on, we will not clear the texture anymore, we will load it for each blending operation, as the texture contains layers we have already composed.</p><div class="code-fragments"><pre><code class="language-javascript code-block">struct VertexOutput {
+    @builtin(position) clip_position: vec4&lt;f32&gt;,
+    @location(0) tex_coords: vec2&lt;f32&gt;
+};
+
+@vertex
+fn vs_main(
+    @location(0) inPos: vec4&lt;f32&gt;
+) -&gt; VertexOutput {
+    var out: VertexOutput;
+    out.clip_position = vec4&lt;f32&gt;(inPos.xy, 0.0, 1.0);
+    out.tex_coords = inPos.zw;
+    return out;
+}
+
+// Fragment shader
+@group(0) @binding(0)
+var t_composed: texture_2d&lt;f32&gt;;
+@group(0) @binding(1 )
+var s_composed: sampler;
+
+@fragment
+fn fs_main(in: VertexOutput) -&gt; @location(0) vec4&lt;f32&gt; {
+    return textureSample(t_composed, s_composed, in.tex_coords);
+}
+</pre></code><div class="code-segments-separator">...</div><pre><code class="language-javascript code-block">const colorState = {
+    format: 'bgra8unorm',
+    blend: {
+        alpha: {
+            operation: "add",
+            srcFactor: 'one',
+            dstFactor: 'one-minus-src-alpha',
+        },
+        color: {
+            operation: "add",
+            srcFactor: 'one',
+            dstFactor: 'one-minus-src-alpha',
+        }
+    }
+};
+</pre></code><div class="code-segments-separator">...</div><pre><code class="language-javascript code-block">let finalEncoder = commandEncoder.beginRenderPass(renderPassFinal);
+final.encode(finalEncoder);
+finalEncoder.end();
+</pre></code><div class="code-segments-caption">5_05_transparency/index.html:68-1291 Final step</div></div><p>finally, in the very last step, we render the composed layers onto a black background using the back-to-front blending. Since our color is premultiplied, we will be using the <code class="language-math math-inline">C_src+(1-A_src)*C_dst</code> formula.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Image to Show Rendering Result" sources='[]' /><div class="img-title">Image to Show Rendering Result</div></div></p>
         </article>
     </div>
     <!-- The Modal -->
@@ -248,7 +489,6 @@ lang: javascript</code></pre><p>finally, in the very last step, we render the co
         });
     }
 
-    hljs.highlightAll();
 
 </script>
 </body>
