@@ -27,6 +27,7 @@
     <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
 
 
@@ -218,6 +219,7 @@ let orthProjMatrix = glMatrix.mat4.ortho(glMatrix.mat4.create(), -320.0, 320.0, 
     }
 
     hljs.highlightAll();
+    hljs.initLineNumbersOnLoad();
 
 </script>
 </body>

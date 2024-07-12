@@ -27,6 +27,7 @@
     <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
 
 
@@ -569,6 +570,7 @@ fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3&lt;u32&gt;,
     }
 
     hljs.highlightAll();
+    hljs.initLineNumbersOnLoad();
 
 </script>
 </body>
