@@ -304,6 +304,34 @@ blockquote p {
     animation-duration: 0.6s;
 }
 
+@keyframes zoom {
+    from {
+        transform: scale(0)
+    }
+
+    to {
+        transform: scale(1)
+    }
+}
+
+/* The Close Button */
+.close {
+    position: absolute;
+    top: 15px;
+    right: 35px;
+    color: var(--dark-description-text-color);
+    font-size: 40px;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.close:hover,
+.close:focus {
+    color: var(--normal-text-color);
+    text-decoration: none;
+    cursor: pointer;
+}
+
 /* for block of numbers */
 .hljs-ln-numbers {
     -webkit-touch-callout: none;
