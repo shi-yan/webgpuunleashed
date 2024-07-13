@@ -27,7 +27,8 @@
     <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
 
 
@@ -56,12 +57,12 @@
 </head>
 
 <body>
-    <nav role="navigation">
-        <div id="menuToggle">
-            <input type="checkbox" />
-            <span></span>
-            <span></span>
-            <span></span>
+    <div id="menuToggle">
+        <input type="checkbox" />
+        <span></span>
+        <span></span>
+        <span></span>
+        <div id="menu-container">
             <ul id="menu">
                 <!--<li><a href="#">Home</a></li>
                 <li><a href="#">About</a></li>
@@ -147,7 +148,8 @@
                 </li>
             </ul>
         </div>
-    </nav>
+    </div>
+
     <div id="article-container">
         <article>
             <h2 >3.1 Arcball Camera Control</h2><p>another common interaction we want to have is being able to rotate the 3d object we are rendering. this is often implemented via a concept called Arcball. The idea is simple, we enclose the 3d object inside a virtual 3d sphere, and we use mouse to rotate this 3d sphere. The mouse cursor move in a 2D plan, but 3d sphere rotation is 3d. how can a 2d movement control a 3d rotation. because for 3d rotation, we can rotate in 3 different directions, raw pitch and yaw.</p><p>we can handle this situation by projecting our virtual sphere onto the screen plane. when the mouse cursor is moving within the projected area, we use the x axis to do yaw and the y axis to do pitch. But when our mouse cursor is outside the projected area, we will rotate the object along the roll direction.</p><p>In this demo, we want to visualize the projected sphere by drawing a ring that highlights the silluatte of the sphere. Rendering this ring is a very standard operation, which we have seen many times in this book, I will hence skip the details here. please refer to the sample code for the implementation details.</p><p>One thing to note when rendering this ring is that we are using the line-strip type for geometry primitive for the pipeline.</p><p>For visualization, we will be rendering the same teapot. The difference is that we can rotate this teapot freely this time. I will again skip the details, as it's almost the same as before.</p><p>For the Arcball, we would like to enclose its implementation in a class:</p><pre><code class="language-javascript code-block">    class Arcball {
@@ -343,38 +345,38 @@
         }
     </script>
 
-<script type="module">
-    const macros = {};
-    const mathElementsBlock = document.getElementsByClassName("math-block");
-    for (let element of mathElementsBlock) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            displayMode: true,
-            macros
-        });
-    }
+    <script type="module">
+        const macros = {};
+        const mathElementsBlock = document.getElementsByClassName("math-block");
+        for (let element of mathElementsBlock) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                displayMode: true,
+                macros
+            });
+        }
 
-    const mathElementsInline = document.getElementsByClassName("math-inline");
-    for (let element of mathElementsInline) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            macros
-        });
-    }
+        const mathElementsInline = document.getElementsByClassName("math-inline");
+        for (let element of mathElementsInline) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                macros
+            });
+        }
 
         hljs.highlightAll();
         // hljs.initLineNumbersOnLoad();
         const codeBlocks = document.getElementsByClassName("code-block");
-        for (let i =0;i<codeBlocks.length;++i) {
-            if ( codeBlocks[i].hasAttribute("startnumber")) {
+        for (let i = 0; i < codeBlocks.length; ++i) {
+            if (codeBlocks[i].hasAttribute("startnumber")) {
                 const startFrom = codeBlocks[i].getAttribute("startnumber");
-                hljs.lineNumbersBlock(codeBlocks[i], {startFrom:  parseInt(startFrom, 10)});
+                hljs.lineNumbersBlock(codeBlocks[i], { startFrom: parseInt(startFrom, 10) });
             } else {
                 hljs.lineNumbersBlock(codeBlocks[i]);
             }
         }
 
-</script>
+    </script>
 </body>
 
 </html>

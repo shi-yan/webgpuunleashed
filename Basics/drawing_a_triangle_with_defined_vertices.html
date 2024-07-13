@@ -27,7 +27,8 @@
     <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/html.min.js"></script>
 
 
@@ -56,12 +57,12 @@
 </head>
 
 <body>
-    <nav role="navigation">
-        <div id="menuToggle">
-            <input type="checkbox" />
-            <span></span>
-            <span></span>
-            <span></span>
+    <div id="menuToggle">
+        <input type="checkbox" />
+        <span></span>
+        <span></span>
+        <span></span>
+        <div id="menu-container">
             <ul id="menu">
                 <!--<li><a href="#">Home</a></li>
                 <li><a href="#">About</a></li>
@@ -147,7 +148,8 @@
                 </li>
             </ul>
         </div>
-    </nav>
+    </div>
+
     <div id="article-container">
         <article>
             <h2 >1.2 Drawing a Triangle with Defined Vertices</h2><p>In the previous tutorial, we have drawn a triangle without feeding any vertex data. The vertex positions are calculated in the shader. This trick only works when we only need to draw very simple geometry. For most of the real cases, deriving positions based on vertex indices is not practical. We need to prepare vertex positions as input data and provide it to the pipeline.</p><p>In this tutorial, we will again draw a single triangle. However, this time, we will create vertex data explicitly.</p><pre><code class="language-html code-block">&lt;script id="shader" type="wgsl"&gt;
@@ -301,38 +303,38 @@ fn vs_main(
         }
     </script>
 
-<script type="module">
-    const macros = {};
-    const mathElementsBlock = document.getElementsByClassName("math-block");
-    for (let element of mathElementsBlock) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            displayMode: true,
-            macros
-        });
-    }
+    <script type="module">
+        const macros = {};
+        const mathElementsBlock = document.getElementsByClassName("math-block");
+        for (let element of mathElementsBlock) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                displayMode: true,
+                macros
+            });
+        }
 
-    const mathElementsInline = document.getElementsByClassName("math-inline");
-    for (let element of mathElementsInline) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            macros
-        });
-    }
+        const mathElementsInline = document.getElementsByClassName("math-inline");
+        for (let element of mathElementsInline) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                macros
+            });
+        }
 
         hljs.highlightAll();
         // hljs.initLineNumbersOnLoad();
         const codeBlocks = document.getElementsByClassName("code-block");
-        for (let i =0;i<codeBlocks.length;++i) {
-            if ( codeBlocks[i].hasAttribute("startnumber")) {
+        for (let i = 0; i < codeBlocks.length; ++i) {
+            if (codeBlocks[i].hasAttribute("startnumber")) {
                 const startFrom = codeBlocks[i].getAttribute("startnumber");
-                hljs.lineNumbersBlock(codeBlocks[i], {startFrom:  parseInt(startFrom, 10)});
+                hljs.lineNumbersBlock(codeBlocks[i], { startFrom: parseInt(startFrom, 10) });
             } else {
                 hljs.lineNumbersBlock(codeBlocks[i]);
             }
         }
 
-</script>
+    </script>
 </body>
 
 </html>

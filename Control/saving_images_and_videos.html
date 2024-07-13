@@ -27,7 +27,8 @@
     <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
 
 
@@ -56,12 +57,12 @@
 </head>
 
 <body>
-    <nav role="navigation">
-        <div id="menuToggle">
-            <input type="checkbox" />
-            <span></span>
-            <span></span>
-            <span></span>
+    <div id="menuToggle">
+        <input type="checkbox" />
+        <span></span>
+        <span></span>
+        <span></span>
+        <div id="menu-container">
             <ul id="menu">
                 <!--<li><a href="#">Home</a></li>
                 <li><a href="#">About</a></li>
@@ -147,7 +148,8 @@
                 </li>
             </ul>
         </div>
-    </nav>
+    </div>
+
     <div id="article-container">
         <article>
             <h2 >3.3 Saving Images and Videos</h2><p>In this tutorial, we are going to look at how to dump our rendering as image and video. This is useful for applications like video and image editing.</p><p>saving images is not difficult, as the canvas element has a built-in feature to save its content to a blob. in the demo, I add the image dumping logic at the end of the rendering function, because I want to be sure that when a user click save image, the content is up-to-date. Hence we want to render the scene again before saving, and only when the rendering is done, we save the image.</p><pre><code class="language-javascript code-block">            if (takeScreenshot) {
@@ -321,38 +323,38 @@
         }
     </script>
 
-<script type="module">
-    const macros = {};
-    const mathElementsBlock = document.getElementsByClassName("math-block");
-    for (let element of mathElementsBlock) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            displayMode: true,
-            macros
-        });
-    }
+    <script type="module">
+        const macros = {};
+        const mathElementsBlock = document.getElementsByClassName("math-block");
+        for (let element of mathElementsBlock) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                displayMode: true,
+                macros
+            });
+        }
 
-    const mathElementsInline = document.getElementsByClassName("math-inline");
-    for (let element of mathElementsInline) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            macros
-        });
-    }
+        const mathElementsInline = document.getElementsByClassName("math-inline");
+        for (let element of mathElementsInline) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                macros
+            });
+        }
 
         hljs.highlightAll();
         // hljs.initLineNumbersOnLoad();
         const codeBlocks = document.getElementsByClassName("code-block");
-        for (let i =0;i<codeBlocks.length;++i) {
-            if ( codeBlocks[i].hasAttribute("startnumber")) {
+        for (let i = 0; i < codeBlocks.length; ++i) {
+            if (codeBlocks[i].hasAttribute("startnumber")) {
                 const startFrom = codeBlocks[i].getAttribute("startnumber");
-                hljs.lineNumbersBlock(codeBlocks[i], {startFrom:  parseInt(startFrom, 10)});
+                hljs.lineNumbersBlock(codeBlocks[i], { startFrom: parseInt(startFrom, 10) });
             } else {
                 hljs.lineNumbersBlock(codeBlocks[i]);
             }
         }
 
-</script>
+    </script>
 </body>
 
 </html>

@@ -27,7 +27,8 @@
     <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
 
 
@@ -56,12 +57,12 @@
 </head>
 
 <body>
-    <nav role="navigation">
-        <div id="menuToggle">
-            <input type="checkbox" />
-            <span></span>
-            <span></span>
-            <span></span>
+    <div id="menuToggle">
+        <input type="checkbox" />
+        <span></span>
+        <span></span>
+        <span></span>
+        <div id="menu-container">
             <ul id="menu">
                 <!--<li><a href="#">Home</a></li>
                 <li><a href="#">About</a></li>
@@ -147,7 +148,8 @@
                 </li>
             </ul>
         </div>
-    </nav>
+    </div>
+
     <div id="article-container">
         <article>
             <h2 >1.15 Understanding Normals</h2><p>In this tutorial, we explore the concept of normals, a fundamental aspect of understanding lighting in 3D scenes. Lighting effects in computer graphics depend on how light interacts with the material of a surface. The direction from which light strikes a surface can alter its appearance, making it crucial to determine where a surface is facing. This directional aspect is referred to as the normal direction.</p><p>To achieve flat surfaces, you can define a normal direction for each surface. For instance, on a cube, each side should possess a distinct normal direction. All points on the same surface should share the same normal direction, creating sharp transitions at edges and corners. This approach is suitable for objects with sharp creases, like a cube.</p><p>However, for more complex geometry, such as organic models like animals, we aim for smoother, more rounded surfaces instead of sharp creases. In such cases, defining normals on vertices is preferred.</p><p>Vertex normals are like averages of all the adjacent surface normals. When rendering the surface, interpolating vertex normals results in a smooth transition on the surface, achieving a polished look.</p><p>Normals can be calculated based on geometry or loaded from a file. Most 3D model files contain not just vertex positions but also normals. In this tutorial, we extend our loading logic to include normals.</p><pre><code class="language-javascript code-block">    for (let v of obj.result.models[0].vertices) {
@@ -264,38 +266,38 @@ fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -&gt; @location
         }
     </script>
 
-<script type="module">
-    const macros = {};
-    const mathElementsBlock = document.getElementsByClassName("math-block");
-    for (let element of mathElementsBlock) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            displayMode: true,
-            macros
-        });
-    }
+    <script type="module">
+        const macros = {};
+        const mathElementsBlock = document.getElementsByClassName("math-block");
+        for (let element of mathElementsBlock) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                displayMode: true,
+                macros
+            });
+        }
 
-    const mathElementsInline = document.getElementsByClassName("math-inline");
-    for (let element of mathElementsInline) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            macros
-        });
-    }
+        const mathElementsInline = document.getElementsByClassName("math-inline");
+        for (let element of mathElementsInline) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                macros
+            });
+        }
 
         hljs.highlightAll();
         // hljs.initLineNumbersOnLoad();
         const codeBlocks = document.getElementsByClassName("code-block");
-        for (let i =0;i<codeBlocks.length;++i) {
-            if ( codeBlocks[i].hasAttribute("startnumber")) {
+        for (let i = 0; i < codeBlocks.length; ++i) {
+            if (codeBlocks[i].hasAttribute("startnumber")) {
                 const startFrom = codeBlocks[i].getAttribute("startnumber");
-                hljs.lineNumbersBlock(codeBlocks[i], {startFrom:  parseInt(startFrom, 10)});
+                hljs.lineNumbersBlock(codeBlocks[i], { startFrom: parseInt(startFrom, 10) });
             } else {
                 hljs.lineNumbersBlock(codeBlocks[i]);
             }
         }
 
-</script>
+    </script>
 </body>
 
 </html>

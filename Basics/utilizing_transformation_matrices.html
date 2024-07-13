@@ -27,7 +27,8 @@
     <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/html.min.js"></script>
 
 
@@ -56,12 +57,12 @@
 </head>
 
 <body>
-    <nav role="navigation">
-        <div id="menuToggle">
-            <input type="checkbox" />
-            <span></span>
-            <span></span>
-            <span></span>
+    <div id="menuToggle">
+        <input type="checkbox" />
+        <span></span>
+        <span></span>
+        <span></span>
+        <div id="menu-container">
             <ul id="menu">
                 <!--<li><a href="#">Home</a></li>
                 <li><a href="#">About</a></li>
@@ -147,7 +148,8 @@
                 </li>
             </ul>
         </div>
-    </nav>
+    </div>
+
     <div id="article-container">
         <article>
             <h2 >1.8 Utilizing Transformation Matrices</h2><p>In this tutorial, we're going to revisit our previous shader example to achieve the same result—an offset triangle. However, this time, we'll do it differently. Instead of using a simple offset vector, we're going to employ a transformation matrix. By multiplying our vertex positions with this transformation matrix, we'll produce the same outcome. The key takeaway here is that adding an offset vector is equivalent to applying a transformation matrix.</p><p>Transformation matrices provide a more versatile way to represent transformations. In practice, we rarely limit ourselves to applying offsets alone. Transformation matrices can handle not just offsetting but also scaling and rotation. If you're new to graphics development, this concept might be unfamiliar, so let's take a closer look.</p><p>To illustrate this, consider a simplified 2D example. Imagine we have a point located at (3, 4). Now, we want to apply an offset of (5, 5) to this point. Traditionally, we would use an offset vector and add it to the vertex position to achieve the desired offset.</p><p class="katex-display-counter"><code class="language-math math-block">\begin{pmatrix}
@@ -239,38 +241,38 @@ fn vs_main(
         }
     </script>
 
-<script type="module">
-    const macros = {};
-    const mathElementsBlock = document.getElementsByClassName("math-block");
-    for (let element of mathElementsBlock) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            displayMode: true,
-            macros
-        });
-    }
+    <script type="module">
+        const macros = {};
+        const mathElementsBlock = document.getElementsByClassName("math-block");
+        for (let element of mathElementsBlock) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                displayMode: true,
+                macros
+            });
+        }
 
-    const mathElementsInline = document.getElementsByClassName("math-inline");
-    for (let element of mathElementsInline) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            macros
-        });
-    }
+        const mathElementsInline = document.getElementsByClassName("math-inline");
+        for (let element of mathElementsInline) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                macros
+            });
+        }
 
         hljs.highlightAll();
         // hljs.initLineNumbersOnLoad();
         const codeBlocks = document.getElementsByClassName("code-block");
-        for (let i =0;i<codeBlocks.length;++i) {
-            if ( codeBlocks[i].hasAttribute("startnumber")) {
+        for (let i = 0; i < codeBlocks.length; ++i) {
+            if (codeBlocks[i].hasAttribute("startnumber")) {
                 const startFrom = codeBlocks[i].getAttribute("startnumber");
-                hljs.lineNumbersBlock(codeBlocks[i], {startFrom:  parseInt(startFrom, 10)});
+                hljs.lineNumbersBlock(codeBlocks[i], { startFrom: parseInt(startFrom, 10) });
             } else {
                 hljs.lineNumbersBlock(codeBlocks[i]);
             }
         }
 
-</script>
+    </script>
 </body>
 
 </html>

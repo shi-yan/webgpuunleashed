@@ -27,7 +27,8 @@
     <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
 
 
@@ -56,12 +57,12 @@
 </head>
 
 <body>
-    <nav role="navigation">
-        <div id="menuToggle">
-            <input type="checkbox" />
-            <span></span>
-            <span></span>
-            <span></span>
+    <div id="menuToggle">
+        <input type="checkbox" />
+        <span></span>
+        <span></span>
+        <span></span>
+        <div id="menu-container">
             <ul id="menu">
                 <!--<li><a href="#">Home</a></li>
                 <li><a href="#">About</a></li>
@@ -147,7 +148,8 @@
                 </li>
             </ul>
         </div>
-    </nav>
+    </div>
+
     <div id="article-container">
         <article>
             <h2 >2.4 Text Rendering</h2><p>You might be surprised to discover that text rendering using graphics API like WebGPU or similar is not that easy. And yet, displaying text seems to be a very fundamental need even for 3D use cases. we need it on ui, and for labels in visualization and for 2D content in games, etc. as language is the most provassive content that has the lowest bar to create, rendering text is unavoidable.</p><p>But text rendering is not a ready function provided by these graphics API. in fact, you have to do a lot of work to do it perfectly.</p><p>in this chapter, we will look at the most preliminary way of supporting text and I also hope to cover some background on what's needed to implement a full featured text rendering system and what are the trade offs between different approaches.</p><p>let's first talk about a full text rendering process. on our system, we have a lot of font files. usually, each font file covers only a portion of all possible characters in one or a few languages, but not all of them. when we type a text, the first step is determine which font files to load the characters from. we need to check if the character we want presents in the top priority font file. if we don't find the characters defined in the font file, for example, we type a mix of English and Chinese characters, likely the top priority english font won't have the chinese characters, we will have to search for other alternatives. This step is called font fall back. we will end up have a set of candidate font files for rendering something as simple as a sentence.</p><p>what's saved in a font file? it is usually a database of glyphs and their measurements. notice that a glyph is not necessarily the same as a character. it is a partial character that we can use to assemble a character. For example, in an emoji font file, a smelling face waring sunglasses could be represented by a face and sunglasses glyphs. this hugely increased the complexity of font rendering. next, we will have to go through a process called text shaping, which refers to the process of transforming text characters from their basic form (glyphs) into their appropriate contextual forms, taking into account factors such as font styles, ligatures, character positioning, and language-specific rules. this is especially difficult to do right, when there are multiple fonts and languages involved. And next is font rasterization. most of the glyphs are kept as geometry data, such as line segments and curves. the benefit of using geometry is that it is immune to resizing. But others might be in a bitmap format, common seen on emojis, which are essentially small pictures. implementing a robust rendering function has to be able to mix different formats nicely.</p><p>Text rendering system usually incorporate a character caches system. for all characters that have been seen already, the cache system establish a lookup table to avoid repeatedly rasterizing them. this is more efficient for small alphabet languages, but difficult for languages like chinese which has a lot of more characters. Also if the system needs to handle font resizing, the cache has to be invalidated to rerender characters in the correct resolution.</p><p>And finally, we need to consider how to format long text, or text wrapping and reflow, if the text container can change its size.</p><p>because text rendering is so difficult, people seldom do it from scratch. operating system usually provide an implementation, but a good cross-platform choice is scare. there are other libraries that can handle one of the rendering stage, for example text shaping. but most of the tools are developed for the cpp world. we have less choice when it comes to the web.</p><p>in the context of 3D graphics, we usually have to make trade offs. in games, for example, we may only support english to simplify character cache. or we may choose monospaced fonts in a terminal, IDE type of application to simplify text shaping.</p><p>in this tutorial, we only covers the most basic implementation of text rendering. we will rely on a 2D canvas to draw a piece of text and create a texture map based on it. this way, we can leverage the existing text functional provided by the web browser to handle all the aforementioned complexity. The draw back of this approach is that for text dense application, this approach will create a lot of texture maps and excuse gpu memory quickly. and for dynamic text content, repeatedly rasterizing text using a 2d canvas and creating texture maps might be slow. also we are limited to the font styles that are available in a 2D context. the method is more suitable for visualization use cases, to render labels or simple uis.</p><p>now let's look at the code</p><pre><code class="language-javascript code-block">    function printText(device, text) {
@@ -245,38 +247,38 @@ f_{sa} * A_s \bigodot f_{da} * A_d &= A \\
         }
     </script>
 
-<script type="module">
-    const macros = {};
-    const mathElementsBlock = document.getElementsByClassName("math-block");
-    for (let element of mathElementsBlock) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            displayMode: true,
-            macros
-        });
-    }
+    <script type="module">
+        const macros = {};
+        const mathElementsBlock = document.getElementsByClassName("math-block");
+        for (let element of mathElementsBlock) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                displayMode: true,
+                macros
+            });
+        }
 
-    const mathElementsInline = document.getElementsByClassName("math-inline");
-    for (let element of mathElementsInline) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            macros
-        });
-    }
+        const mathElementsInline = document.getElementsByClassName("math-inline");
+        for (let element of mathElementsInline) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                macros
+            });
+        }
 
         hljs.highlightAll();
         // hljs.initLineNumbersOnLoad();
         const codeBlocks = document.getElementsByClassName("code-block");
-        for (let i =0;i<codeBlocks.length;++i) {
-            if ( codeBlocks[i].hasAttribute("startnumber")) {
+        for (let i = 0; i < codeBlocks.length; ++i) {
+            if (codeBlocks[i].hasAttribute("startnumber")) {
                 const startFrom = codeBlocks[i].getAttribute("startnumber");
-                hljs.lineNumbersBlock(codeBlocks[i], {startFrom:  parseInt(startFrom, 10)});
+                hljs.lineNumbersBlock(codeBlocks[i], { startFrom: parseInt(startFrom, 10) });
             } else {
                 hljs.lineNumbersBlock(codeBlocks[i]);
             }
         }
 
-</script>
+    </script>
 </body>
 
 </html>

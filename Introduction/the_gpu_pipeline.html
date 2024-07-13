@@ -46,12 +46,12 @@
 </head>
 
 <body>
-    <nav role="navigation">
-        <div id="menuToggle">
-            <input type="checkbox" />
-            <span></span>
-            <span></span>
-            <span></span>
+    <div id="menuToggle">
+        <input type="checkbox" />
+        <span></span>
+        <span></span>
+        <span></span>
+        <div id="menu-container">
             <ul id="menu">
                 <!--<li><a href="#">Home</a></li>
                 <li><a href="#">About</a></li>
@@ -137,7 +137,8 @@
                 </li>
             </ul>
         </div>
-    </nav>
+    </div>
+
     <div id="article-container">
         <article>
             <h2 >0.1 The GPU Pipeline</h2><p>Previously, we learned how applications connect with GPUs through drivers. But once a drawing request has been sent to a GPU, what happens next? In this lecture, we will explore how a GPU processes draw commands and produces pixels.</p><p>First, let's clarify what data and commands are sent to the GPU. So far, we have been referring to these as draw commands or draw requests, but what do these actually consist of?</p><p>When programming a GPU, we need to provide it with three types of data in order to work.</p><p>First, we need to define or configure the GPU pipeline. To use a metaphor, if the GPU is a versatile artist, we can configure it to draw in the style of Da Vinci or Rubens by providing shader programs. Shader programs are programs that run on the GPU and determine how pixels should be colored. However, shader programs are not the only data required for configuration. There are additional steps involved, which we will learn about in future chapters.</p><p>Second, once the GPU pipeline is configured, it is ready to produce pixels. We now need to feed it with raw inputs, typically hundreds or millions of triangles, which the GPU pipeline will convert into pixels.</p><p>Finally, there may be other metadata required during the above process. The specific metadata required will depend on the specific situation.</p><p>We have mentioned the GPU pipeline a few times, but have not yet explained it in detail. In fact, the GPU pipeline is a theoretical abstraction of the GPU hardware. While it may not necessarily match the actual hardware implementation, it is the most important concept for real-time 3D programming from a software engineering perspective, as all of our programming activities revolve around making use of the GPU pipeline.</p><p>A good way to understand the GPU pipeline is to imagine the GPU as a factory. The raw materials, in this case, are geometric shapes represented using triangles, and the end products are pixels. The GPU pipeline is the process by which the raw materials are transformed into the final products.</p><p>In the 3D world, triangles are the fundamental building blocks for all shapes, just as pixels are for 2D graphics. Why use triangles, you might ask? It is because using triangles is the most cost-effective way of representing arbitrary surfaces in a watertight manner.</p><p>Watertightness is a concept in computer graphics. A mesh is watertight if it does not contain holes and has a clearly defined inside and outside. For a more rigorous definition of water tightness, you can visit <a class="link" href="https://davidstutz.de/a-formal-definition-of-watertight-meshes/" target="_blank">this blog</a> and <a class="link" href="https://www.youtube.com/watch?v=lRd6qylwFqg" target="_blank">this video</a>.</p><p>While using triangles is not the only way to represent 3D shapes, it is the most effective. For example, in point-based rendering, small disks are used to represent the surface of a 3D shape. However, these disks must be densely sampled on the underlying 3D surface in order to avoid gaps and prevent artifacts from appearing. Even when densely sampled, if we zoom in enough, gaps may still be visible. On the other hand, triangles can be used to cover a surface without any gaps, even when zoomed in. For instance, a 3D model of a sphere can be represented using a mesh of triangles, with each triangle smoothly transitioning to the adjacent triangles to form a seamless, gap-free surface. This allows the 3D shape to be accurately rendered even when viewed at high magnification.</p><p>Inside the GPU factory, triangles go through a series of steps to become pixels. These steps make up the GPU pipeline. In the past, the GPU pipeline was fixed and could only produce pixels in a predefined manner. However, it has since become programmable, allowing us to write GPU programs called shaders and define our own way of producing pixels.</p><p>The graphics pipeline is the single most important concept in this tutorial. The core activities of GPU programming involve defining pipelines and providing shader programs. Therefore, it is crucial to have a good understanding of the GPU pipeline.</p><p>The classic GPU pipeline consists of four stages: vertex, rasterization, fragment, and blending. While the modern pipeline has introduced a few additional stages, we only need to focus on these four for most graphics tasks. Out of these four stages, only the vertex and fragment stages are programmable.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="projection3.png" alt="Applying a Projection Matrix Is Like Fitting an Object Onto the Screen . \Label{Proj}" sources='[]' /><div class="img-title">Applying a Projection Matrix Is Like Fitting an Object Onto the Screen . \Label{Proj}</div></div></p><p>The first step in turning 3D geometries into 2D pixels is to "squeeze" 3D objects into 2D space. This is done by the first stage of the pipeline, called the vertex stage. The input to this stage is mainly triangles in a 3D coordinate system called world space. The output of this stage is still triangles, but they have been "squeezed" into the 2D screen coordinate system, or screen space (also known as clip space). Exactly how to convert coordinates from world space to screen space is determined by us in the vertex shader program. The goal is to project 3D objects onto a 2D plane in order to sample them into pixels.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="culling.png" alt="Back Face Culling Rejects Triangles That Don't Contribute to the Final Image." sources='[]' /><div class="img-title">Back Face Culling Rejects Triangles That Don't Contribute to the Final Image.</div></div></p><p>The second stage is called rasterization. Rasterization is a computer graphics term that describes the process of turning a 2D shape into pixels that cover the same area. The output of this step is called fragments. It is important to note that fragments are not yet pixels. While both are dots in a 2D plane, pixels have color and are displayable, while fragments are dots with arbitrary data. The specific data attached to fragments is up to the programmer and can include texture coordinates, depth, and colors. However, fragments are not yet displayable because their final colors have not been determined. This is the job of the next stage.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="clip.png" alt="Clipping Removes Triangles Outside the Visible Area." sources='[]' /><div class="img-title">Clipping Removes Triangles Outside the Visible Area.</div></div></p><p>When programming the GPU pipeline, a programmer's role is to assign metadata, such as texture coordinates, to vertices. The rasterization stage then uses interpolation to generate the corresponding metadata for all fragments. In addition to performing rasterization, this stage also performs optimization techniques to reduce the workload of subsequent stages. These techniques can include culling, which removes triangles that are facing away from the view, and clipping, which eliminates fragments that are outside the visible area.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="ras.png" alt="Rasterization Covers Each Triangle With Fragments." sources='[]' /><div class="img-title">Rasterization Covers Each Triangle With Fragments.</div></div></p><p>With the fragments generated, we can move on to the Fragment stage. In this stage, we assign a color to each fragment, effectively turning it into a pixel. The coloring logic is determined by the fragment shader program that we provide.</p><p>(animation 6, blending)</p><p>Finally, the blending stage applies each newly generated pixel to the existing image in the frame buffer. The frame buffer contains the current state of the image, including all previously drawn elements. In the blending stage, we have the option to either completely overwrite existing pixels or mix the new pixels with the existing ones. This is useful for implementing transparent effects.</p><p>Once the drawing is complete, the frame buffer is presented to the user, concluding one frame of rendering. WebGPU and other 3D graphics APIs provide the tools we need to define the graphics pipeline and send resources to the GPU memory.</p><p>Before we conclude this section, let's discuss why we need GPUs in the first place. Why can't we just use powerful CPUs to handle graphics work? To use an analogy, imagine that you're a factory owner. Would you always want to hire employees with Ph.D.s? If you're building a patent factory, hiring Ph.D.s makes perfect sense. However, if you're building a banana can factory and the task is simply peeling bananas, hiring 100 monkeys might be a better choice. With the same number of resources, you would be able to maintain a much larger team of monkeys. Ph.D.s are very capable and can collaborate well on research projects, but peeling bananas doesn't require extensive research capabilities or collaboration. CPUs are like Ph.D.s in that they are very capable and are designed to handle synchronization well. GPUs, on the other hand, contain massive arrays of small computation units that can quickly handle simpler tasks, especially when the task is independent and doesn't require collaboration. When it comes to flattening triangles and coloring pixels, both of these tasks are simple and independent, so a GPU is the ideal hardware for them. In the past, GPUs were only used for graphics, but as soon as they became programmable, we started seeing more and more use cases that could benefit from them, such as artificial intelligence, physics simulation, video and image processing.</p><p>In summary, this lesson provided an overview of the GPU driver and the graphics pipeline, and explained how the pipeline converts triangles to pixels. In the next lesson, we will learn how to configure our first WebGPU pipeline to render a simple scene.</p><table class="footnote-def"><tr class="footnote-row" id="footnote_1"><td>[1]: </td><td><p>The Camera model used in diagrams throughout this book, <a class="link" href="https://skfb.ly/6SKrW" target="_blank">"1930's Movie Camera"</a> by Daz, is licensed under <a class="link" href="http://creativecommons.org/licenses/by/4.0/" target="_blank">Creative Commons Attribution</a>.</p></td></tr></table>
@@ -187,27 +188,27 @@
         }
     </script>
 
-<script type="module">
-    const macros = {};
-    const mathElementsBlock = document.getElementsByClassName("math-block");
-    for (let element of mathElementsBlock) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            displayMode: true,
-            macros
-        });
-    }
+    <script type="module">
+        const macros = {};
+        const mathElementsBlock = document.getElementsByClassName("math-block");
+        for (let element of mathElementsBlock) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                displayMode: true,
+                macros
+            });
+        }
 
-    const mathElementsInline = document.getElementsByClassName("math-inline");
-    for (let element of mathElementsInline) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            macros
-        });
-    }
+        const mathElementsInline = document.getElementsByClassName("math-inline");
+        for (let element of mathElementsInline) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                macros
+            });
+        }
 
 
-</script>
+    </script>
 </body>
 
 </html>

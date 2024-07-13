@@ -27,7 +27,8 @@
     <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
 
 
@@ -56,12 +57,12 @@
 </head>
 
 <body>
-    <nav role="navigation">
-        <div id="menuToggle">
-            <input type="checkbox" />
-            <span></span>
-            <span></span>
-            <span></span>
+    <div id="menuToggle">
+        <input type="checkbox" />
+        <span></span>
+        <span></span>
+        <span></span>
+        <div id="menu-container">
             <ul id="menu">
                 <!--<li><a href="#">Home</a></li>
                 <li><a href="#">About</a></li>
@@ -147,7 +148,8 @@
                 </li>
             </ul>
         </div>
-    </nav>
+    </div>
+
     <div id="article-container">
         <article>
             <h2 >5.5 Transparency with Depth Peeling</h2><p>transparency is another example of a fundamental visual effect that is not supported by 3d graphics aPIs out of box. and its implementation is not that trivial. previously I have introduced alpha blending and used it to achieve certain semi-transparent effects, such as when rendering text. However when it comes to 3D objects, alpha blending alone will not achieve the correct result.</p><p>the fundamental issue is that depth testing is required to implement occlusion, but it has conflict with transparency rendering. imagine a 3d scene with opaque and transparent objects. if we disable depth testing, occlusion will not be rendered properly. however if we enable depth testing, transparent objects in front of the opaque objects will occlude the opaque objects. but the correct rendering should be that the transparent objects should overlay the opaque objects, instead of occluding them. we should be able to see through the transparent objects to see the opaque objects.</p><p>one naive idea is drawing the scene's object in order from back to front with depth testing only applied to each individual object, but turned off when overlaying objects on top of others. If you have used photoshop before, this is similar to the layer concept. The problem is that in certain situations, it's difficult to order objects. for example:</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Image to Show a Inter Linked Chain" sources='[]' /><div class="img-title">Image to Show a Inter Linked Chain</div></div></p><p>if ordering objects is not a good solution, you might think about ordering the triangles. but similar to ordering objects, it's sometimes difficult to determine the order of triangles too. for example:</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Image to Show an Intersected Triangle" sources='[]' /><div class="img-title">Image to Show an Intersected Triangle</div></div></p><p>in this tutorial, we will look at a better technique called depth peeling. the idea is also similar to photoshop's layers. however, instead of treating the objects or triangles as layers. we peel the scene from the front to the back and put each peeled scene as a layer and compose them together to form the final rendering.</p><p>let me explain what I mean for peeling scene. we first render the scene with depth testing. This will result in the front most objects being rendered regardless if objects are transparent or not. at the same time, we keep the depth map. The rendering result will be the layer zero. then, we render the scene again, however, we only render fragments that a behind the first depth map, i.e. the depth is larger than the depth value. the result will be that we have peeled the front most fragments, and revealed the second layer of fragments, let this be the layer one. similarly, we keep the depth map. from now on, we repeat the procedure, rendering the scene again, but keep fragments only when they have a depth value larger than that of the depth map. this will be the layer two and so on.</p><p>in the end, we will break down the scene into a set of layers based on depth. in the final pass, we compose the layers from front to back using alpha blending to create the final result.</p><p>The key concept of depth peeling is not difficult. I think one key aspect of understanding it thoroughly is understanding the alpha blending formula used for the front to back blending.</p><p>I have worked in the field of computer graphics for many years, but I must admit, I found alpha blending and concepts like premultiplied alpha, back-to-front blending, and front-to-back blending confusing. While it's easy to find online resources that provide the formulas to use in different situations, truly understanding the underlying principles is crucial for handling more complex cases.</p><p>I want to express my gratitude to the book <a class="link" href="https://www.amazon.com/Advanced-Graphics-Programming-Kaufmann-Computer/dp/1558606599" target="_blank">Advanced Graphics Programming Using OpenGL</a>, which has a dedicated chapter that patiently explains how alpha blending works (starting from page 185).</p><p>My earlier confusion stemmed from conceptualizing alpha as opacity, similar to how we perceive transparency in real life. For example, imagining a semi-transparent red film, where red is the color and alpha represents the semi-transparency. This misconception made it difficult for me to grasp concepts like premultiplied alpha. In real life, an object's color is generally unrelated to its transparency – a very transparent red film should still appear red. However, in computer graphics, we have the concept of premultiplied alpha, where we multiply the alpha value with the color, causing a very transparent red to appear dark red or even black.</p><p>The correct way to conceptualize alpha is as the "amount of color" rather than opacity. In computer graphics, there is no true transparency; it's more akin to painting, where all pigments are fully opaque, differing only in color.</p><p>To create the illusion of semi-transparency, we must mix colors by taking a weighted average of existing colors, simulating the effect of light passing through multiple layers of color. When mixing colors, the only controllable factor is the amount of color, which corresponds to the alpha channel of an RGBA pixel.</p><p>Thus, the most basic form of alpha blending two colors is:</p><p class="katex-display-counter"><code class="language-math math-block">\begin{aligned}
@@ -480,38 +482,38 @@ finalEncoder.end();
         }
     </script>
 
-<script type="module">
-    const macros = {};
-    const mathElementsBlock = document.getElementsByClassName("math-block");
-    for (let element of mathElementsBlock) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            displayMode: true,
-            macros
-        });
-    }
+    <script type="module">
+        const macros = {};
+        const mathElementsBlock = document.getElementsByClassName("math-block");
+        for (let element of mathElementsBlock) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                displayMode: true,
+                macros
+            });
+        }
 
-    const mathElementsInline = document.getElementsByClassName("math-inline");
-    for (let element of mathElementsInline) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            macros
-        });
-    }
+        const mathElementsInline = document.getElementsByClassName("math-inline");
+        for (let element of mathElementsInline) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                macros
+            });
+        }
 
         hljs.highlightAll();
         // hljs.initLineNumbersOnLoad();
         const codeBlocks = document.getElementsByClassName("code-block");
-        for (let i =0;i<codeBlocks.length;++i) {
-            if ( codeBlocks[i].hasAttribute("startnumber")) {
+        for (let i = 0; i < codeBlocks.length; ++i) {
+            if (codeBlocks[i].hasAttribute("startnumber")) {
                 const startFrom = codeBlocks[i].getAttribute("startnumber");
-                hljs.lineNumbersBlock(codeBlocks[i], {startFrom:  parseInt(startFrom, 10)});
+                hljs.lineNumbersBlock(codeBlocks[i], { startFrom: parseInt(startFrom, 10) });
             } else {
                 hljs.lineNumbersBlock(codeBlocks[i]);
             }
         }
 
-</script>
+    </script>
 </body>
 
 </html>

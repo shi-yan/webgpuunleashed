@@ -27,7 +27,8 @@
     <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
 
 
@@ -56,12 +57,12 @@
 </head>
 
 <body>
-    <nav role="navigation">
-        <div id="menuToggle">
-            <input type="checkbox" />
-            <span></span>
-            <span></span>
-            <span></span>
+    <div id="menuToggle">
+        <input type="checkbox" />
+        <span></span>
+        <span></span>
+        <span></span>
+        <div id="menu-container">
             <ul id="menu">
                 <!--<li><a href="#">Home</a></li>
                 <li><a href="#">About</a></li>
@@ -147,7 +148,8 @@
                 </li>
             </ul>
         </div>
-    </nav>
+    </div>
+
     <div id="article-container">
         <article>
             <h2 >5.0 Stencil Buffer</h2><p>stencil buffer is highly related to depth buffer. when stencil testing is enable, the rendering pipeline will perform a visibility test based on the content in the stencil buffer. the exact formula used for the visibility testing can be confirmed. usually, there are two passes involved in the process. the first pass is populating the stencil buffer, the second step is the actual rendering. but only the portion that passes the visibility test is visible.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Image to Illustrate the Mirror Rendering" sources='[]' /><div class="img-title">Image to Illustrate the Mirror Rendering</div></div></p><p>stencil buffer is useful for implementing certain effects in games, such as mirrors or portals. for example, we can first render the shape of the mirror into the stencil buffer, then we render the scene in the mirror viewing angle with the stencil testing enabled. There are many interesting illusion games, such as this <a class="link" href="https://www.youtube.com/watch?v=kEB11PQ9Eo8" target="_blank">Non-Euclidean Worlds Engine</a>, that is built using smart stencil buffer techniques.</p><p>as previously mentioned, to use stencil buffer, there are usually two passes involved. the first pass is responsible for populating the stencil buffer. this might be a little bit counter intuitive, we can't directly write to the stencil buffer in fragment shader. the data in stencil buffer is a byproduct of rendering, similar to the depth buffer. the actual value we write to it is preconfigured.</p><p>in this tutorial, we will create a simple portal similar to the non-euclidean worlds engine project. the idea is simple, we have a virtual gateway, which is a simple plane. we first render this virtual gateway in order to write to the stencil buffer. then we render the scene with the stencil visibility test enabled. Finally we render the frame of the gateway.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Image of the Gateway Model" sources='[]' /><div class="img-title">Image of the Gateway Model</div></div></p><p>let's first look at the shader code for populating the stencil buffer, as you can see, this is the simplest shader possible. it simply calculates the clip coordinates and render the object as transparent pixels. The point is not actually rendering anything, but to generate the stencil values. similar to the depth value, as long as stencil buffer write is enabled, whenever we generate a fragment, we will also generate a stencil value cached into the stencil buffer.</p><pre><code class="language-javascript code-block">    // Vertex shader
@@ -320,38 +322,38 @@ passEncoder2.end();</code></pre><p>again, when generate the command buffer, we n
         }
     </script>
 
-<script type="module">
-    const macros = {};
-    const mathElementsBlock = document.getElementsByClassName("math-block");
-    for (let element of mathElementsBlock) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            displayMode: true,
-            macros
-        });
-    }
+    <script type="module">
+        const macros = {};
+        const mathElementsBlock = document.getElementsByClassName("math-block");
+        for (let element of mathElementsBlock) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                displayMode: true,
+                macros
+            });
+        }
 
-    const mathElementsInline = document.getElementsByClassName("math-inline");
-    for (let element of mathElementsInline) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            macros
-        });
-    }
+        const mathElementsInline = document.getElementsByClassName("math-inline");
+        for (let element of mathElementsInline) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                macros
+            });
+        }
 
         hljs.highlightAll();
         // hljs.initLineNumbersOnLoad();
         const codeBlocks = document.getElementsByClassName("code-block");
-        for (let i =0;i<codeBlocks.length;++i) {
-            if ( codeBlocks[i].hasAttribute("startnumber")) {
+        for (let i = 0; i < codeBlocks.length; ++i) {
+            if (codeBlocks[i].hasAttribute("startnumber")) {
                 const startFrom = codeBlocks[i].getAttribute("startnumber");
-                hljs.lineNumbersBlock(codeBlocks[i], {startFrom:  parseInt(startFrom, 10)});
+                hljs.lineNumbersBlock(codeBlocks[i], { startFrom: parseInt(startFrom, 10) });
             } else {
                 hljs.lineNumbersBlock(codeBlocks[i]);
             }
         }
 
-</script>
+    </script>
 </body>
 
 </html>

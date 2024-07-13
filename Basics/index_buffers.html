@@ -27,7 +27,8 @@
     <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
 
 
@@ -56,12 +57,12 @@
 </head>
 
 <body>
-    <nav role="navigation">
-        <div id="menuToggle">
-            <input type="checkbox" />
-            <span></span>
-            <span></span>
-            <span></span>
+    <div id="menuToggle">
+        <input type="checkbox" />
+        <span></span>
+        <span></span>
+        <span></span>
+        <div id="menu-container">
             <ul id="menu">
                 <!--<li><a href="#">Home</a></li>
                 <li><a href="#">About</a></li>
@@ -147,7 +148,8 @@
                 </li>
             </ul>
         </div>
-    </nav>
+    </div>
+
     <div id="article-container">
         <article>
             <h2 >1.13 Index Buffers</h2><p>In this section, we'll examine the index buffer, a crucial topic to cover before discussing model loading in the next tutorial. Previously, we explored different triangle rendering topologies, such as <code>triangle-list</code>, the most basic choice. However, it had a drawback – redundant vertices, as many vertices were shared by multiple triangles.</p><p>While both <code>triangle-strip</code> and <code>triangle-fan</code> (triangle-fan doesn't exist) are more memory-efficient, not all objects can be easily represented using these topologies. Often, manual partitioning of 3D meshes is required.</p><p>For instance, a simple cube cannot be represented by a single <code>triangle-strip</code>. Instead, we need three <code>triangle-strip</code>s to enclose the cube, with the vertical walls drawn using one strip and the top and bottom rendered separately with two additional strips. For complex 3D models like a teapot, this partitioning becomes non-trivial and results in hundreds or even thousands of pieces, which is far from ideal.</p><p>An alternative solution to this problem is the index buffer. The concept is straightforward: we maintain a pool of individual vertices, regardless of their connectivity. Then, we introduce an index buffer. Instead of storing the complete vertex data with all attributes like coordinates, colors, and texture coordinates, we only store indices into the vertex pool. The index buffer defines the connectivity of these vertices.</p><p>If a vertex is shared by multiple faces, the index buffer contains redundant vertex indices, but it never duplicates the actual vertex data. Since an index is only an integer, this approach saves significant storage space. Using the index buffer is a more generic and widely adopted solution in 3D applications.</p><p>Now, let's look at the implementation of the index buffer. Notably, the shader code remains unchanged because the graphics pipeline handles the topology and vertex processing.</p><pre><code class="language-javascript code-block">    const positions = new Float32Array([
@@ -227,38 +229,38 @@
         }
     </script>
 
-<script type="module">
-    const macros = {};
-    const mathElementsBlock = document.getElementsByClassName("math-block");
-    for (let element of mathElementsBlock) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            displayMode: true,
-            macros
-        });
-    }
+    <script type="module">
+        const macros = {};
+        const mathElementsBlock = document.getElementsByClassName("math-block");
+        for (let element of mathElementsBlock) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                displayMode: true,
+                macros
+            });
+        }
 
-    const mathElementsInline = document.getElementsByClassName("math-inline");
-    for (let element of mathElementsInline) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            macros
-        });
-    }
+        const mathElementsInline = document.getElementsByClassName("math-inline");
+        for (let element of mathElementsInline) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                macros
+            });
+        }
 
         hljs.highlightAll();
         // hljs.initLineNumbersOnLoad();
         const codeBlocks = document.getElementsByClassName("code-block");
-        for (let i =0;i<codeBlocks.length;++i) {
-            if ( codeBlocks[i].hasAttribute("startnumber")) {
+        for (let i = 0; i < codeBlocks.length; ++i) {
+            if (codeBlocks[i].hasAttribute("startnumber")) {
                 const startFrom = codeBlocks[i].getAttribute("startnumber");
-                hljs.lineNumbersBlock(codeBlocks[i], {startFrom:  parseInt(startFrom, 10)});
+                hljs.lineNumbersBlock(codeBlocks[i], { startFrom: parseInt(startFrom, 10) });
             } else {
                 hljs.lineNumbersBlock(codeBlocks[i]);
             }
         }
 
-</script>
+    </script>
 </body>
 
 </html>

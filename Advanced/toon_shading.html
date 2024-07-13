@@ -27,7 +27,8 @@
     <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
 
 
@@ -56,12 +57,12 @@
 </head>
 
 <body>
-    <nav role="navigation">
-        <div id="menuToggle">
-            <input type="checkbox" />
-            <span></span>
-            <span></span>
-            <span></span>
+    <div id="menuToggle">
+        <input type="checkbox" />
+        <span></span>
+        <span></span>
+        <span></span>
+        <div id="menu-container">
             <ul id="menu">
                 <!--<li><a href="#">Home</a></li>
                 <li><a href="#">About</a></li>
@@ -147,7 +148,8 @@
                 </li>
             </ul>
         </div>
-    </nav>
+    </div>
+
     <div id="article-container">
         <article>
             <h2 >5.2 Toon Shading</h2><p>achieving realistisity is not the only goal of rendering. in fact, there are many rendering styles favor artistic styles instead of realistic, such as painting or cartoon. We see them in games. In this tutorial, we will see a simple cartoon style rendering.</p><p>in particular, we will look at implementing two effects. first, we will see how to add silhouette to our model. And second, how can we adjust the shader so that the color doesn't change gradually to simulate a painterly style.</p><p>let's talk about the silhouette first. There are multiple ways of achieving silhouette. Each has pros and cons. One idea is based on detecting discontinuity in the screen space. This requires us to render the scene first with extra meta data, such as surface normals, depth, colors etc. Then in a second pass, we will detect the discontinuity of these properties. The discontinued area are considered as the separation of two or more objects. we hence make the area darker (the silhouette).</p><p>The drawback of this approach is that it requires costly image space post processing, and is sensitive to the object size in the image space.</p><p>in this tutorial, we will look at another approach, which is simpler. by simply enlarging the object a little bit and flip the enlarged object from inside out. the enlarged object will be shaded as pure black (the silhouette color).</p><p>Since this approach doesn't require screen space post processing, it doesn't suffer major performance issue, and is more commonly used in games.</p><p>enlarging an object can be as simple as offsetting each vertex away from the object's center by a fixed percentage.. But this simple approach doesn't always produces good result. if the object is close to a round shape, this approach may work fine. but if the object is very long, certain area that are further from the center will be stretched more than other parts that are closer. for complex shapes, this simple formula may fail too.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Image to Show Two Artifacts, One a Sphere, a Pole, and a Sheep Swivel Horn" sources='[]' /><div class="img-title">Image to Show Two Artifacts, One a Sphere, a Pole, and a Sheep Swivel Horn</div></div></p><p>A better approach is inflating the object at each vertex along the vertex normal. notice that here we want to use the vertex normal, not the surface normal. because for sharp features, surfaces that share a same vertex may not agree at the vertex. simply offsetting the vertex using surface normals will introduce artifacts. hence we have to calculate a vertex normal by averaging the adjacent surface normals. using the normal also removes the artifacts shown in the above image(c).</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Image to Show the Artifact of Using the Surface Normal" sources='[]' /><div class="img-title">Image to Show the Artifact of Using the Surface Normal</div></div></p><p>But this solution also suffers from another issue, the silhouette is sensitive to the viewing distance. if we are close to the object, we might see thick silhouette, and if the object is far away, we will see the silhouette diminished.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Image to Show the Artifact of Viewing Closely" sources='[]' /><div class="img-title">Image to Show the Artifact of Viewing Closely</div></div></p><p>What we what is uniformly widthed silhouette that is not sensitive to viewing angle and direction. This can be achieved in the clip space. Out algorithm project the vertex normals onto the clip plane first, then in the clip space, we offset the vertex positions according to vertex normals. notice that in the clip space, both the vertex normal and the vertex position are in 2D. since this step is carried out after the perspective projection, the silhouette thickness won't be affected by viewing angle and distance anymore.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Image to Illustrate the Process" sources='[]' /><div class="img-title">Image to Illustrate the Process</div></div></p><p>so far we have learned that to render a silhouette, we need to render an slightly inflated object in black or the silhouette color. And then on top of that, we render the object again normally. there are two ways to render them. The less ideal, but straightforward way is using two passes. During the first pass, we render the inflated object in solid silhouette color, but we don't write to the depth buffer. this is so that the inflated object won't occlude the normal object, given the inflated object is bigger. In the second pass, we render the object again normally on top of the first pass.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Image to Illustrate Method One" sources='[]' /><div class="img-title">Image to Illustrate Method One</div></div></p><p>The second version is simpler but not as intuitive. We flip the inflated object by only rendering its back faces in the silhouette color, not the front face and at the same time, we render the same object normally in a single pass with depth testing enabled. by flipping the inflated object inside out, we essentially pealed away the front side of the inflated object, so that it will not occlude the normally rendered object. This way, we can enable depth test and accomplish everything in one go.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Image to Illustrate Method Two" sources='[]' /><div class="img-title">Image to Illustrate Method Two</div></div></p><p>now let's look at the implementation:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=37>@group(0) @binding(0)
@@ -310,38 +312,38 @@ await device.queue.onSubmittedWorkDone();
         }
     </script>
 
-<script type="module">
-    const macros = {};
-    const mathElementsBlock = document.getElementsByClassName("math-block");
-    for (let element of mathElementsBlock) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            displayMode: true,
-            macros
-        });
-    }
+    <script type="module">
+        const macros = {};
+        const mathElementsBlock = document.getElementsByClassName("math-block");
+        for (let element of mathElementsBlock) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                displayMode: true,
+                macros
+            });
+        }
 
-    const mathElementsInline = document.getElementsByClassName("math-inline");
-    for (let element of mathElementsInline) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            macros
-        });
-    }
+        const mathElementsInline = document.getElementsByClassName("math-inline");
+        for (let element of mathElementsInline) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                macros
+            });
+        }
 
         hljs.highlightAll();
         // hljs.initLineNumbersOnLoad();
         const codeBlocks = document.getElementsByClassName("code-block");
-        for (let i =0;i<codeBlocks.length;++i) {
-            if ( codeBlocks[i].hasAttribute("startnumber")) {
+        for (let i = 0; i < codeBlocks.length; ++i) {
+            if (codeBlocks[i].hasAttribute("startnumber")) {
                 const startFrom = codeBlocks[i].getAttribute("startnumber");
-                hljs.lineNumbersBlock(codeBlocks[i], {startFrom:  parseInt(startFrom, 10)});
+                hljs.lineNumbersBlock(codeBlocks[i], { startFrom: parseInt(startFrom, 10) });
             } else {
                 hljs.lineNumbersBlock(codeBlocks[i]);
             }
         }
 
-</script>
+    </script>
 </body>
 
 </html>

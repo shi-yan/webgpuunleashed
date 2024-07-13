@@ -27,7 +27,8 @@
     <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
 
 
@@ -56,12 +57,12 @@
 </head>
 
 <body>
-    <nav role="navigation">
-        <div id="menuToggle">
-            <input type="checkbox" />
-            <span></span>
-            <span></span>
-            <span></span>
+    <div id="menuToggle">
+        <input type="checkbox" />
+        <span></span>
+        <span></span>
+        <span></span>
+        <div id="menu-container">
             <ul id="menu">
                 <!--<li><a href="#">Home</a></li>
                 <li><a href="#">About</a></li>
@@ -147,7 +148,8 @@
                 </li>
             </ul>
         </div>
-    </nav>
+    </div>
+
     <div id="article-container">
         <article>
             <h2 >4.1 Radix Sort</h2><p>Prefix sum is a crucial foundation for numerous parallel algorithms. In this chapter, we explore its role in constructing another fundamental element: a sorting algorithm known as radix sort. This sorting technique will be instrumental in our next chapter, where we apply it to implement Gaussian splatting.</p><p>The goal of radix sort is to arrange key-value pairs based on their keys, where each key is an integer. This sorting process involves examining one digit of all keys at a time. For instance, if all keys are decimal numbers less than 100, each key has two digits. During sorting, we first consider the least significant digit and rearrange the entire list based on that digit alone. Next, we move on to the most significant digit and reorder the list again. It's important to note that each step of reordering must be a stable sort. This means that if two elements have the same key, the one that appeared earlier in the input will also appear earlier in the sorted output. By ensuring this stability, the order established during the first pass based on the least significant digit can be maintained while performing subsequent passes. Therefore, once we have sorted the list digit by digit, we can be confident that the final list will be ordered by the key.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="An Image Shows a Concrete Sorting Example" sources='[]' /><div class="img-title">An Image Shows a Concrete Sorting Example</div></div></p><p>How is radix sort related to prefix sum? Let's illustrate this relationship using an even simpler case: binary keys. When our keys are binary, with only two possible values (zero and one) for each digit, sorting by a single digit is akin to performing a prefix sum on the occurrences of zeros and ones. Once we have computed the prefix sum, we can predict the new position in the sorted list for each element. For instance, if an element is zero and we know the prefix sum <code class="language-math math-inline">k</code> of all zero occurrences, the element's new location in the sorted list should be <code class="language-math math-inline">k+1</code>. Similarly, if an element is one and we know the prefix sum <code class="language-math math-inline">w</code> of all one occurrences, the element's new location should be <code class="language-math math-inline">w+1+z</code>, where <code class="language-math math-inline">z</code> is the count of all zeros.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="An Image Shows a Concrete Sorting Example" sources='[]' /><div class="img-title">An Image Shows a Concrete Sorting Example</div></div></p><p>This approach can be readily extended to digits of a different numeral system, such as decimal. However, there's a trade-off to consider when selecting the numeral system. Using a system with fewer possible values for a digit, like binary, results in keys with more digits. Consequently, more iterations are needed to complete the sorting process. Conversely, opting for a system with more values per digit shortens the key length but requires more prefix sums in each iteration and more storage to keep track of them. In our example, we will use the Quaternary numeral system.</p><p>What has been described so far is the basic concept. In practice, however, there are additional considerations, primarily due to the 256-workgroup size limit, which means we can only work on arrays of up to size 512. For longer lists, we need to divide the list into multiple 512-sized chunks. To address this, we divide our sorting algorithm into three phases.</p><p>In the first phase, we compute prefix sums within each chunk and save the results, which we refer to as local prefix sums. Additionally, we write the total count of all possible digit values into a global list.</p><p>The second phase involves computing another set of prefix sums on this global list.</p><p>The final phase is the shuffling phase. Here, based on the local prefix sums and the global digit value count, we determine the sorted position of each element in the resulting array and write the value to that location.</p><p>To completely sort a list, we must repeat the three-phase process described above for the entire length of the key's digits.</p><pre><code class="language-javascript code-block">@binding(0) @group(0) var&lt;storage, read&gt; input :array&lt;u32&gt;;
@@ -550,38 +552,38 @@ fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3&lt;u32&gt;,
         }
     </script>
 
-<script type="module">
-    const macros = {};
-    const mathElementsBlock = document.getElementsByClassName("math-block");
-    for (let element of mathElementsBlock) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            displayMode: true,
-            macros
-        });
-    }
+    <script type="module">
+        const macros = {};
+        const mathElementsBlock = document.getElementsByClassName("math-block");
+        for (let element of mathElementsBlock) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                displayMode: true,
+                macros
+            });
+        }
 
-    const mathElementsInline = document.getElementsByClassName("math-inline");
-    for (let element of mathElementsInline) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            macros
-        });
-    }
+        const mathElementsInline = document.getElementsByClassName("math-inline");
+        for (let element of mathElementsInline) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                macros
+            });
+        }
 
         hljs.highlightAll();
         // hljs.initLineNumbersOnLoad();
         const codeBlocks = document.getElementsByClassName("code-block");
-        for (let i =0;i<codeBlocks.length;++i) {
-            if ( codeBlocks[i].hasAttribute("startnumber")) {
+        for (let i = 0; i < codeBlocks.length; ++i) {
+            if (codeBlocks[i].hasAttribute("startnumber")) {
                 const startFrom = codeBlocks[i].getAttribute("startnumber");
-                hljs.lineNumbersBlock(codeBlocks[i], {startFrom:  parseInt(startFrom, 10)});
+                hljs.lineNumbersBlock(codeBlocks[i], { startFrom: parseInt(startFrom, 10) });
             } else {
                 hljs.lineNumbersBlock(codeBlocks[i]);
             }
         }
 
-</script>
+    </script>
 </body>
 
 </html>

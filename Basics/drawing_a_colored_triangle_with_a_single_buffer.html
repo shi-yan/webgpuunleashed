@@ -27,7 +27,8 @@
     <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/html.min.js"></script>
 
 
@@ -56,12 +57,12 @@
 </head>
 
 <body>
-    <nav role="navigation">
-        <div id="menuToggle">
-            <input type="checkbox" />
-            <span></span>
-            <span></span>
-            <span></span>
+    <div id="menuToggle">
+        <input type="checkbox" />
+        <span></span>
+        <span></span>
+        <span></span>
+        <div id="menu-container">
             <ul id="menu">
                 <!--<li><a href="#">Home</a></li>
                 <li><a href="#">About</a></li>
@@ -147,7 +148,8 @@
                 </li>
             </ul>
         </div>
-    </nav>
+    </div>
+
     <div id="article-container">
         <article>
             <h2 >1.5 Drawing a Colored Triangle with a Single Buffer</h2><p>In the previous example, we utilized two buffers and two locations to supply positions and colors for vertices. However, using two buffers isn't always necessary. In this modified example, we're going to use a single buffer to provide all vertex attributes.</p><p>Here, I'll highlight the differences between this example and the previous one. The shader code remains unchanged.</p><p>The first difference is in the color attribute descriptor. We introduce an offset because we're going to interleave position data and color data. The offset signifies the beginning of the first color. Since we've placed color after vertex positions, the offset is set to 4 bytes times 3, which is the size of a vertex position vector.</p><p>Secondly, instead of creating two buffers (one for positions and one for colors), we now use a single buffer called <code>positionColorBuffer</code>. When creating the descriptor for this buffer, we include both attributes in the attribute list. For <code>arrayStride</code>, we set it to 4 times 6 instead of 3, because, for each vertex, we now have 6 float numbers associated with it.</p><p>Similarly, when creating data for this buffer, we supply 3 by 6 floating-point numbers, with positions and colors interleaved.</p><p>Regarding the pipeline descriptor, in the buffers field, we now only have one buffer descriptor instead of two. When creating the command, we set only one buffer at slot zero.</p><p>This program is equivalent to the previous one, but it uses a single buffer instead of two. Using a single buffer in this case is more efficient because it avoids creating extra resources and eliminates the need to copy data twice from the CPU to the GPU. Transferring data from the CPU to GPU incurs latency, so minimizing these transfers is beneficial.</p><p>You might wonder when to use multiple buffers vs. a single buffer. It depends on how often the attributes change. In this example, we never change the data; both the positions and the colors remain the same throughout execution. Hence, we can store them in a single buffer. However, if we need to change the vertex color frequently, perhaps in an animation, we probably wouldn't want to mix the two attributes in a single buffer. This way, we avoid transferring position data when only color data needs to be sent to the GPU.</p><pre><code class="language-html code-block">&lt;script&gt;
@@ -271,38 +273,38 @@
         }
     </script>
 
-<script type="module">
-    const macros = {};
-    const mathElementsBlock = document.getElementsByClassName("math-block");
-    for (let element of mathElementsBlock) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            displayMode: true,
-            macros
-        });
-    }
+    <script type="module">
+        const macros = {};
+        const mathElementsBlock = document.getElementsByClassName("math-block");
+        for (let element of mathElementsBlock) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                displayMode: true,
+                macros
+            });
+        }
 
-    const mathElementsInline = document.getElementsByClassName("math-inline");
-    for (let element of mathElementsInline) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            macros
-        });
-    }
+        const mathElementsInline = document.getElementsByClassName("math-inline");
+        for (let element of mathElementsInline) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                macros
+            });
+        }
 
         hljs.highlightAll();
         // hljs.initLineNumbersOnLoad();
         const codeBlocks = document.getElementsByClassName("code-block");
-        for (let i =0;i<codeBlocks.length;++i) {
-            if ( codeBlocks[i].hasAttribute("startnumber")) {
+        for (let i = 0; i < codeBlocks.length; ++i) {
+            if (codeBlocks[i].hasAttribute("startnumber")) {
                 const startFrom = codeBlocks[i].getAttribute("startnumber");
-                hljs.lineNumbersBlock(codeBlocks[i], {startFrom:  parseInt(startFrom, 10)});
+                hljs.lineNumbersBlock(codeBlocks[i], { startFrom: parseInt(startFrom, 10) });
             } else {
                 hljs.lineNumbersBlock(codeBlocks[i]);
             }
         }
 
-</script>
+    </script>
 </body>
 
 </html>

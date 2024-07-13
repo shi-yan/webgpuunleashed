@@ -46,12 +46,12 @@
 </head>
 
 <body>
-    <nav role="navigation">
-        <div id="menuToggle">
-            <input type="checkbox" />
-            <span></span>
-            <span></span>
-            <span></span>
+    <div id="menuToggle">
+        <input type="checkbox" />
+        <span></span>
+        <span></span>
+        <span></span>
+        <div id="menu-container">
             <ul id="menu">
                 <!--<li><a href="#">Home</a></li>
                 <li><a href="#">About</a></li>
@@ -137,7 +137,8 @@
                 </li>
             </ul>
         </div>
-    </nav>
+    </div>
+
     <div id="article-container">
         <article>
             <h1 >WebGPU Unleashed: A Practical Tutorial</h1><p><div class="img-container"><img class="img" onclick="openImage(this)" src="meta.png" alt="WebGPU Unleashed: A Practical Tutorial" sources='[]' /><div class="img-title">WebGPU Unleashed: A Practical Tutorial</div></div></p><p>Welcome to the code samples for 'WebGPU Unleashed: A Practical Tutorial', your ticket to the dynamic world of graphics programming.</p><p>Dive in and discover the magic of creating stunning visuals from scratch, mastering the art of real-time graphics, and unlocking the power of WebGPU - all in one captivating tutorial.</p>
@@ -187,27 +188,27 @@
         }
     </script>
 
-<script type="module">
-    const macros = {};
-    const mathElementsBlock = document.getElementsByClassName("math-block");
-    for (let element of mathElementsBlock) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            displayMode: true,
-            macros
-        });
-    }
+    <script type="module">
+        const macros = {};
+        const mathElementsBlock = document.getElementsByClassName("math-block");
+        for (let element of mathElementsBlock) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                displayMode: true,
+                macros
+            });
+        }
 
-    const mathElementsInline = document.getElementsByClassName("math-inline");
-    for (let element of mathElementsInline) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            macros
-        });
-    }
+        const mathElementsInline = document.getElementsByClassName("math-inline");
+        for (let element of mathElementsInline) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                macros
+            });
+        }
 
 
-</script>
+    </script>
 </body>
 
 </html>

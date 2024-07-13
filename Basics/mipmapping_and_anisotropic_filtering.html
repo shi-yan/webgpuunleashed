@@ -27,7 +27,8 @@
     <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
 
 
@@ -56,12 +57,12 @@
 </head>
 
 <body>
-    <nav role="navigation">
-        <div id="menuToggle">
-            <input type="checkbox" />
-            <span></span>
-            <span></span>
-            <span></span>
+    <div id="menuToggle">
+        <input type="checkbox" />
+        <span></span>
+        <span></span>
+        <span></span>
+        <div id="menu-container">
             <ul id="menu">
                 <!--<li><a href="#">Home</a></li>
                 <li><a href="#">About</a></li>
@@ -147,7 +148,8 @@
                 </li>
             </ul>
         </div>
-    </nav>
+    </div>
+
     <div id="article-container">
         <article>
             <h2 >1.18 Mipmapping and Anisotropic Filtering</h2><p>In this tutorial, we're going to talk about Mipmaps. It's a wrong belief that a texture map is simply just an image, because a texture map can have multiple levels.</p><p>At each level, we usually have the same image of different resolution with the level 0 being the original resolution. At level 1, we have a smaller version of the original image, and so on. We call this the level of details.</p><p>The reason that we need multiple resolutions of the same image is to resolve a sampling issue. Let me explain.</p><p>We access the texture image through a sampling function. What I mean by sampling is that we're not going to read the entire image as a whole. Instead, we read the image color by color by providing texture coordinates. Because we don't have the holistic view of the image, our sampling density will determine what we see, even the texture image is unchanged.</p><p>If our sampling density is very low, we will not be able to reconstruct the original appearance of the original image. Instead, we're going to get some weird result.</p><p>Let me explain this more clearly using an analogy. Assume you wake up at an interval to look at the sky. In the end, you want to conclude the color of the sky. If the interval is very short, let's say 5 minutes, you will be able to see all different colors of the sky. In the nighttime, the sky is very dark. During the daytime, it's bright, sometimes it's blue, sometimes it's gray. During the sunset, the color can be orange. You will be able to see all color variants of the sky. However, if your interval is very long, you wake up once every 24 hours. And you happen to wake up during the nighttime, then all you can see is the dark sky. And you will incorrectly conclude that the sky's color is always dark, which is wrong.</p><p>So a similar thing could happen for texture map. If we're sampling the texture map at a very low density, then we will get a very weird looking image. when will the sampling density be low? Well, for example, if you apply a texture map on a 3D plane, and the 3D plane is very away from our camera, and because of the perspective projection, an object that is further away will be projected on the screen into a small size. Because texture map sampling is carried out on each fragment, it could happen that only a few fragments overlap with the 3D plane, which means we're not going to sample the texture map enough. We will end up with a very strange looking image.</p><p>So let me actually show you a situation like this with actual code. below is the same shader we've seen before when introducing texture mapping. But instead of using the baboon texture map, this time we're going to use a checkerboard to make the issue more obvious.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="An Example of Checker Board" sources='[]' /><div class="img-title">An Example of Checker Board</div></div></p><p>So with this naive implementation, as you can see, on the near side of the checkerboard, we see clearly the checkerboard pattern. However, on the far side of the checkerboard, we start to see that the pattern becomes stripes. They don't resemble a checkerboard anymore. This is because we're not sampling the texture map enough.</p><p>if when we sample fragments, we happen to fall on a black area. We end up getting a lot of black from the texture map.The end result will be a black stripe instead of the alternating black and white color.Similarly, if we happen to sample always on the white area, we're going to get a white stripe without any black.That's why the far side looks like a zebra stripe instead of a checkerboard.</p><p>Now to fix this issue, we need to rely on the Mipmap. Given an original image, we're going to gradually shrink its size to make a smaller version of the same image.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="An Image to Explain Mipmap Interpolation" sources='[]' /><div class="img-title">An Image to Explain Mipmap Interpolation</div></div></p><p>When we sample the texture map, we will Based on the distance, choose the most appropriate texture map level. We sample a pixel of color from that level of texture map. The reason being, by choosing a smaller version of the texture map, we essentially mix nearby pixels to get an average color.</p><p>In the checkerboard case, when we shrink the size of the checkerboard, we make it a gray color because we essentially mix white and black areas. But it will produce a better result because when the checkerboard is further away, we will naturally see a gray color instead of a zebra stripe.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="An Example of Checker Board" sources='[]' /><div class="img-title">An Example of Checker Board</div></div></p><p>With this way of sampling texture map, we can avoid weird artifacts due to not enough sampling rate.</p><p>One difficulty of doing Mipmap with WebGPU is that we have to manually create our Mipmap using a shader.If you come from other graphics API like OpenGL, you probably know that generating Mipmap for texture map is mostly automatic. But for WebGPU, we have to write code. But it's not that difficult. Now let's look at the code side of changes.</p><pre><code class="language-javascript code-block">        const textureDescriptor = {
@@ -306,38 +308,38 @@ fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -&gt; @location
         }
     </script>
 
-<script type="module">
-    const macros = {};
-    const mathElementsBlock = document.getElementsByClassName("math-block");
-    for (let element of mathElementsBlock) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            displayMode: true,
-            macros
-        });
-    }
+    <script type="module">
+        const macros = {};
+        const mathElementsBlock = document.getElementsByClassName("math-block");
+        for (let element of mathElementsBlock) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                displayMode: true,
+                macros
+            });
+        }
 
-    const mathElementsInline = document.getElementsByClassName("math-inline");
-    for (let element of mathElementsInline) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            macros
-        });
-    }
+        const mathElementsInline = document.getElementsByClassName("math-inline");
+        for (let element of mathElementsInline) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                macros
+            });
+        }
 
         hljs.highlightAll();
         // hljs.initLineNumbersOnLoad();
         const codeBlocks = document.getElementsByClassName("code-block");
-        for (let i =0;i<codeBlocks.length;++i) {
-            if ( codeBlocks[i].hasAttribute("startnumber")) {
+        for (let i = 0; i < codeBlocks.length; ++i) {
+            if (codeBlocks[i].hasAttribute("startnumber")) {
                 const startFrom = codeBlocks[i].getAttribute("startnumber");
-                hljs.lineNumbersBlock(codeBlocks[i], {startFrom:  parseInt(startFrom, 10)});
+                hljs.lineNumbersBlock(codeBlocks[i], { startFrom: parseInt(startFrom, 10) });
             } else {
                 hljs.lineNumbersBlock(codeBlocks[i]);
             }
         }
 
-</script>
+    </script>
 </body>
 
 </html>

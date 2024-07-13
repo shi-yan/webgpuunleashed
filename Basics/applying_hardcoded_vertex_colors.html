@@ -27,7 +27,8 @@
     <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/html.min.js"></script>
 
 
@@ -56,12 +57,12 @@
 </head>
 
 <body>
-    <nav role="navigation">
-        <div id="menuToggle">
-            <input type="checkbox" />
-            <span></span>
-            <span></span>
-            <span></span>
+    <div id="menuToggle">
+        <input type="checkbox" />
+        <span></span>
+        <span></span>
+        <span></span>
+        <div id="menu-container">
             <ul id="menu">
                 <!--<li><a href="#">Home</a></li>
                 <li><a href="#">About</a></li>
@@ -147,7 +148,8 @@
                 </li>
             </ul>
         </div>
-    </nav>
+    </div>
+
     <div id="article-container">
         <article>
             <h2 >1.3 Applying Hardcoded Vertex Colors</h2><p>Welcome to the fourth tutorial! In this lesson, we'll once again focus on drawing a triangle. I understand that it might seem a bit repetitive, and our progress may appear slow as we're still dealing with triangles. However, bear with me because our approach is deliberate. We aim to take small, incremental steps by making only a few code updates at a time. Building a solid understanding of the GPU programming model is essential before delving into more complex examples.</p><p>Rest assured, our pace will accelerate once we reach the second chapter. So, in this updated tutorial, we'll make slight changes to the code. Specifically, we'll continue to use the same rendering pipeline, but this time, we'll modify the shader.</p><p>Previously, we hard-coded the output color in the fragment shader. In this tutorial, we'll still hard-code the output color but in the vertex stage rather than the fragment stage. We'll pass this hard-coded color from the vertex stage to the fragment stage. The goal is to illustrate how values are passed between different stages of the pipeline.</p><p>First, as you can see, I've modified the vertex output struct by introducing a new field called color. Since there are no built-ins for a vertex color, we're using location 0 to store it. At the end of the vertex stage, we assign a hard-coded color to out.color.</p><p>In the fragment stage, we can access this color from the input and directly pass it as the output. This is a straightforward change, and you'll observe the same triangle being rendered.</p><p>Now, I have a question for our readers. In the vertex stage, we process individual vertices, while in the fragment stage, we deal with individual fragments. Remember, a fragment is conceptually similar to a pixel but can contain rich metadata such as depth and other values.</p><p>Between the vertex and fragment stages, there's an automatic conversion from geometry data to fragments handled by the GPU.</p><p>Here's the interesting part: If we assign a different color to each vertex, how will the GPU assign colors to the fragments, especially for those fragments that lie in the middle of the triangle and not directly on any of the vertices?</p><pre><code class="language-html code-block">&lt;script id="shader" type="wgsl"&gt;
@@ -222,38 +224,38 @@ fn fs_main(in: VertexOutput) -&gt; @location(0) vec4&lt;f32&gt; {
         }
     </script>
 
-<script type="module">
-    const macros = {};
-    const mathElementsBlock = document.getElementsByClassName("math-block");
-    for (let element of mathElementsBlock) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            displayMode: true,
-            macros
-        });
-    }
+    <script type="module">
+        const macros = {};
+        const mathElementsBlock = document.getElementsByClassName("math-block");
+        for (let element of mathElementsBlock) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                displayMode: true,
+                macros
+            });
+        }
 
-    const mathElementsInline = document.getElementsByClassName("math-inline");
-    for (let element of mathElementsInline) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            macros
-        });
-    }
+        const mathElementsInline = document.getElementsByClassName("math-inline");
+        for (let element of mathElementsInline) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                macros
+            });
+        }
 
         hljs.highlightAll();
         // hljs.initLineNumbersOnLoad();
         const codeBlocks = document.getElementsByClassName("code-block");
-        for (let i =0;i<codeBlocks.length;++i) {
-            if ( codeBlocks[i].hasAttribute("startnumber")) {
+        for (let i = 0; i < codeBlocks.length; ++i) {
+            if (codeBlocks[i].hasAttribute("startnumber")) {
                 const startFrom = codeBlocks[i].getAttribute("startnumber");
-                hljs.lineNumbersBlock(codeBlocks[i], {startFrom:  parseInt(startFrom, 10)});
+                hljs.lineNumbersBlock(codeBlocks[i], { startFrom: parseInt(startFrom, 10) });
             } else {
                 hljs.lineNumbersBlock(codeBlocks[i]);
             }
         }
 
-</script>
+    </script>
 </body>
 
 </html>

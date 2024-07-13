@@ -27,10 +27,11 @@
     <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/html.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/wgsl.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
 
 
     <link rel="stylesheet"
@@ -58,12 +59,12 @@
 </head>
 
 <body>
-    <nav role="navigation">
-        <div id="menuToggle">
-            <input type="checkbox" />
-            <span></span>
-            <span></span>
-            <span></span>
+    <div id="menuToggle">
+        <input type="checkbox" />
+        <span></span>
+        <span></span>
+        <span></span>
+        <div id="menu-container">
             <ul id="menu">
                 <!--<li><a href="#">Home</a></li>
                 <li><a href="#">About</a></li>
@@ -149,7 +150,8 @@
                 </li>
             </ul>
         </div>
-    </nav>
+    </div>
+
     <div id="article-container">
         <article>
             <h2 >1.6 Understanding Uniforms</h2><p>In this tutorial, we'll dive into the concept of uniforms. Uniforms provide a means to supply data to a shader program, and they behave like constants. The critical distinction with uniforms is that their values remain constant throughout the entire execution of a shader.</p><p>Now, you might be wondering how uniforms differ from attributes, which we've previously used to pass data to shader programs. The key difference lies in their intended use:</p><ul><li><p><strong>Attributes</strong>: These are used to provide per-vertex data. When dealing with attributes, we typically bundle all the attribute data into a single buffer. The GPU pipeline then takes care of dissecting this data for each vertex. When a shader program runs on the GPU, it effectively launches numerous instances of the same program, each processing an individual vertex. The GPU's parallel processing capability shines in this aspect, as it can efficiently handle this workload. Think of attributes as the data each vertex requires for its unique processing.</p></li><li><p><strong>Uniforms</strong>: In contrast, uniforms are constants that maintain the same value for all vertices and persist throughout the entire shader program execution. To draw an analogy, consider uniforms as akin to environment variables or command-line arguments when running a command-line program. Once the shader program begins execution, you can think of uniforms as constants that retain their values throughout the process. They don't change or vary per vertex; rather, they provide consistent information to the entire shader.</p></li></ul><p>This distinction is crucial because it enables shaders to handle both per-vertex data (attributes) and shared, unchanging data (uniforms), offering flexibility and efficiency in the rendering process.</p><pre><code class="language-html code-block">&lt;script id="shader" type="wgsl"&gt;
@@ -317,38 +319,38 @@ uniformBuffer.unmap();</code></pre><ul><li><p>We create a <code>uniformData</cod
         }
     </script>
 
-<script type="module">
-    const macros = {};
-    const mathElementsBlock = document.getElementsByClassName("math-block");
-    for (let element of mathElementsBlock) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            displayMode: true,
-            macros
-        });
-    }
+    <script type="module">
+        const macros = {};
+        const mathElementsBlock = document.getElementsByClassName("math-block");
+        for (let element of mathElementsBlock) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                displayMode: true,
+                macros
+            });
+        }
 
-    const mathElementsInline = document.getElementsByClassName("math-inline");
-    for (let element of mathElementsInline) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            macros
-        });
-    }
+        const mathElementsInline = document.getElementsByClassName("math-inline");
+        for (let element of mathElementsInline) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                macros
+            });
+        }
 
         hljs.highlightAll();
         // hljs.initLineNumbersOnLoad();
         const codeBlocks = document.getElementsByClassName("code-block");
-        for (let i =0;i<codeBlocks.length;++i) {
-            if ( codeBlocks[i].hasAttribute("startnumber")) {
+        for (let i = 0; i < codeBlocks.length; ++i) {
+            if (codeBlocks[i].hasAttribute("startnumber")) {
                 const startFrom = codeBlocks[i].getAttribute("startnumber");
-                hljs.lineNumbersBlock(codeBlocks[i], {startFrom:  parseInt(startFrom, 10)});
+                hljs.lineNumbersBlock(codeBlocks[i], { startFrom: parseInt(startFrom, 10) });
             } else {
                 hljs.lineNumbersBlock(codeBlocks[i]);
             }
         }
 
-</script>
+    </script>
 </body>
 
 </html>

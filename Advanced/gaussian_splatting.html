@@ -27,10 +27,11 @@
     <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
 
 
     <link rel="stylesheet"
@@ -58,12 +59,12 @@
 </head>
 
 <body>
-    <nav role="navigation">
-        <div id="menuToggle">
-            <input type="checkbox" />
-            <span></span>
-            <span></span>
-            <span></span>
+    <div id="menuToggle">
+        <input type="checkbox" />
+        <span></span>
+        <span></span>
+        <span></span>
+        <div id="menu-container">
             <ul id="menu">
                 <!--<li><a href="#">Home</a></li>
                 <li><a href="#">About</a></li>
@@ -149,7 +150,8 @@
                 </li>
             </ul>
         </div>
-    </nav>
+    </div>
+
     <div id="article-container">
         <article>
             <h2 >5.8 Gaussian Splatting</h2><p><a class="link" href="https://aras-p.info/blog/2023/12/08/Gaussian-explosion/" target="_blank">Gaussian Splatting</a> has garnered significant attention since last year, particularly following this <a class="link" href="https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/" target="_blank">paper</a>. This technique has piqued my interest due to its potential to become a standard approach for implementing 3D photography.</p><p>Traditional computer graphics predominantly represent 3D scenes using triangles, and GPU hardware is optimized for rendering large quantities of triangles efficiently. The quest for reconstructing a realistic 3D scene from a set of photos taken from different angles has been a vibrant research area. However, achieving photorealism remains a challenge. Triangles fall short when it comes to representing fuzzy, transparent, or non-distinctive objects like clouds or hair.</p><p>In recent years, there have been advancements in implicit 3D representations such as neural radiance fields. These methods can generate photorealistic results and handle non-distinctive objects well, albeit at the cost of intense computation and slow rendering speeds. Subsequently, researchers have been exploring new solutions that can bridge the gap between these approaches. Gaussian splatting emerges as a potential solution. However, this is a rapidly evolving field, with new methods coming out attempting to address some of the limitations of Gaussian splatting. Nevertheless, understanding Gaussian splatting deeply is worthwhile, as it may form the foundation for many future methods.</p><p>In this post, we'll explore how to render Gaussian splats and make sense of its mathematics. Similar to other chapters, rather than focusing on mathematical rigor, I'd like to emphasize intuition, as I believe it is crucial for understanding complex concepts. For those interested in formal descriptions of the method, I'll recommend additional resources. I've also received invaluable assistance from the <a class="link" href="https://github.com/mkkellogg/GaussianSplats3D" target="_blank">GaussianSplats3D
@@ -367,38 +369,38 @@ out.clip_position = vec4&lt;f32&gt;(ndcCenter.xy + ndcOffset, ndcCenter.z, 1.0);
         }
     </script>
 
-<script type="module">
-    const macros = {};
-    const mathElementsBlock = document.getElementsByClassName("math-block");
-    for (let element of mathElementsBlock) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            displayMode: true,
-            macros
-        });
-    }
+    <script type="module">
+        const macros = {};
+        const mathElementsBlock = document.getElementsByClassName("math-block");
+        for (let element of mathElementsBlock) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                displayMode: true,
+                macros
+            });
+        }
 
-    const mathElementsInline = document.getElementsByClassName("math-inline");
-    for (let element of mathElementsInline) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            macros
-        });
-    }
+        const mathElementsInline = document.getElementsByClassName("math-inline");
+        for (let element of mathElementsInline) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                macros
+            });
+        }
 
         hljs.highlightAll();
         // hljs.initLineNumbersOnLoad();
         const codeBlocks = document.getElementsByClassName("code-block");
-        for (let i =0;i<codeBlocks.length;++i) {
-            if ( codeBlocks[i].hasAttribute("startnumber")) {
+        for (let i = 0; i < codeBlocks.length; ++i) {
+            if (codeBlocks[i].hasAttribute("startnumber")) {
                 const startFrom = codeBlocks[i].getAttribute("startnumber");
-                hljs.lineNumbersBlock(codeBlocks[i], {startFrom:  parseInt(startFrom, 10)});
+                hljs.lineNumbersBlock(codeBlocks[i], { startFrom: parseInt(startFrom, 10) });
             } else {
                 hljs.lineNumbersBlock(codeBlocks[i]);
             }
         }
 
-</script>
+    </script>
 </body>
 
 </html>

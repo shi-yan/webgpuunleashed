@@ -27,7 +27,8 @@
     <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cpp.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
 
@@ -57,12 +58,12 @@
 </head>
 
 <body>
-    <nav role="navigation">
-        <div id="menuToggle">
-            <input type="checkbox" />
-            <span></span>
-            <span></span>
-            <span></span>
+    <div id="menuToggle">
+        <input type="checkbox" />
+        <span></span>
+        <span></span>
+        <span></span>
+        <div id="menu-container">
             <ul id="menu">
                 <!--<li><a href="#">Home</a></li>
                 <li><a href="#">About</a></li>
@@ -148,7 +149,8 @@
                 </li>
             </ul>
         </div>
-    </nav>
+    </div>
+
     <div id="article-container">
         <article>
             <h2 >5.6 Skeleton Animation</h2><p>so far we have learned how to create animation for rigid objects by updating model view matrix. in this tutorial, let's look at how to create skeleton animation to animate animals and human figure. unlike rigid objects, they deform while animating.</p><p>fundamentally speaking, simply updating vertex positions, we can achieve any animation we want. but that requires a lot of space for saving the vertex positions, making it impractical for real use. skeleton animation borrows the idea from the great nature, it defines a simplified structure, the skeleton, that is formed by rigid parts called bones connected by joints that can be rotated. The actual vertices of the 3d model is bonded to the bones.</p><p>bones are organized in a hierarchical manner, with the spine being the root, and limbs being the branches and the fingers being the twicks. This way, updating a root bone will affect all attached children bones. This makes bones intuitive to animate.</p><p>hence to derive the actual rotation and translation of a bone, we will have to recursively apply transformations from the root to the end bone.</p><p>each bone has an influential factor for each vertex. With zero means no influential at all. once we have decided each bones transformation, we update the vertices' transformation by applying bone transformations scaled by the bones' influences.</p><p>now let's look at how to implement skeleton animation. First step, we need to create an animate asset. I did this following a simple tutorial in blender. once it is done, we need to export it to a file. not every 3d file format support animation. for example, the obj file formate doesn't. In this example, we will be using the dae file format. Similar to previous tutorials, implementing file parser isn't our focus, we will be using any existing format parser we can find, and convert the data we need into json to load in javascript. This time, we will do the preprocessing in cpp, as our dae file parser is in cpp.</p><div class="code-fragments"><pre><code class="language-cpp code-block" startNumber=1>#include &lt;iostream&gt;
@@ -800,38 +802,38 @@ let boneTransformBufferUpdate = createGPUBuffer(device, boneTransforms, GPUBuffe
         }
     </script>
 
-<script type="module">
-    const macros = {};
-    const mathElementsBlock = document.getElementsByClassName("math-block");
-    for (let element of mathElementsBlock) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            displayMode: true,
-            macros
-        });
-    }
+    <script type="module">
+        const macros = {};
+        const mathElementsBlock = document.getElementsByClassName("math-block");
+        for (let element of mathElementsBlock) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                displayMode: true,
+                macros
+            });
+        }
 
-    const mathElementsInline = document.getElementsByClassName("math-inline");
-    for (let element of mathElementsInline) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            macros
-        });
-    }
+        const mathElementsInline = document.getElementsByClassName("math-inline");
+        for (let element of mathElementsInline) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                macros
+            });
+        }
 
         hljs.highlightAll();
         // hljs.initLineNumbersOnLoad();
         const codeBlocks = document.getElementsByClassName("code-block");
-        for (let i =0;i<codeBlocks.length;++i) {
-            if ( codeBlocks[i].hasAttribute("startnumber")) {
+        for (let i = 0; i < codeBlocks.length; ++i) {
+            if (codeBlocks[i].hasAttribute("startnumber")) {
                 const startFrom = codeBlocks[i].getAttribute("startnumber");
-                hljs.lineNumbersBlock(codeBlocks[i], {startFrom:  parseInt(startFrom, 10)});
+                hljs.lineNumbersBlock(codeBlocks[i], { startFrom: parseInt(startFrom, 10) });
             } else {
                 hljs.lineNumbersBlock(codeBlocks[i]);
             }
         }
 
-</script>
+    </script>
 </body>
 
 </html>

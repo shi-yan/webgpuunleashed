@@ -3,8 +3,7 @@
 html {
     position: relative;
     height: 100vh;
-    width: 100vw;
-    overflow-y: scroll;
+    overflow: hidden;
 }
 
 body {
@@ -18,12 +17,13 @@ body {
     font-family: "Avenir Next", "Avenir", sans-serif;
     display: flex;
     flex-direction: row;
-    overflow-x: hidden;
+    overflow-y: scroll;
 }
 
 #article-container {
     flex-grow: 1;
     flex-shrink: 1;
+    overflow-y: scroll;
 }
 
 #article-container article {
@@ -34,13 +34,27 @@ body {
 
 #menuToggle {
     display: block;
-    position: relative;
+    position: fixed;
+    z-index: 100;
     top: 50px;
     left: 50px;
     z-index: 1;
     -webkit-user-select: none;
     user-select: none;
     height: 100%;
+}
+
+#menu-container {
+    overflow-y: scroll;
+    position: absolute;
+    width: 300px;
+    margin: -100px 0 0 -50px;
+    padding: 50px;
+    height: 100%;
+    background: #ededed;
+    transform-origin: 0% 0%;
+    transform: translate(-100%, 0);
+    transition: transform 0.5s cubic-bezier(0.77, 0.2, 0.05, 1.0);
 }
 
 #menuToggle a {
@@ -109,18 +123,12 @@ body {
 }
 
 #menu {
-    position: absolute;
-    width: 300px;
-    margin: -100px 0 0 -50px;
     padding: 50px;
     padding-top: 125px;
-    background: #ededed;
     list-style-type: none;
     -webkit-font-smoothing: antialiased;
-    transform-origin: 0% 0%;
-    transform: translate(-100%, 0);
-    transition: transform 0.5s cubic-bezier(0.77, 0.2, 0.05, 1.0);
-    min-height: 100%;
+
+   /* min-height: 100%;*/
 }
 
 #menu li {
@@ -128,7 +136,7 @@ body {
     font-size: 22px;
 }
 
-#menuToggle input:checked~ul {
+#menuToggle input:checked~div {
     transform: none;
 }
 

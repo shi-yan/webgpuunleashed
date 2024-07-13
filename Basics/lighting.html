@@ -27,7 +27,8 @@
     <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
 
 
@@ -56,12 +57,12 @@
 </head>
 
 <body>
-    <nav role="navigation">
-        <div id="menuToggle">
-            <input type="checkbox" />
-            <span></span>
-            <span></span>
-            <span></span>
+    <div id="menuToggle">
+        <input type="checkbox" />
+        <span></span>
+        <span></span>
+        <span></span>
+        <div id="menu-container">
             <ul id="menu">
                 <!--<li><a href="#">Home</a></li>
                 <li><a href="#">About</a></li>
@@ -147,7 +148,8 @@
                 </li>
             </ul>
         </div>
-    </nav>
+    </div>
+
     <div id="article-container">
         <article>
             <h2 >1.16 Lighting</h2><p>In this section, we'll dive into the fascinating world of lighting in computer graphics. Like cameras, there is no direct concept of lighting within the GPU pipeline. Lighting calculations are left to us, the developers. Lighting is one of the oldest and most extensive topics in computer graphics, with new developments still ongoing.</p><p>All lighting solutions involve a trade-off between image quality and rendering speed. Historically, lighting methods fell into two distinct categories. One aimed for the highest possible image quality and was often used in movies, where rendering could take ample time using large computer clusters. The other category is real-time lighting, prioritizing responsiveness in rendering but sacrificing some visual quality. Real-time lighting techniques are prevalent in games and interactive applications.</p><p>In recent years, the increasing power of GPUs has blurred the lines between these two categories. Video games have become cinematic and highly realistic, adopting technologies that were once exclusive to the movie industry.</p><p>For this tutorial, we will implement a simple yet performant lighting method known as the Phong shading method. Phong shading is the most widely used lighting solution with a rich history, making it the default choice for many applications. We'll break down this tutorial into two parts: per-vertex lighting and per-fragment lighting. Per-vertex lighting calculates lighting effects at each vertex and interpolates between them to simulate the effects across the entire surface. This approach is highly efficient because it calculates lighting sparsely on vertices.</p><p>The second solution is per-fragment lighting. Instead of only calculating lighting at vertices, we interpolate the vertex normals and calculate lighting during the fragment shader stage. This approach yields better results with smoother surfaces, as it provides more accurate normals crucial for correct lighting calculations.</p><h3 >Phong Shading Theory</h3><p>The Phong reflection model, named after its creator Bui Tuong Phong, aims to simulate a wide range of lighting effects while maintaining real-time performance.</p><p>The core concept of Phong lighting is breaking down the light effect into three channels: ambient, diffuse, and specular.</p><ul><li><p><strong>Ambient channel</strong>: This simulates environmental illumination and applies a uniform color to the 3D object.</p></li><li><p><strong>Diffuse channel</strong>: This replicates the light effect of a diffuse, rough surface. It's calculated using the incoming light direction and the surface normal, simulating how light scatters on uneven surfaces.</p></li><li><p><strong>Specular channel</strong>: This models a perfect reflective surface. The intensity of this reflection effect is determined by the reflection direction and the view direction. It creates highlight spots on the surface, with intensity controlled by a shininess value.</p></li></ul><p>The specular channel behaves differently from the diffuse channel. While diffuse lighting is unaffected by viewing angles, specular lighting is highly dependent on the viewer's angle. A small change in the viewing angle can significantly affect the specular highlight.</p><h3 >Per-vertex lighting</h3><p>For this tutorial, we will simplify the lighting equation to support a single light source. In a complete Phong shading model, multiple light sources are handled by summing up the contributions from each light source. However, for simplicity, we'll focus on one light source.</p><p>Here are the key shader changes:</p><pre><code class="language-javascript code-block">...
@@ -307,38 +309,38 @@ fn fs_main(in: VertexOutput) -&gt; @location(0) vec4&lt;f32&gt; {
         }
     </script>
 
-<script type="module">
-    const macros = {};
-    const mathElementsBlock = document.getElementsByClassName("math-block");
-    for (let element of mathElementsBlock) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            displayMode: true,
-            macros
-        });
-    }
+    <script type="module">
+        const macros = {};
+        const mathElementsBlock = document.getElementsByClassName("math-block");
+        for (let element of mathElementsBlock) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                displayMode: true,
+                macros
+            });
+        }
 
-    const mathElementsInline = document.getElementsByClassName("math-inline");
-    for (let element of mathElementsInline) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            macros
-        });
-    }
+        const mathElementsInline = document.getElementsByClassName("math-inline");
+        for (let element of mathElementsInline) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                macros
+            });
+        }
 
         hljs.highlightAll();
         // hljs.initLineNumbersOnLoad();
         const codeBlocks = document.getElementsByClassName("code-block");
-        for (let i =0;i<codeBlocks.length;++i) {
-            if ( codeBlocks[i].hasAttribute("startnumber")) {
+        for (let i = 0; i < codeBlocks.length; ++i) {
+            if (codeBlocks[i].hasAttribute("startnumber")) {
                 const startFrom = codeBlocks[i].getAttribute("startnumber");
-                hljs.lineNumbersBlock(codeBlocks[i], {startFrom:  parseInt(startFrom, 10)});
+                hljs.lineNumbersBlock(codeBlocks[i], { startFrom: parseInt(startFrom, 10) });
             } else {
                 hljs.lineNumbersBlock(codeBlocks[i]);
             }
         }
 
-</script>
+    </script>
 </body>
 
 </html>

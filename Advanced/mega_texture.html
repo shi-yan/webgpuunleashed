@@ -27,7 +27,8 @@
     <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
 
@@ -57,12 +58,12 @@
 </head>
 
 <body>
-    <nav role="navigation">
-        <div id="menuToggle">
-            <input type="checkbox" />
-            <span></span>
-            <span></span>
-            <span></span>
+    <div id="menuToggle">
+        <input type="checkbox" />
+        <span></span>
+        <span></span>
+        <span></span>
+        <div id="menu-container">
             <ul id="menu">
                 <!--<li><a href="#">Home</a></li>
                 <li><a href="#">About</a></li>
@@ -148,7 +149,8 @@
                 </li>
             </ul>
         </div>
-    </nav>
+    </div>
+
     <div id="article-container">
         <article>
             <h2 >5.4 Mega Texture</h2><p>mega texture is also called the virtualized texture. virtualization is a familiar word in the field of computer science. we see the same word in virtual memory. virtual memory is a technique we use when our physical memory is not very large, but we want to give the applications that we have a memory space way larger than the size of our physical memory. this is achieved by smartly loading only the portion that is currently used. Virtualized texture is of the same concept. if we calculate the image sizes, we will be astonished by how large it can be. for example, if we have a 1024x1024 image of RGBA, it will occupy 4mb in video memory. A video card with 8gb video memory can hold at most 2000 such images. Of course, we can't use all memory for saving those texture maps, that means the actual number of texture maps is very limited. in a large game scene, we can exhaust this limitation easily.</p><p>in addition, there is also a size image for a single texture map. for example, according to the WebGPU spec, this can be queried by maxTextureDimension2D for 2D textures, with a default value of 8192. if you have a single image that is larger than this size, you will need extra effort such as mega texture.</p><p>further more, we don't always want to load the finest version of a texture map. if a textured surface is viewed from afar, we want to use a coarse version to resolve the sampling issue. We have covered this concept when introducing mipmap. However, naively using mipmaps will cause more memory use as not only we load the original image into the video memory, we also load a pyramid of images of different detail level into the memory.</p><p>mega texture is a technique that can allow you to work with a large pool of texture maps. the size of those texture maps, if combined, is more than your video memory can hold. the process is comprised of two passes. During the first pass, we don't need to use any of the real texture maps, instead, we just do a prerendering to figure out what texture maps should be visible and at what level of detail. Then we pass the control to cpu to assemble a single texture map that is formed by tiling the visible textures and at the same time, we establish a lookup table, such that given the texture id, the detail level, we can locate the corresponding tile on this assembled texture. And during the second pass of rendering, we calculate the texture visibility again, and based on that, we search in the lookup table to locate the corresponding tile, and we sample the tile instead.</p><p>With this approach, we will never be limited to the overall number of texture maps anymore. As long as our assembled texture map is large enough to hold the maximum visible texture maps, we should be fine.</p><p>we should also create the assembled texture map with care. it should behave similar to a cache. such that if a tile presents on the assembled texture map already, we should avoid reloading it and updating its entry in the lookup table. if we have used up all spaces on the assembled texture map, we will retire the one that is least used. in another word, we want to update the assembled texture map as less as possible.</p><p>in this example, we will be looking at a simplified special case of mega texture. we want to render a screen aligned plane to show a huge texture, the crab nebula from james webb?, that is impossible to load in a single texture map. the raw size of the image is 10752x9216 and it is of 129.3mb. although we are only implementing a special case to show how mega texture works here, bear in mind that mega texture can be applied to generic cases when surfaces are not aligned with the screen. but the demo shown in this chapter is also very useful, it shows a way to implement large image loading and navigating, similar to what we see in google maps.</p><p>since the original image is too large, we don't want to load the entire version all at once. Instead, we will chunk it up using a preprocessing program, into tiles of 256x256. further more, since we want to achieve levels of details, we will also use the preprocessor to create the coarse levels. but we force all image tiles of any level to be 256x256 for easy implementation, i.e. four 256x256 tiles form a single 512x512 image tile, and then we down size the 512x512 image to 256x256 to create a tile of coarser level.</p><p>here is the code for the tile preprocessor in python:</p><div class="code-fragments"><pre><code class="language-python code-block" startNumber=1>import PIL.Image
@@ -605,38 +607,38 @@ let projectionMatrixUniformBuffer = createGPUBuffer(device, orthProjMatrix, GPUB
         }
     </script>
 
-<script type="module">
-    const macros = {};
-    const mathElementsBlock = document.getElementsByClassName("math-block");
-    for (let element of mathElementsBlock) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            displayMode: true,
-            macros
-        });
-    }
+    <script type="module">
+        const macros = {};
+        const mathElementsBlock = document.getElementsByClassName("math-block");
+        for (let element of mathElementsBlock) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                displayMode: true,
+                macros
+            });
+        }
 
-    const mathElementsInline = document.getElementsByClassName("math-inline");
-    for (let element of mathElementsInline) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            macros
-        });
-    }
+        const mathElementsInline = document.getElementsByClassName("math-inline");
+        for (let element of mathElementsInline) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                macros
+            });
+        }
 
         hljs.highlightAll();
         // hljs.initLineNumbersOnLoad();
         const codeBlocks = document.getElementsByClassName("code-block");
-        for (let i =0;i<codeBlocks.length;++i) {
-            if ( codeBlocks[i].hasAttribute("startnumber")) {
+        for (let i = 0; i < codeBlocks.length; ++i) {
+            if (codeBlocks[i].hasAttribute("startnumber")) {
                 const startFrom = codeBlocks[i].getAttribute("startnumber");
-                hljs.lineNumbersBlock(codeBlocks[i], {startFrom:  parseInt(startFrom, 10)});
+                hljs.lineNumbersBlock(codeBlocks[i], { startFrom: parseInt(startFrom, 10) });
             } else {
                 hljs.lineNumbersBlock(codeBlocks[i]);
             }
         }
 
-</script>
+    </script>
 </body>
 
 </html>

@@ -27,7 +27,8 @@
     <link rel="stylesheet" href="/WebGPUUnleashed/style.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
 
 
@@ -56,12 +57,12 @@
 </head>
 
 <body>
-    <nav role="navigation">
-        <div id="menuToggle">
-            <input type="checkbox" />
-            <span></span>
-            <span></span>
-            <span></span>
+    <div id="menuToggle">
+        <input type="checkbox" />
+        <span></span>
+        <span></span>
+        <span></span>
+        <div id="menu-container">
             <ul id="menu">
                 <!--<li><a href="#">Home</a></li>
                 <li><a href="#">About</a></li>
@@ -147,7 +148,8 @@
                 </li>
             </ul>
         </div>
-    </nav>
+    </div>
+
     <div id="article-container">
         <article>
             <h2 >1.12 Depth Testing</h2><p>In this section, we'll dive into the concept of depth testing, a crucial technique for resolving issues like the inside surfaces appearing inverted. Depth testing allows us to determine the rendering order of fragments from front to back, ensuring that we only draw the fragments closest to the camera while discarding those behind them.</p><p>In camera coordinates, which include the x and y axes for the screen plane and the z-axis for depth, the z-value represents the depth of each fragment. Sorting fragments based on their z-values becomes essential for rendering.</p><p>To accomplish this, we introduce an additional temporary buffer known as the depth buffer or z-buffer. When we output values from the fragment shader, we not only assign colors to fragments but also write the current depth value into the depth buffer. However, the depth buffer stores only the smallest z-value (frontmost) for each fragment position.</p><p>For instance, if we have a fragment at (300, 400) in the current framebuffer with a depth of 0.5 and receive a new fragment at the same location with a depth of 0.6, the new fragment, being further away, is discarded. Conversely, if a new fragment has a depth of 0.4, it's considered closer and replaces the old one. This ensures that the displayed fragments are never occluded by others.</p><p>The behavior of depth testing can be configured; we can choose to keep the fragment with the larger depth value and discard the smaller ones. However, in most cases, preserving the frontmost fragment is the preferred behavior.</p><p>Now, let's see how to update the code to enable depth testing. Fortunately, the shader code remains unchanged since writing to the depth buffer is automatically handled if the pipeline is configured to do so.</p><pre><code class="language-javascript code-block">const pipelineDesc = {
@@ -225,38 +227,38 @@ const renderPassDesc = {
         }
     </script>
 
-<script type="module">
-    const macros = {};
-    const mathElementsBlock = document.getElementsByClassName("math-block");
-    for (let element of mathElementsBlock) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            displayMode: true,
-            macros
-        });
-    }
+    <script type="module">
+        const macros = {};
+        const mathElementsBlock = document.getElementsByClassName("math-block");
+        for (let element of mathElementsBlock) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                displayMode: true,
+                macros
+            });
+        }
 
-    const mathElementsInline = document.getElementsByClassName("math-inline");
-    for (let element of mathElementsInline) {
-        katex.render(element.textContent, element, {
-            throwOnError: false,
-            macros
-        });
-    }
+        const mathElementsInline = document.getElementsByClassName("math-inline");
+        for (let element of mathElementsInline) {
+            katex.render(element.textContent, element, {
+                throwOnError: false,
+                macros
+            });
+        }
 
         hljs.highlightAll();
         // hljs.initLineNumbersOnLoad();
         const codeBlocks = document.getElementsByClassName("code-block");
-        for (let i =0;i<codeBlocks.length;++i) {
-            if ( codeBlocks[i].hasAttribute("startnumber")) {
+        for (let i = 0; i < codeBlocks.length; ++i) {
+            if (codeBlocks[i].hasAttribute("startnumber")) {
                 const startFrom = codeBlocks[i].getAttribute("startnumber");
-                hljs.lineNumbersBlock(codeBlocks[i], {startFrom:  parseInt(startFrom, 10)});
+                hljs.lineNumbersBlock(codeBlocks[i], { startFrom: parseInt(startFrom, 10) });
             } else {
                 hljs.lineNumbersBlock(codeBlocks[i]);
             }
         }
 
-</script>
+    </script>
 </body>
 
 </html>
