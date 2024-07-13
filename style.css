@@ -1,5 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Exo+2&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Yanone+Kaffeesatz:wght@300&display=swap');
 
+:root {
+    --dark-description-text-color: #bababa;
+    --purple-link-text-color: #876fd6;
+    --normal-text-color: #dadadb;
+    --page-background-color: #1d1e20;
+    --lighter-card-background-color: #2e2e33;
+    --quote-border-color: #818181;
+    --card-hover-background-color: #3e3e43;
+    --code-block-background-color: #181818;
+}
+
 html {
     position: relative;
     height: 100vh;
@@ -202,6 +213,11 @@ article pre {
     white-space: pre-wrap;
     word-wrap: break-word;
     margin: 0;
+}
+
+article a {
+text-decoration: none;
+color: var(--normal-text-color);
 }
 
 blockquote {
