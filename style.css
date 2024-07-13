@@ -414,6 +414,8 @@ blockquote p {
     line-height: 32px;
     padding: 4px;
     max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .comment:hover {
