@@ -29,9 +29,9 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script
         src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/html.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/html.min.js"></script>
 
 
     <link rel="stylesheet"
@@ -78,6 +78,7 @@
                 </li>
                 <li><a href="#">Contact</a></li>
                 <li><a href="https://erikterwan.com/" target="_blank">Show me more</a></li>-->
+                <li><a href="https://shi-yan.github.io/WebGPUUnleashed">Home</a></li>
                 <li><a href="#" onclick="fold(event)">Intro</a>
                     <ul class="sub-menu">
                         <li><a href="/WebGPUUnleashed/Introduction/the_gpu_driver.html">The GPU Driver</a></li>
@@ -148,6 +149,8 @@
                         <li><a href="/WebGPUUnleashed/Advanced/gaussian_splatting.html">Gaussian Splatting</a></li>
                     </ul>
                 </li>
+                <li><a href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html" target="_blank">Playground</a></li>
+                <li><a href="https://github.com/shi-yan/WebGPUUnleashed" target="_blank">GitHub Repo</a></li>
             </ul>
         </div>
     </div>
@@ -233,6 +236,13 @@
         device.queue.submit([commandEncoder.finish()]);
     }</code></pre><p>In the concluding stages, we fashion a command encoder, the main way through which we interface with the GPU. In this instance, the command's essence is uncomplicated: it designates the rendering target and establishes the viewport dimensions mirroring those of the canvas. Given we are not drawing anything, the canvas will simply cleared with the default clearValue. As a recommended practice during development, employing distinctive colors proves prudent. Here, we opt for red instead of the more common black or white. This decision stems from the fact that occurrences of black or white canvases can be misleading, obscuring whether rendering is occurring or if the canvas itself is missing. By leveraging the red hue, we ensure a clear signal that rendering operations are underway.</p><p>Debugging GPU code presents greater challenges compared to its CPU counterpart. Generating logs from GPU execution isn't as straightforward due to the inherent complexity of the parallel nature of GPU operations. This complexity also renders traditional methods like setting breakpoints and pausing execution impractical. This is where color emerges as an invaluable ally. By associating distinct colors with different meanings, we can enhance our ability to interpret results accurately. As we progress through the upcoming chapters, we will explore a variety of examples showcasing how colors serve as an essential tool for debugging in the world of GPU programming.</p><blockquote><p>there are other good habits, such as use descriptive naming, because graphics apis can be very verbose. with repatitive code blocks, and is also easier for navigation.</p></blockquote><blockquote><p>start simple, by rendering solid color objects first before adding fancy results.</p></blockquote><p>The code in this chapter produces a canvas renderred in red.</p>
         </article>
+        <a href="https://github.com/shi-yan/WebGPUUnleashed/discussions" target="_blank" class="comment"><svg
+            style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
+            width="32" fill="#dadadb"
+            viewBox="0 0 480 512"><!--!Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
+            <path
+                d="M186.1 328.7c0 20.9-10.9 55.1-36.7 55.1s-36.7-34.2-36.7-55.1 10.9-55.1 36.7-55.1 36.7 34.2 36.7 55.1zM480 278.2c0 31.9-3.2 65.7-17.5 95-37.9 76.6-142.1 74.8-216.7 74.8-75.8 0-186.2 2.7-225.6-74.8-14.6-29-20.2-63.1-20.2-95 0-41.9 13.9-81.5 41.5-113.6-5.2-15.8-7.7-32.4-7.7-48.8 0-21.5 4.9-32.3 14.6-51.8 45.3 0 74.3 9 108.8 36 29-6.9 58.8-10 88.7-10 27 0 54.2 2.9 80.4 9.2 34-26.7 63-35.2 107.8-35.2 9.8 19.5 14.6 30.3 14.6 51.8 0 16.4-2.6 32.7-7.7 48.2 27.5 32.4 39 72.3 39 114.2zm-64.3 50.5c0-43.9-26.7-82.6-73.5-82.6-18.9 0-37 3.4-56 6-14.9 2.3-29.8 3.2-45.1 3.2-15.2 0-30.1-.9-45.1-3.2-18.7-2.6-37-6-56-6-46.8 0-73.5 38.7-73.5 82.6 0 87.8 80.4 101.3 150.4 101.3h48.2c70.3 0 150.6-13.4 150.6-101.3zm-82.6-55.1c-25.8 0-36.7 34.2-36.7 55.1s10.9 55.1 36.7 55.1 36.7-34.2 36.7-55.1-10.9-55.1-36.7-55.1z" />
+        </svg> Leave a Comment on Github</a>
     </div>
     <!-- The Modal -->
     <div id="img-modal" class="modal">

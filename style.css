@@ -399,3 +399,23 @@ blockquote p {
     font-size: 16px;
     font-weight: bold;
 }
+
+.comment {
+    background-color: var(--lighter-card-background-color);
+    border-radius: 8px;
+    display: block;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    color: var(--normal-text-color);
+    font-size: 24px;
+    margin: 8px;
+    font-family: 'Yanone Kaffeesatz', sans-serif;
+    line-height: 32px;
+    padding: 4px;
+    max-width: 800px;
+}
+
+.comment:hover {
+    background-color: var(--card-hover-background-color);
+}

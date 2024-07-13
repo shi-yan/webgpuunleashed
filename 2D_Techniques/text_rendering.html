@@ -76,6 +76,7 @@
                 </li>
                 <li><a href="#">Contact</a></li>
                 <li><a href="https://erikterwan.com/" target="_blank">Show me more</a></li>-->
+                <li><a href="https://shi-yan.github.io/WebGPUUnleashed">Home</a></li>
                 <li><a href="#" onclick="fold(event)">Intro</a>
                     <ul class="sub-menu">
                         <li><a href="/WebGPUUnleashed/Introduction/the_gpu_driver.html">The GPU Driver</a></li>
@@ -146,6 +147,8 @@
                         <li><a href="/WebGPUUnleashed/Advanced/gaussian_splatting.html">Gaussian Splatting</a></li>
                     </ul>
                 </li>
+                <li><a href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html" target="_blank">Playground</a></li>
+                <li><a href="https://github.com/shi-yan/WebGPUUnleashed" target="_blank">GitHub Repo</a></li>
             </ul>
         </div>
     </div>
@@ -202,6 +205,13 @@ f_{sa} * A_s \bigodot f_{da} * A_d &= A \\
             mipmapFilter: 'linear',
         });</code></pre><p>this is required for achieve anti-aliasing, but it introduced another problem. remember that when we generate the text texture, we cleared the canvas with <code>ctx.clearRect(0, 0, width, height);</code>. This function clears the canvas with the transparent black color <code>(0,0,0,0)</code>. whereas when drawing the text, we use the opaque white color <code>(1,1,1,1)</code>. When the GPU performs texture sampling with linear interpolation, any sample position in between the transparent black and a opaque white pixels can be a gray pixel, for example <code>(0.5,0.5,0.5,0.5)</code>, especially near the edge of the text. But this is not what we want. we want the text gradually transit to the background, we don't want to alter the text's color.</p><p>this is a very common issue. Another situation, not as obvious as the above case, is when combining mipmapping and a semi-transparent texture. because mipmapping does linear interpolation between image layers too. One way to solve this problem is using the same text color for the background, only set the alpha channel to zero. This way, interpolation won't change the text color.</p><p>A more elegant way of solving this problem is doing premultiplied alpha blending. premultiplied color means all color values have been multiplied by the alpha value. Assuming an original color is <code>(1.0,1.0,1.0,0.5)</code>, the premultiplied version of the same color is <code>(0.5,0.5,0.5,0.5)</code>. Hence if a premultiplied color is <code>(0,0,0,0)</code>, we can't interpret it as black anymore, because all RGB colors in its premultiplied version become <code>(0,0,0)</code> if the alpha channel is zero.</p><p>To fix the above artifact, we treat the text texture map as premultipled. hence the background color <code>(0,0,0,0)</code> can be interpreted as transparent white. We need to use a different blending formula this time. since the foreground color is premultiplied, we don't need to multiply the alpha channel anymore. we therefore use one this time for the source factor.</p><p class="katex-display-counter"><code class="language-math math-block"> C_s + (1-A_s) * C_d = C</code></p><p>Now, let's look at the result:</p>
         </article>
+        <a href="https://github.com/shi-yan/WebGPUUnleashed/discussions" target="_blank" class="comment"><svg
+            style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
+            width="32" fill="#dadadb"
+            viewBox="0 0 480 512"><!--!Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
+            <path
+                d="M186.1 328.7c0 20.9-10.9 55.1-36.7 55.1s-36.7-34.2-36.7-55.1 10.9-55.1 36.7-55.1 36.7 34.2 36.7 55.1zM480 278.2c0 31.9-3.2 65.7-17.5 95-37.9 76.6-142.1 74.8-216.7 74.8-75.8 0-186.2 2.7-225.6-74.8-14.6-29-20.2-63.1-20.2-95 0-41.9 13.9-81.5 41.5-113.6-5.2-15.8-7.7-32.4-7.7-48.8 0-21.5 4.9-32.3 14.6-51.8 45.3 0 74.3 9 108.8 36 29-6.9 58.8-10 88.7-10 27 0 54.2 2.9 80.4 9.2 34-26.7 63-35.2 107.8-35.2 9.8 19.5 14.6 30.3 14.6 51.8 0 16.4-2.6 32.7-7.7 48.2 27.5 32.4 39 72.3 39 114.2zm-64.3 50.5c0-43.9-26.7-82.6-73.5-82.6-18.9 0-37 3.4-56 6-14.9 2.3-29.8 3.2-45.1 3.2-15.2 0-30.1-.9-45.1-3.2-18.7-2.6-37-6-56-6-46.8 0-73.5 38.7-73.5 82.6 0 87.8 80.4 101.3 150.4 101.3h48.2c70.3 0 150.6-13.4 150.6-101.3zm-82.6-55.1c-25.8 0-36.7 34.2-36.7 55.1s10.9 55.1 36.7 55.1 36.7-34.2 36.7-55.1-10.9-55.1-36.7-55.1z" />
+        </svg> Leave a Comment on Github</a>
     </div>
     <!-- The Modal -->
     <div id="img-modal" class="modal">

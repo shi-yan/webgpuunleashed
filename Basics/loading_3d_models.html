@@ -77,6 +77,7 @@
                 </li>
                 <li><a href="#">Contact</a></li>
                 <li><a href="https://erikterwan.com/" target="_blank">Show me more</a></li>-->
+                <li><a href="https://shi-yan.github.io/WebGPUUnleashed">Home</a></li>
                 <li><a href="#" onclick="fold(event)">Intro</a>
                     <ul class="sub-menu">
                         <li><a href="/WebGPUUnleashed/Introduction/the_gpu_driver.html">The GPU Driver</a></li>
@@ -147,6 +148,8 @@
                         <li><a href="/WebGPUUnleashed/Advanced/gaussian_splatting.html">Gaussian Splatting</a></li>
                     </ul>
                 </li>
+                <li><a href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html" target="_blank">Playground</a></li>
+                <li><a href="https://github.com/shi-yan/WebGPUUnleashed" target="_blank">GitHub Repo</a></li>
             </ul>
         </div>
     </div>
@@ -192,6 +195,13 @@ f 2152//24 2158//24 2358//24</code></pre><p>In general, an .obj file consists of
 
     const indexBuffer = createGPUBuffer(device, indices, GPUBufferUsage.INDEX);</code></pre><p>Since the teapot.obj file contains only one model, we only query for model 0. We loop through the entire vertex pool, pushing all vertex locations into our positions buffer. Moving on to the index buffer, we loop through all faces and, for each face, loop through its three vertices, pushing the vertex indices into our indices array.</p><p>Notice that we decrement the vertex index by one. This is because, according to the .obj file format's definition, vertex indices should start from one, not zero. Thus, we subtract one when loading these indices. It's essential to remember that when loading the index buffer, we also need to obtain the index size, indicating how many indices need to be rendered.</p><p>With the index buffer populated, we create a GPU buffer as before. The rest of the code remains unchanged.</p><p>Now we have a more interesting geometry to work with. For those new to computer graphics, you might be surprised to learn that the humble teapot has been a ubiquitous presence in graphics experiments, often serving as a canvas to demonstrate various lighting techniques and other graphic innovations. Its history within the realm of computer graphics is quite intriguing. If you're curious to explore this further, you can find more details by following this link.</p>
         </article>
+        <a href="https://github.com/shi-yan/WebGPUUnleashed/discussions" target="_blank" class="comment"><svg
+            style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
+            width="32" fill="#dadadb"
+            viewBox="0 0 480 512"><!--!Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
+            <path
+                d="M186.1 328.7c0 20.9-10.9 55.1-36.7 55.1s-36.7-34.2-36.7-55.1 10.9-55.1 36.7-55.1 36.7 34.2 36.7 55.1zM480 278.2c0 31.9-3.2 65.7-17.5 95-37.9 76.6-142.1 74.8-216.7 74.8-75.8 0-186.2 2.7-225.6-74.8-14.6-29-20.2-63.1-20.2-95 0-41.9 13.9-81.5 41.5-113.6-5.2-15.8-7.7-32.4-7.7-48.8 0-21.5 4.9-32.3 14.6-51.8 45.3 0 74.3 9 108.8 36 29-6.9 58.8-10 88.7-10 27 0 54.2 2.9 80.4 9.2 34-26.7 63-35.2 107.8-35.2 9.8 19.5 14.6 30.3 14.6 51.8 0 16.4-2.6 32.7-7.7 48.2 27.5 32.4 39 72.3 39 114.2zm-64.3 50.5c0-43.9-26.7-82.6-73.5-82.6-18.9 0-37 3.4-56 6-14.9 2.3-29.8 3.2-45.1 3.2-15.2 0-30.1-.9-45.1-3.2-18.7-2.6-37-6-56-6-46.8 0-73.5 38.7-73.5 82.6 0 87.8 80.4 101.3 150.4 101.3h48.2c70.3 0 150.6-13.4 150.6-101.3zm-82.6-55.1c-25.8 0-36.7 34.2-36.7 55.1s10.9 55.1 36.7 55.1 36.7-34.2 36.7-55.1-10.9-55.1-36.7-55.1z" />
+        </svg> Leave a Comment on Github</a>
     </div>
     <!-- The Modal -->
     <div id="img-modal" class="modal">
