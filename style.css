@@ -139,7 +139,7 @@ body {
     list-style-type: none;
     -webkit-font-smoothing: antialiased;
 
-   /* min-height: 100%;*/
+    /* min-height: 100%;*/
 }
 
 #menu li {
@@ -216,8 +216,8 @@ article pre {
 }
 
 article a {
-text-decoration: none;
-color: var(--normal-text-color);
+    text-decoration: none;
+    color: var(--purple-link-text-color);
 }
 
 blockquote {
@@ -390,12 +390,12 @@ blockquote p {
     color: #181818;
     text-align: center;
     font-size: 16px;
-    font-weight: bold; 
+    font-weight: bold;
 }
 
 .code-fragments-separator {
     color: #181818;
     text-align: center;
     font-size: 16px;
-    font-weight: bold; 
+    font-weight: bold;
 }
