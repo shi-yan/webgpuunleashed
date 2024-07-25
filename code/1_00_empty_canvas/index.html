@@ -5,6 +5,7 @@
 </body>
 <script>
     async function webgpu() {
+//cs_start: empty_canvas_adapter
         if (!navigator.gpu) {
             console.error("WebGPU is not available.");
             showWarning("WebGPU support is not available. A WebGPU capable browser is required to run this sample.");
@@ -16,7 +17,8 @@
             console.error("Failed to request Adapter.");
             return;
         }
-
+//cs_end: empty_canvas_adapter
+//cs_start: empty_canvas_configure_context
         let device = await adapter.requestDevice();
         if (!device) {
             console.error("Failed to request Device.");
@@ -34,7 +36,8 @@
         };
 
         context.configure(canvasConfig);
-
+//cs_end: empty_canvas_configure_context
+//cs_start: empty_canvas_render_target
         let colorTexture = context.getCurrentTexture();
         let colorTextureView = colorTexture.createView();
 
@@ -48,6 +51,8 @@
         const renderPassDesc = {
             colorAttachments: [colorAttachment]
         };
+//cs_end: empty_canvas_render_target
+//cs_start: empty_canvas_encode_submit
         commandEncoder = device.createCommandEncoder();
 
         passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
@@ -55,6 +60,7 @@
         passEncoder.end();
 
         device.queue.submit([commandEncoder.finish()]);
+//cs_end: empty_canvas_encode_submit
     }
 
     webgpu();
