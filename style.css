@@ -28,7 +28,7 @@ body {
     font-family: "Avenir Next", "Avenir", sans-serif;
     display: flex;
     flex-direction: row;
-    overflow-y: scroll;
+    overflow: hidden;
 }
 
 #article-container {
