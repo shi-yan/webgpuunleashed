@@ -399,6 +399,10 @@ code {
     font-weight: bold;
 }
 
+.code-fragments-caption a {
+    text-decoration: none;
+}
+
 .code-fragments-separator {
     color: #181818;
     text-align: center;
