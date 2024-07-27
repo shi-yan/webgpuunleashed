@@ -136,7 +136,10 @@ li {
 }
 
 .highlight-lines {
-  background: #ffd790;
+	border-left-color: #c1ad8b;
+	border-left-style: solid;
+	margin-left:10px;
+	border-left-width:4px;
 }._Menu_1ca9h_1 {
   width: 320px;
   height: 100vh;
