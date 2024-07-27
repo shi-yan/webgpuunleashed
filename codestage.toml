@@ -1,9 +1,9 @@
 title = "WebGPU Unleashed"
 repo = "https://github.com/shi-yan/WebGPUUnleashed"
 # need to have the slash
-prefix = "WebGPUUnleashed"
-target = "../WebGPUUnleashed"
-url = "https://shi-yan.github.io/WebGPUUnleashed/"
+prefix = "WebGPUUnleashed/code"
+target = "../WebGPUUnleashed/code"
+url = "https://shi-yan.github.io/WebGPUUnleashed/code"
 meta_image = "meta.png"
 description = "Your ticket to the dynamic world of graphics programming."
 utilities = [ "utils" , "data", "shader", "crab_nebula"]
