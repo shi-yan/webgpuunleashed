@@ -5,7 +5,7 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="/WebGPUUnleashed/favicon.ico">
     <!-- Primary Meta Tags -->
     <title>WebGPU Unleashed: A Practical Tutorial</title>
     <meta name="title" content="WebGPU Unleashed: A Practical Tutorial" />
@@ -30,7 +30,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script
         src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/html.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
 
 
     <link rel="stylesheet"
@@ -157,10 +157,7 @@
     <div id="article-container">
         <article>
             <h2 >1.7 Working with Textures</h2><p>Having established a foundation in uniforms, let's explore the fascinating realm of texture maps. A texture map is essentially an image wrapped around a 3D geometry mesh. Until now, our renderings have been rather basic—solid color triangles or triangles with gradient colors. They lack the richness and complexity we often encounter in games and advanced graphics applications.</p><a href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html#1_07_working_with_textures" target="_blank" class="comment"><svg style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
-                    width="32" fill="#dadadb" viewBox="0 -960 960 960"><path d="M189-160q-60 0-102.5-43T42-307q0-9 1-18t3-18l84-336q14-54 57-87.5t98-33.5h390q55 0 98 33.5t57 87.5l84 336q2 9 3.5 18.5T919-306q0 61-43.5 103.5T771-160q-42 0-78-22t-54-60l-28-58q-5-10-15-15t-21-5H385q-11 0-21 5t-15 15l-28 58q-18 38-54 60t-78 22Zm3-80q19 0 34.5-10t23.5-27l28-57q15-31 44-48.5t63-17.5h190q34 0 63 18t45 48l28 57q8 17 23.5 27t34.5 10q28 0 48-18.5t21-46.5q0 1-2-19l-84-335q-7-27-28-44t-49-17H285q-28 0-49.5 17T208-659l-84 335q-2 6-2 18 0 28 20.5 47t49.5 19Zm348-280q17 0 28.5-11.5T580-560q0-17-11.5-28.5T540-600q-17 0-28.5 11.5T500-560q0 17 11.5 28.5T540-520Zm80-80q17 0 28.5-11.5T660-640q0-17-11.5-28.5T620-680q-17 0-28.5 11.5T580-640q0 17 11.5 28.5T620-600Zm0 160q17 0 28.5-11.5T660-480q0-17-11.5-28.5T620-520q-17 0-28.5 11.5T580-480q0 17 11.5 28.5T620-440Zm80-80q17 0 28.5-11.5T740-560q0-17-11.5-28.5T700-600q-17 0-28.5 11.5T660-560q0 17 11.5 28.5T700-520Zm-360 60q13 0 21.5-8.5T370-490v-40h40q13 0 21.5-8.5T440-560q0-13-8.5-21.5T410-590h-40v-40q0-13-8.5-21.5T340-660q-13 0-21.5 8.5T310-630v40h-40q-13 0-21.5 8.5T240-560q0 13 8.5 21.5T270-530h40v40q0 13 8.5 21.5T340-460Zm140-20Z"/></svg>Launch Playground - 1_07_working_with_textures</a><p>In computer graphics and gaming, it's common practice to apply various images to geometries, creating vivid and detailed visuals. This tutorial will demonstrate how to achieve this effect. Implementing textures in a shader relies on uniforms, which is why we covered uniforms in the previous chapter—to lay the groundwork for texture mapping.</p><pre><code class="language-html code-block">&lt;script id="shader" type="wgsl"&gt;
-// Vertex shader
-
-@group(0) @binding(0)
+                    width="32" fill="#dadadb" viewBox="0 -960 960 960"><path d="M189-160q-60 0-102.5-43T42-307q0-9 1-18t3-18l84-336q14-54 57-87.5t98-33.5h390q55 0 98 33.5t57 87.5l84 336q2 9 3.5 18.5T919-306q0 61-43.5 103.5T771-160q-42 0-78-22t-54-60l-28-58q-5-10-15-15t-21-5H385q-11 0-21 5t-15 15l-28 58q-18 38-54 60t-78 22Zm3-80q19 0 34.5-10t23.5-27l28-57q15-31 44-48.5t63-17.5h190q34 0 63 18t45 48l28 57q8 17 23.5 27t34.5 10q28 0 48-18.5t21-46.5q0 1-2-19l-84-335q-7-27-28-44t-49-17H285q-28 0-49.5 17T208-659l-84 335q-2 6-2 18 0 28 20.5 47t49.5 19Zm348-280q17 0 28.5-11.5T580-560q0-17-11.5-28.5T540-600q-17 0-28.5 11.5T500-560q0 17 11.5 28.5T540-520Zm80-80q17 0 28.5-11.5T660-640q0-17-11.5-28.5T620-680q-17 0-28.5 11.5T580-640q0 17 11.5 28.5T620-600Zm0 160q17 0 28.5-11.5T660-480q0-17-11.5-28.5T620-520q-17 0-28.5 11.5T580-480q0 17 11.5 28.5T620-440Zm80-80q17 0 28.5-11.5T740-560q0-17-11.5-28.5T700-600q-17 0-28.5 11.5T660-560q0 17 11.5 28.5T700-520Zm-360 60q13 0 21.5-8.5T370-490v-40h40q13 0 21.5-8.5T440-560q0-13-8.5-21.5T410-590h-40v-40q0-13-8.5-21.5T340-660q-13 0-21.5 8.5T310-630v40h-40q-13 0-21.5 8.5T240-560q0 13 8.5 21.5T270-530h40v40q0 13 8.5 21.5T340-460Zm140-20Z"/></svg>Launch Playground - 1_07_working_with_textures</a><p>In computer graphics and gaming, it's common practice to apply various images to geometries, creating vivid and detailed visuals. This tutorial will demonstrate how to achieve this effect. Implementing textures in a shader relies on uniforms, which is why we covered uniforms in the previous chapter—to lay the groundwork for texture mapping.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=11>@group(0) @binding(0)
 var&lt;uniform&gt; offset: vec3&lt;f32&gt;;
 
 struct VertexOutput {
@@ -178,10 +175,7 @@ fn vs_main(
     out.tex_coords = inTexCoords;
     return out;
 }
-
-// Fragment shader
-
-@group(0) @binding(1)
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=11:28#1_07_working_with_textures">1_07_working_with_textures/index.html:11-28 The Vertex Shader</a></div></div><p>Let's examine the changes in our shader code. In the vertex shader, we've introduced a new attribute at <code>@location(1)</code> called <code>inTexCoords</code> for texture coordinates. Each vertex now has specific texture coordinates associated with it. To pass these coordinates to the fragment stage, we've added a new output value <code>tex_coords</code> in the <code>VertexOutput</code> struct. This ensures proper interpolation of texture coordinates for each fragment.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=30>@group(0) @binding(1)
 var t_diffuse: texture_2d&lt;f32&gt;;
 @group(0) @binding(2)
 var s_diffuse: sampler;
@@ -190,147 +184,128 @@ var s_diffuse: sampler;
 fn fs_main(in: VertexOutput) -&gt; @location(0) vec4&lt;f32&gt; {
     return textureSample(t_diffuse, s_diffuse, in.tex_coords);
 }
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=30:38#1_07_working_with_textures">1_07_working_with_textures/index.html:30-38 The Fragment Shader</a></div></div><p>During the fragment stage, these coordinates are used to fetch colors from the texture image. When coordinates fall between texture pixels, interpolation is employed. The exact interpolation method can be configured, with <code>linear</code> and <code>nearest</code> being common choices.</p><p>The fragment shader introduces two new uniforms. The first, <code>t_diffuse</code>, of type <code>texture_2d&lt;f32&gt;</code>, represents the actual texture map or image we want to apply. The second, <code>s_diffuse</code>, of type <code>sampler</code>, might seem less intuitive.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="texture_sample.png" alt="The Sampled Color Is Interpolated From Nearby Pixels" sources='[]' /><div class="img-title">The Sampled Color Is Interpolated From Nearby Pixels</div></div></p><p>A sampler defines behavior rather than providing values. It dictates how we sample the texture's color based on given texture coordinates. When texture coordinates fall between pixels, interpolation is necessary. The sampler allows us to specify our preferred interpolation method. Different methods yield varying results—some produce smooth but slightly blurred effects, while others are sharp but may exhibit aliasing artifacts. The choice depends on the specific use case, and we can explore different sampler types in future chapters.</p><p>With these shader updates in place, we're now ready to examine how to supply values for these new uniforms in our JavaScript code.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=47>const response = await fetch('../data/baboon.png');
+const blob = await response.blob();
+const imgBitmap = await createImageBitmap(blob);
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=47:49#1_07_working_with_textures">1_07_working_with_textures/index.html:47-49 Create an Image Using Fetch</a></div></div><p>Let's explore the JavaScript aspects of WebGPU programming. Our first task is to create an image. We utilize the fetch API to load a PNG image from the server. Once the server responds, we create a blob from the response body. From this blob, we then generate an image bitmap.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=58>const textureDescriptor = {
+    size: { width: imgBitmap.width, height: imgBitmap.height },
+    format: 'rgba8unorm',
+    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+};
+const texture = device.createTexture(textureDescriptor);
 
-&lt;/script&gt;</code></pre><p>Let's examine the changes in our shader code. In the vertex shader, we've introduced a new attribute at <code>@location(1)</code> called <code>inTexCoords</code> for texture coordinates. Each vertex now has specific texture coordinates associated with it. To pass these coordinates to the fragment stage, we've added a new output value <code>tex_coords</code> in the <code>VertexOutput</code> struct. This ensures proper interpolation of texture coordinates for each fragment.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="texture_sample.png" alt="The Sampled Color Is Interpolated From Nearby Pixels" sources='[]' /><div class="img-title">The Sampled Color Is Interpolated From Nearby Pixels</div></div></p><p>During the fragment stage, these coordinates are used to fetch colors from the texture image. When coordinates fall between texture pixels, interpolation is employed. The exact interpolation method can be configured, with 'linear' and 'nearest' being common choices.</p><p>The fragment shader introduces two new uniforms. The first, <code>t_diffuse</code>, of type <code>texture_2d&lt;f32&gt;</code>, represents the actual texture map or image we want to apply. The second, <code>s_diffuse</code>, of type <code>sampler</code>, might seem less intuitive.</p><p>A sampler defines behavior rather than providing values. It dictates how we sample the texture's color based on given texture coordinates. When texture coordinates fall between pixels, interpolation is necessary. The sampler allows us to specify our preferred interpolation method. Different methods yield varying results—some produce smooth but slightly blurred effects, while others are sharp but may exhibit aliasing artifacts. The choice depends on the specific use case, and we can explore different sampler types in future chapters.</p><p>With these shader updates in place, we're now ready to examine how to supply values for these new uniforms in our JavaScript code.</p><pre><code class="language-html code-block">&lt;script&gt;
-    async function webgpu() {
-        ...
+device.queue.copyExternalImageToTexture({ source: imgBitmap }, { texture }, textureDescriptor.size);
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=58:65#1_07_working_with_textures">1_07_working_with_textures/index.html:58-65 Texture Creation</a></div></div><p>With our bitmap prepared, the next step is to create a texture. We begin by defining a texture descriptor. This descriptor requires the width and height of the texture as well as the pixel format. For the usage flags, we must set the <code>TEXTURE_BINDING</code> flag because we intend to use this texture in our shader. It's also necessary to include the <code>COPY_DST</code> and <code>RENDER_ATTACHMENT</code> flags. Both are mandated by the <code>copyExternalImageToTexture</code> helper function. While the WebGPU specification doesn't explicitly detail the reason, we can infer that this function underlies a GPU command submission, possibly involving rendering to the texture to load the image data into the GPU. We'll explore the concept of rendering to texture later, but for now, it's important to remember that whenever we use <code>copyExternalImageToTexture</code> to copy an image to texture, these two additional texture usages are required.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=66>const sampler = device.createSampler({
+    addressModeU: 'repeat',
+    addressModeV: 'repeat',
+    magFilter: 'linear',
+    minFilter: 'linear',
+    mipmapFilter: 'linear',
+});
 
-        const textureDescriptor = {
-            size: { width: imgBitmap.width, height: imgBitmap.height },
-            format: 'rgba8unorm',
-            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
-        };
-        const texture = device.createTexture(textureDescriptor);
+let shaderModule = shaderModuleFromCode(device, 'shader');
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=66:74#1_07_working_with_textures">1_07_working_with_textures/index.html:66-74 Sampler Creation</a></div></div><p>Now, let's create a sampler. The first two parameters, <code>addressModeU</code> and <code>addressModeV</code>, specify how we should sample a texture if the requested texture coordinates fall outside the texture's range. In any texture image, the texture coordinate (0,0) corresponds to its top left corner, while (1,1) corresponds to the bottom right corner. Therefore, any point with both x and y in the range of [0,1] can map to a point on the texture. But what happens if coordinates are outside this range? That's where these two settings come into play. Common options include <code>clamp-to-edge</code>, <code>repeat</code>, and <code>mirror-repeat</code>. <code>clamp-to-edge</code> essentially clamps any value larger than 1 to 1, and any value smaller than 0 to 0. <code>repeat</code> wraps around the coordinates, creating a tiling effect, i.e., a value v that is larger than 1 becomes v-1. <code>mirror-repeat</code> flips the coordinate across the 0 and 1 boundary, such that a value v that's larger than 1 becomes 1 - (v - 1).</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="addressmode.png" alt="Visual Comparison of Different Address Mode in the Texture Coordinate Region (-1,2)" sources='[]' /><div class="img-title">Visual Comparison of Different Address Mode in the Texture Coordinate Region (-1,2)</div></div></p><p>In our case, we've chosen <code>repeat</code>, indicating that the texture should be repeated if the coordinates extend beyond the texture's size. This allows us to sample color even when the coordinates exceed the texture's dimensions. As for the filters, we've opted for a <code>linear</code> filter. This provides smooth sampling results, utilizing bilinear interpolation. However, it's worth noting that this choice can sometimes lead to a slightly blurry outcome. We'll explore more examples in future chapters to better understand these choices.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=75>const positionAttribDesc = {
+    shaderLocation: 0, // @location(0)
+    offset: 0,
+    format: 'float32x3'
+};
 
-        device.queue.copyExternalImageToTexture({ source: imgBitmap }, { texture }, textureDescriptor.size);
+const positionBufferLayoutDesc = {
+    attributes: [positionAttribDesc],
+    arrayStride: 4 * 3, // sizeof(float) * 3
+    stepMode: 'vertex'
+};
 
-        const sampler = device.createSampler({
-            addressModeU: 'repeat',
-            addressModeV: 'repeat',
-            magFilter: 'linear',
-            minFilter: 'linear',
-            mipmapFilter: 'linear',
-        });
+const texCoordsAttribDesc = {
+    shaderLocation: 1, // @location(1)
+    offset: 0,
+    format: 'float32x2'
+};
 
-        ...
+const texCoordsBufferLayoutDesc = {
+    attributes: [texCoordsAttribDesc],
+    arrayStride: 4 * 2, // sizeof(float) * 3
+    stepMode: 'vertex'
+};
 
-        const texCoordsAttribDesc = {
-            shaderLocation: 1, // @location(1)
-            offset: 0,
-            format: 'float32x2'
-        };
+const positions = new Float32Array([
+    1.0, -1.0, 0.0,
+    -1.0, -1.0, 0.0,
+    0.0, 1.0, 0.0
+]);
 
-        const texCoordsBufferLayoutDesc = {
-            attributes: [texCoordsAttribDesc],
-            arrayStride: 4 * 2, // sizeof(float) * 3
-            stepMode: 'vertex'
-        };
+let positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
 
-        ...
+const texCoords = new Float32Array([
+    1.0,
+    1.0,
+    // 🔴
+    0.0,
+    1.0,
 
-        const texCoords = new Float32Array([
-            1.0,
-            0.0,
-            //
-            0.0,
-            0.0,
+    0.5,
+    0.0,
 
-            0.5,
-            1.0,
+]);
 
-        ]);
+let texCoordsBuffer = createGPUBuffer(device, texCoords, GPUBufferUsage.VERTEX);
 
-        const texCoordsBufferDesc = {
-            size: texCoords.byteLength,
-            usage: GPUBufferUsage.VERTEX,
-            mappedAtCreation: true
-        };
+const uniformData = new Float32Array([
+    0.1, 0.1, 0.1
+]);
 
-        let texCoordsBuffer = device.createBuffer(texCoordsBufferDesc);
-        const writeArrayColor = new Float32Array(texCoordsBuffer.getMappedRange());
-        writeArrayColor.set(texCoords);
-        texCoordsBuffer.unmap();
+let uniformBuffer = createGPUBuffer(device, uniformData, GPUBufferUsage.UNIFORM);
 
-        ...
+let uniformBindGroupLayout = device.createBindGroupLayout({
+    entries: [
+        {
+            binding: 0,
+            visibility: GPUShaderStage.VERTEX,
+            buffer: {}
+        },
+        {
+            binding: 1,
+            visibility: GPUShaderStage.FRAGMENT,
+            texture: {}
+        },
+        {
+            binding: 2,
+            visibility: GPUShaderStage.FRAGMENT,
+            sampler: {}
+        }
+    ]
+});
 
-        let uniformBindGroupLayout = device.createBindGroupLayout({
-            entries: [
-                {
-                    binding: 0,
-                    visibility: GPUShaderStage.VERTEX,
-                    buffer: {}
-                },
-                {
-                    binding: 1,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    texture: {}
-                },
-                {
-                    binding: 2,
-                    visibility: GPUShaderStage.FRAGMENT,
-                    sampler: {}
-                }
-            ]
-        });
-
-        let uniformBindGroup = device.createBindGroup({
-            layout: uniformBindGroupLayout,
-            entries: [
-                {
-                    binding: 0,
-                    resource: {
-                        buffer: uniformBuffer
-                    }
-                },
-                {
-                    binding: 1,
-                    resource: texture.createView()
-                },
-                {
-                    binding: 2,
-                    resource:
-                        sampler
-
-                }
-            ]
-        });
-
-        ...
-        const pipelineDesc = {
-            layout,
-            vertex: {
-                module: shaderModule,
-                entryPoint: 'vs_main',
-                buffers: [positionBufferLayoutDesc, texCoordsBufferLayoutDesc]
-            },
-            fragment: {
-                module: shaderModule,
-                entryPoint: 'fs_main',
-                targets: [colorState]
-            },
-            primitive: {
-                topology: 'triangle-list',
-                frontFace: 'ccw',
-                cullMode: 'back'
+let uniformBindGroup = device.createBindGroup({
+    layout: uniformBindGroupLayout,
+    entries: [
+        {
+            binding: 0,
+            resource: {
+                buffer: uniformBuffer
             }
-        };
+        },
+        {
+            binding: 1,
+            resource: texture.createView()
+        },
+        {
+            binding: 2,
+            resource:
+                sampler
 
-        ...
-
-        passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
-        passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
-        passEncoder.setPipeline(pipeline);
-        passEncoder.setBindGroup(0, uniformBindGroup);
-        passEncoder.setVertexBuffer(0, positionBuffer);
-        passEncoder.setVertexBuffer(1, texCoordsBuffer);
-        passEncoder.draw(3, 1);
-        passEncoder.end();
-
-        device.queue.submit([commandEncoder.finish()]);
-    }
-
-    webgpu();
-&lt;/script&gt;</code></pre><p>Let's explore the JavaScript side of things. First, we need to create an image. Here, we're utilizing the fetch API to load a PNG image from the server. Once the server responds, we create a blob from the response body. From this blob, we then create an image bitmap.</p><p>With our bitmap ready, the next step is to create a texture. To achieve this, we start by defining a texture descriptor. This descriptor requires the width and height of the texture as well as the pixel format. For the usage flags, we need to set the <code>TEXTURE_BINDING</code> flag because we intend to use this texture in our shader. Additionally, it's necessary to include the <code>COPY_DST</code> and <code>RENDER_ATTACHMENT</code> flags. Both are mandated by the <code>copyExternalImageToTexture</code> helper function. Although the exact reason isn't explicitly detailed in the WebGPU specification, my inference is that this function underpins a GPU command submission, possibly involving rendering to the texture to load the image data into the GPU.</p><p>Now, let's create a sampler. The first two parameters, <code>addressModeU</code> and <code>addressModeV</code>, specify how we should sample a texture if the requested coordinates fall outside the range of the texture. Here, we've opted for <code>repeat</code>, indicating that the texture should be repeated if the coordinates extend beyond the texture's size. This allows us to sample color even when the coordinates exceed the texture's dimensions. As for the filters, we've chosen a linear filter. This provides smooth results between texture map pixels, utilizing bilinear interpolation. However, it's worth noting that this choice can sometimes lead to a slightly blurry outcome. We'll explore more examples in future chapters to understand these choices better.</p><p>The remaining code structure remains largely the same. We still create the uniform buffer, but now it only contains the offset value. When we create the bind group, for the <code>@binding(0)</code>, we continue to provide the offsets via the uniform buffer. However, for the texture, we're using a texture view as its resource. And for the sampler, we simply provide the sampler as the resource.</p><p>The rest of the code follows the previous pattern. One notable difference is that we provide the texture coordinates by calling <code>setVertexBuffer</code> for <code>@location(1)</code> with the texture coordinates.</p><p>With these changes in place, we've effectively integrated a texture into our shader, opening up a world of possibilities for more visually captivating graphics.</p>
+        }
+    ]
+});
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=75:167#1_07_working_with_textures">1_07_working_with_textures/index.html:75-167 Creating a Vertex Buffer Containing Texture Coordinates and Uniforms for the Texture and Sampler</a></div></div><p>The remaining code structure remains largely the same. We still create the uniform buffer, but now it only contains the offset value. When we create the bind group, for the <code>@binding(0)</code>, we continue to provide the offsets via the uniform buffer. However, for the texture, we're using a texture view as its resource. And for the sampler, we simply provide the sampler as the resource.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=210>passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
+passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+passEncoder.setPipeline(pipeline);
+passEncoder.setBindGroup(0, uniformBindGroup);
+passEncoder.setVertexBuffer(0, positionBuffer);
+passEncoder.setVertexBuffer(1, texCoordsBuffer);
+passEncoder.draw(3, 1);
+passEncoder.end();
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=210:217#1_07_working_with_textures">1_07_working_with_textures/index.html:210-217 Submitting Command With Texture Coordinate Buffer</a></div></div><p>The rest of the code follows the previous pattern. One notable difference is that we provide the texture coordinates by calling <code>setVertexBuffer</code> for <code>@location(1)</code> with the texture coordinate buffer.</p><p>With these changes in place, we've effectively integrated a texture into our shader, opening up a world of possibilities for more visually captivating graphics.</p>
         </article>
         <a href="https://github.com/shi-yan/WebGPUUnleashed/discussions" target="_blank" class="comment"><svg
             style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"

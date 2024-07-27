@@ -245,6 +245,7 @@ code {
     background-color: var(--code-block-background-color);
     border-radius: 4px;
     padding: 2px;
+    color: #2fcd7f;
 }
 
 .code-block {
