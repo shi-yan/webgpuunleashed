@@ -135,8 +135,9 @@ li {
   text-align: center;
 }
 
-.highlight-line {
+.highlight-linenumber {
   background: #ffd790;
+  color: #0e0b33;
 }._Menu_1ca9h_1 {
   width: 320px;
   height: 100vh;
