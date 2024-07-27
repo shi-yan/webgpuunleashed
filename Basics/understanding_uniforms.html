@@ -29,9 +29,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script
         src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/html.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/wgsl.min.js"></script>
 
 
     <link rel="stylesheet"
@@ -157,18 +155,10 @@
 
     <div id="article-container">
         <article>
-            <h2 >1.6 Understanding Uniforms</h2><p>In this tutorial, we'll dive into the concept of uniforms. Uniforms provide a means to supply data to a shader program, and they behave like constants. The critical distinction with uniforms is that their values remain constant throughout the entire execution of a shader.</p><p>Now, you might be wondering how uniforms differ from attributes, which we've previously used to pass data to shader programs. The key difference lies in their intended use:</p><ul><li><p><strong>Attributes</strong>: These are used to provide per-vertex data. When dealing with attributes, we typically bundle all the attribute data into a single buffer. The GPU pipeline then takes care of dissecting this data for each vertex. When a shader program runs on the GPU, it effectively launches numerous instances of the same program, each processing an individual vertex. The GPU's parallel processing capability shines in this aspect, as it can efficiently handle this workload. Think of attributes as the data each vertex requires for its unique processing.</p></li><li><p><strong>Uniforms</strong>: In contrast, uniforms are constants that maintain the same value for all vertices and persist throughout the entire shader program execution. To draw an analogy, consider uniforms as akin to environment variables or command-line arguments when running a command-line program. Once the shader program begins execution, you can think of uniforms as constants that retain their values throughout the process. They don't change or vary per vertex; rather, they provide consistent information to the entire shader.</p></li></ul><p>This distinction is crucial because it enables shaders to handle both per-vertex data (attributes) and shared, unchanging data (uniforms), offering flexibility and efficiency in the rendering process.</p><pre><code class="language-html code-block">&lt;script id="shader" type="wgsl"&gt;
-// Vertex shader
-
-@group(0) @binding(0)
+            <h2 >1.6 Understanding Uniforms</h2><p>In this tutorial, we'll explore the concept of uniforms in WebGPU shaders. Uniforms provide a mechanism to supply data to shader programs, acting as constants throughout the entire execution of a shader.</p><a href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html#1_06_uniforms" target="_blank" class="comment"><svg style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
+                    width="32" fill="#dadadb" viewBox="0 -960 960 960"><path d="M189-160q-60 0-102.5-43T42-307q0-9 1-18t3-18l84-336q14-54 57-87.5t98-33.5h390q55 0 98 33.5t57 87.5l84 336q2 9 3.5 18.5T919-306q0 61-43.5 103.5T771-160q-42 0-78-22t-54-60l-28-58q-5-10-15-15t-21-5H385q-11 0-21 5t-15 15l-28 58q-18 38-54 60t-78 22Zm3-80q19 0 34.5-10t23.5-27l28-57q15-31 44-48.5t63-17.5h190q34 0 63 18t45 48l28 57q8 17 23.5 27t34.5 10q28 0 48-18.5t21-46.5q0 1-2-19l-84-335q-7-27-28-44t-49-17H285q-28 0-49.5 17T208-659l-84 335q-2 6-2 18 0 28 20.5 47t49.5 19Zm348-280q17 0 28.5-11.5T580-560q0-17-11.5-28.5T540-600q-17 0-28.5 11.5T500-560q0 17 11.5 28.5T540-520Zm80-80q17 0 28.5-11.5T660-640q0-17-11.5-28.5T620-680q-17 0-28.5 11.5T580-640q0 17 11.5 28.5T620-600Zm0 160q17 0 28.5-11.5T660-480q0-17-11.5-28.5T620-520q-17 0-28.5 11.5T580-480q0 17 11.5 28.5T620-440Zm80-80q17 0 28.5-11.5T740-560q0-17-11.5-28.5T700-600q-17 0-28.5 11.5T660-560q0 17 11.5 28.5T700-520Zm-360 60q13 0 21.5-8.5T370-490v-40h40q13 0 21.5-8.5T440-560q0-13-8.5-21.5T410-590h-40v-40q0-13-8.5-21.5T340-660q-13 0-21.5 8.5T310-630v40h-40q-13 0-21.5 8.5T240-560q0 13 8.5 21.5T270-530h40v40q0 13 8.5 21.5T340-460Zm140-20Z"/></svg>Launch Playground - 1_06_uniforms</a><p>You might wonder how uniforms differ from attributes, which we've previously used to pass data to shader programs. The distinction lies in their intended use and behavior.</p><ul><li><p><strong>Attributes</strong>: Attributes are used to provide per-vertex data. When dealing with attributes, we typically bundle all the attribute data for all vertices into a single buffer. The GPU pipeline then takes care of dissecting this data for each vertex. When a shader program runs on the GPU, it effectively launches numerous instances of the same program, each processing an individual vertex. The GPU's parallel processing capability shines in this aspect, as it can efficiently handle this workload. Think of attributes as the data each vertex requires for its unique processing.</p></li><li><p><strong>Uniforms</strong>: In contrast, uniforms are constants that maintain the same value for all vertices and persist throughout the entire shader program execution. To draw an analogy, consider uniforms as akin to environment variables or command-line arguments when running a command-line program. Once the shader program begins execution, you can think of uniforms as constants that retain their values throughout the process. They don't change or vary per vertex; rather, they provide consistent information to the entire shader.</p></li></ul><p>This distinction is crucial because it enables shaders to handle both per-vertex data (attributes) and shared, unchanging data (uniforms), offering flexibility and efficiency in the rendering process.</p><p>In this example, we'll create a uniform called "offset" to shift the positions of our vertices by a consistent amount. Using a uniform for this purpose is logical because we want the same offset applied to all vertices. If we used attributes for the offset, we'd have to duplicate the same value for every vertex, which would be inefficient and wasteful. Uniforms are the ideal choice when you need to pass the same information to the shader for all vertices.</p><p>By using a uniform for the offset, we can efficiently apply a global transformation to our geometry, easily update the offset value for dynamic effects, and reduce memory usage and data transfer compared to per-vertex attributes. This example will demonstrate how to declare, set, and use uniforms in WebGPU, illustrating their power in creating flexible and efficient shader programs.</p><p>Let's examine the syntax used to create a uniform in this program:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=9>@group(0) @binding(0)
 var&lt;uniform&gt; offset: vec3&lt;f32&gt;;
-
-struct VertexOutput {
-    @builtin(position) clip_position: vec4&lt;f32&gt;,
-    @location(0) color: vec3&lt;f32&gt;,
-};
-
-@vertex
+</pre></code><div class="code-fragments-caption">1_06_uniforms/index.html:9-10 Define a Uniform in the Shader</div></div><p>The <code>var&lt;uniform&gt;</code> declaration indicates that <code>offset</code> is a uniform variable, signaling to the shader that this variable should be provided from a uniform buffer. The <code>@binding(0)</code> annotation serves a similar purpose to <code>@location(0)</code> for vertex attributes. It's an index that identifies the uniform within a uniform buffer. In a typical uniform buffer, you'll pack multiple uniform values, and this index helps the shader locate the correct value efficiently.</p><p>The <code>@group(0)</code> annotation relates to how uniforms are organized. In this simple case, we've placed all uniforms in a single group (group 0). However, for more complex shaders, using multiple groups can be advantageous. For instance, when rendering an animated scene, you might have camera parameters that change frequently and object colors that remain constant. By separating these into different groups, you can update only the data that changes frequently, thereby optimizing performance.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=15>@vertex
 fn vs_main(
     @location(0) inPos: vec3&lt;f32&gt;,
     @location(1) inColor: vec3&lt;f32&gt;
@@ -178,104 +168,34 @@ fn vs_main(
     out.color = inColor;
     return out;
 }
+</pre></code><div class="code-fragments-caption">1_06_uniforms/index.html:15-24 Apply an Offset in the Vertex Shader</div></div><p>After defining the <code>offset</code> uniform, its usage in the shader becomes straightforward. We simply add the <code>offset</code> value to the position of each vertex, effectively shifting their positions. This uniform allows us to apply a consistent transformation to all vertices without the need for duplication or redundancy in the shader code.</p><p>After modifying the shader, we need to create the uniform buffer and supply the data on the JavaScript side. Uniforms, like attribute data, are provided in a GPU buffer. Let's break down this process:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=95>const uniformData = new Float32Array([
+    0.1, 0.1, 0.1
+]);
 
-// Fragment shader
-
-@fragment
-fn fs_main(in: VertexOutput) -&gt; @location(0) vec4&lt;f32&gt; {
-    return vec4&lt;f32&gt;(in.color, 1.0);
-}
-
-&lt;/script&gt;</code></pre><p>In this example, we'll create a uniform called "offset" to shift the positions of our vertices by a consistent offset. Using a uniform for the offset makes sense because we want the same offset to be applied to all vertices. If we used attributes for the offset, we'd have to duplicate the same offset for every vertex, which would be inefficient and wasteful. Uniforms are the ideal choice when you need to pass the same information to the shader for all vertices.</p><p>Let's break down the syntax used to create a uniform in this program:</p><pre><code class="language-wgsl code-block">@group(0) @binding(0)
-var&lt;uniform&gt; offset: vec3&lt;f32&gt;;</code></pre><ol><li><p><code>var&lt;uniform&gt;</code>: This part of the syntax indicates that "offset" is a uniform variable. It tells the shader that this variable should be provided from a uniform buffer.</p></li><li><p><code>@binding(0)</code>: This annotation is similar to <code>@location(0)</code> for vertex attributes. It's an index that identifies the uniform within a uniform buffer. In a uniform buffer, you typically pack multiple uniform values, and this index helps the shader locate the correct value.</p></li><li><p><code>@group(0)</code>: Uniforms can be organized into different groups. In this simple case, we have all uniforms in a single group (group 0). However, for complex shaders, using multiple groups can be beneficial. For example, when rendering an animated scene, you might have camera parameters that change frequently and object colors that remain constant. By separating them into different groups, you can update only the data that changes frequently, optimizing performance.</p></li></ol><p>Once we've defined the "offset" uniform, using it in the shader is straightforward. We simply add the "offset" value to the position of each vertex, shifting their positions accordingly. This uniform allows us to apply a consistent transformation to all vertices without the need for duplication or redundancy in the shader code.</p><pre><code class="language-html code-block">&lt;script&gt;
-    async function webgpu() {
-        ...
-
-        const uniformData = new Float32Array([
-            0.1, 0.1, 0.1
-        ]);
-
-        const uniformBufferDesc = {
-            size: uniformData.byteLength,
-            usage: GPUBufferUsage.UNIFORM,
-            mappedAtCreation: true
-        };
-
-        let uniformBuffer = device.createBuffer(uniformBufferDesc);
-
-        const writeUniformBuffer = new Float32Array(uniformBuffer.getMappedRange());
-        writeUniformBuffer.set(uniformData);
-        uniformBuffer.unmap();
-
-        let uniformBindGroupLayout = device.createBindGroupLayout({
-            entries: [
-                {
-                    binding: 0,
-                    visibility: GPUShaderStage.VERTEX,
-                    buffer: {}
-                }
-            ]
-        });
-
-        let uniformBindGroup = device.createBindGroup({
-            layout: uniformBindGroupLayout,
-            entries: [
-                {
-                    binding: 0,
-                    resource: {
-                        buffer: uniformBuffer
-                    }
-                }
-            ]
-        });
-
-        const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout] };
-        ...
-
-        passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
-        passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
-        passEncoder.setPipeline(pipeline);
-        passEncoder.setBindGroup(0, uniformBindGroup);
-        passEncoder.setVertexBuffer(0, positionBuffer);
-        passEncoder.setVertexBuffer(1, colorBuffer);
-        passEncoder.draw(3, 1);
-        passEncoder.end();
-
-        device.queue.submit([commandEncoder.finish()]);
-    }
-
-    webgpu();
-&lt;/script&gt;</code></pre><p>Once we've made the necessary modifications to the shader, let's proceed to create the uniform and supply the data on the JavaScript side. Uniforms are provided in a GPU buffer, similar to how we supply attribute data. Here's a breakdown of the process:</p><p><strong>Creating the Uniform Buffer:</strong></p><pre><code class="language-javascript code-block">const uniformData = new Float32Array([0.1, 0.1, 0.1]);
-
-const uniformBufferDesc = {
-    size: uniformData.byteLength,
-    usage: GPUBufferUsage.UNIFORM, // Using the uniform flag for usage
-    mappedAtCreation: true
-};
-
-let uniformBuffer = device.createBuffer(uniformBufferDesc);
-
-const writeUniformBuffer = new Float32Array(uniformBuffer.getMappedRange());
-writeUniformBuffer.set(uniformData);
-uniformBuffer.unmap();</code></pre><ul><li><p>We create a <code>uniformData</code> buffer to hold our uniform values. In this example, it contains a 3-element vector.</p></li><li><p>We create the <code>uniformBuffer</code> using the <code>GPUBufferUsage.UNIFORM</code> flag to indicate that it's a uniform buffer.</p></li><li><p>The <code>writeUniformBuffer</code> is a Float32Array that mirrors the GPU buffer's range. We copy the uniform data into this array and then unmap the buffer to send the data to the GPU.</p></li></ul><p><strong>Creating the Uniform Binding Group Layout:</strong></p><pre><code class="language-javascript code-block">let uniformBindGroupLayout = device.createBindGroupLayout({
+let uniformBuffer = createGPUBuffer(device, uniformData, GPUBufferUsage.UNIFORM);
+</pre></code><div class="code-fragments-caption">1_06_uniforms/index.html:95-99 Create and Load the Uniform Buffer</div></div><p>First, we create a uniformData buffer to hold our uniform values. In this example, it contains a 3-element vector representing our offset. We create the uniformBuffer using the <code>GPUBufferUsage.UNIFORM</code> flag to indicate its purpose. Then, we use our helper function to populate the GPU uniform buffer with the data.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=100>let uniformBindGroupLayout = device.createBindGroupLayout({
     entries: [
         {
-            binding: 0, // Corresponds to the binding index in the shader
-            visibility: GPUShaderStage.VERTEX, // Set to vertex because we use it in the vertex shader
-            buffer: {} // Empty buffer resource
+            binding: 0,
+            visibility: GPUShaderStage.VERTEX,
+            buffer: {}
         }
     ]
-});</code></pre><ul><li><p>We create a uniform binding group layout to describe the format of the uniform buffer. In this case, we have only one uniform value.</p></li></ul><p><strong>Creating the Uniform Binding Group:</strong></p><pre><code class="language-javascript code-block">let uniformBindGroup = device.createBindGroup({
+});
+</pre></code><div class="code-fragments-caption">1_06_uniforms/index.html:100-108 Create the Bind Group Layout</div></div><p>Next, we create a uniform binding group layout to describe the format of the uniform group, corresponding to our uniform group definition in the shader code. In this example, the layout has one entry, corresponding to our single uniform value. The binding index matches the one in the shader, while visibility is set to VERTEX as we use this uniform in the vertex shader. Finally, the empty buffer setting object means that we want to use defaults.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=109>let uniformBindGroup = device.createBindGroup({
     layout: uniformBindGroupLayout,
     entries: [
         {
-            binding: 0, // Corresponds to the binding index in the shader
+            binding: 0,
             resource: {
-                buffer: uniformBuffer // Supply the uniform buffer
+                buffer: uniformBuffer
             }
         }
     ]
-});</code></pre><ul><li><p>The uniform binding group includes both the layout and the actual content storage. We supply the uniform buffer as the resource for binding 0.</p></li></ul><p><strong>Updating the Pipeline Layout Descriptor:</strong></p><pre><code class="language-javascript code-block">const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout] };</code></pre><ul><li><p>In the pipeline layout descriptor, we include the uniform binding group layout in the <code>bindGroupLayouts</code> field. This indicates that our pipeline uses this layout.</p></li></ul><p><strong>Setting the Uniform in the Command Encoder:</strong></p><pre><code class="language-javascript code-block">passEncoder.setBindGroup(0, uniformBindGroup);</code></pre><ul><li><p>When we create the command for submission, we use <code>setBindGroup</code> to specify the group ID (0 in this case) and the corresponding binding group. This action supplies the uniform values to the pipeline.</p></li></ul><p>With these steps, we've successfully created a uniform buffer, defined the uniform binding group layout, and supplied the uniform data to the shader in the GPU pipeline. Uniforms allow us to pass constant values that remain the same throughout the shader's execution, making them a valuable tool for various rendering tasks.</p>
+});
+</pre></code><div class="code-fragments-caption">1_06_uniforms/index.html:109-119 Create the Bind Group</div></div><p>We then create the uniform binding group, connecting the layout with the actual data storage. Here, we supply the uniform buffer as the resource for binding 0.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=120>const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout] };
+</pre></code><div class="code-fragments-separator">• • •</div><pre><code class="language-javascript code-block" startNumber=166>passEncoder.setBindGroup(0, uniformBindGroup);
+</pre></code><div class="code-fragments-caption">1_06_uniforms/index.html:120-166 Configure the Pipeline and Submit the Uniform Bind Group</div></div><p>In the pipeline layout descriptor, we include the uniform binding group layout. Finally, when encoding the render command, we use <code>setBindGroup</code> to specify the group ID and the corresponding binding group.</p><p>With these steps, we've successfully created a uniform buffer, defined its layout, and supplied the uniform data to the shader in the GPU pipeline. The result is the same triangle, but slightly offset based on our uniform values. Experiment with adjusting the offset values in the code sample to see how it affects the triangle's position.</p>
         </article>
         <a href="https://github.com/shi-yan/WebGPUUnleashed/discussions" target="_blank" class="comment"><svg
             style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
