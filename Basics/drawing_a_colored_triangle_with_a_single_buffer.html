@@ -30,6 +30,7 @@
     <script
         src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/html.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
 
 
     <link rel="stylesheet"
@@ -155,7 +156,58 @@
 
     <div id="article-container">
         <article>
-            <h2 >1.5 Drawing a Colored Triangle with a Single Buffer</h2><p>In the previous example, we utilized two buffers and two locations to supply positions and colors for vertices. However, using two buffers isn't always necessary. In this modified example, we're going to use a single buffer to provide all vertex attributes.</p><p>Here, I'll highlight the differences between this example and the previous one. The shader code remains unchanged.</p><p>The first difference is in the color attribute descriptor. We introduce an offset because we're going to interleave position data and color data. The offset signifies the beginning of the first color. Since we've placed color after vertex positions, the offset is set to 4 bytes times 3, which is the size of a vertex position vector.</p><p>Secondly, instead of creating two buffers (one for positions and one for colors), we now use a single buffer called <code>positionColorBuffer</code>. When creating the descriptor for this buffer, we include both attributes in the attribute list. For <code>arrayStride</code>, we set it to 4 times 6 instead of 3, because, for each vertex, we now have 6 float numbers associated with it.</p><p>Similarly, when creating data for this buffer, we supply 3 by 6 floating-point numbers, with positions and colors interleaved.</p><p>Regarding the pipeline descriptor, in the buffers field, we now only have one buffer descriptor instead of two. When creating the command, we set only one buffer at slot zero.</p><p>This program is equivalent to the previous one, but it uses a single buffer instead of two. Using a single buffer in this case is more efficient because it avoids creating extra resources and eliminates the need to copy data twice from the CPU to the GPU. Transferring data from the CPU to GPU incurs latency, so minimizing these transfers is beneficial.</p><p>You might wonder when to use multiple buffers vs. a single buffer. It depends on how often the attributes change. In this example, we never change the data; both the positions and the colors remain the same throughout execution. Hence, we can store them in a single buffer. However, if we need to change the vertex color frequently, perhaps in an animation, we probably wouldn't want to mix the two attributes in a single buffer. This way, we avoid transferring position data when only color data needs to be sent to the GPU.</p><pre><code class="language-html code-block">&lt;script&gt;
+            <h2 >1.5 Drawing a Colored Triangle with a Single Buffer</h2><p>In our previous example, we used two separate buffers and two locations to provide positions and colors for vertices. However, using multiple buffers isn't always necessary or optimal. In this modified example, we'll demonstrate how to use a single buffer to provide all vertex attributes.</p><a href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html#1_05_colored_triangle_with_a_single_buffer" target="_blank" class="comment"><svg style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
+                    width="32" fill="#dadadb" viewBox="0 -960 960 960"><path d="M189-160q-60 0-102.5-43T42-307q0-9 1-18t3-18l84-336q14-54 57-87.5t98-33.5h390q55 0 98 33.5t57 87.5l84 336q2 9 3.5 18.5T919-306q0 61-43.5 103.5T771-160q-42 0-78-22t-54-60l-28-58q-5-10-15-15t-21-5H385q-11 0-21 5t-15 15l-28 58q-18 38-54 60t-78 22Zm3-80q19 0 34.5-10t23.5-27l28-57q15-31 44-48.5t63-17.5h190q34 0 63 18t45 48l28 57q8 17 23.5 27t34.5 10q28 0 48-18.5t21-46.5q0 1-2-19l-84-335q-7-27-28-44t-49-17H285q-28 0-49.5 17T208-659l-84 335q-2 6-2 18 0 28 20.5 47t49.5 19Zm348-280q17 0 28.5-11.5T580-560q0-17-11.5-28.5T540-600q-17 0-28.5 11.5T500-560q0 17 11.5 28.5T540-520Zm80-80q17 0 28.5-11.5T660-640q0-17-11.5-28.5T620-680q-17 0-28.5 11.5T580-640q0 17 11.5 28.5T620-600Zm0 160q17 0 28.5-11.5T660-480q0-17-11.5-28.5T620-520q-17 0-28.5 11.5T580-480q0 17 11.5 28.5T620-440Zm80-80q17 0 28.5-11.5T740-560q0-17-11.5-28.5T700-600q-17 0-28.5 11.5T660-560q0 17 11.5 28.5T700-520Zm-360 60q13 0 21.5-8.5T370-490v-40h40q13 0 21.5-8.5T440-560q0-13-8.5-21.5T410-590h-40v-40q0-13-8.5-21.5T340-660q-13 0-21.5 8.5T310-630v40h-40q-13 0-21.5 8.5T240-560q0 13 8.5 21.5T270-530h40v40q0 13 8.5 21.5T340-460Zm140-20Z"/></svg>Launch Playground - 1_05_colored_triangle_with_a_single_buffer</a><p>Let's focus on the key differences between this example and the previous one. Note that the shader code remains unchanged.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=52>const positionAttribDesc = {
+    shaderLocation: 0, // @location(0)
+    offset: 0,
+    format: 'float32x3'
+};
+
+const colorAttribDesc = {
+    shaderLocation: 1, // @location(1)
+    offset: 4 * 3,
+    format: 'float32x3'
+};
+</pre></code><div class="code-fragments-caption">1_05_colored_triangle_with_a_single_buffer/index.html:52-62 Modified Color Attribute Descriptor With an Offset</div></div><p>First, we modify the color attribute descriptor. We introduce an offset because we're interleaving position and color data. The offset signifies the beginning of the first color data within the buffer. Since we've placed color after vertex positions, the offset is set to 12 bytes (4 bytes * 3), which is the size of a vertex position vector.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=63>const positionColorBufferLayoutDesc = {
+    attributes: [positionAttribDesc, colorAttribDesc],
+    arrayStride: 4 * 6, // sizeof(float) * 3
+    stepMode: 'vertex'
+};
+</pre></code><div class="code-fragments-caption">1_05_colored_triangle_with_a_single_buffer/index.html:63-67 Modified Buffer Descriptor for Both Positions and Colors</div></div><p>Secondly, instead of creating separate buffers for positions and colors, we now use a single buffer called positionColorBuffer. When creating the descriptor for this buffer, we include both attributes in the attribute list. The arrayStride is set to 24 bytes (4 * 6) instead of 12, because each vertex now has 6 float numbers associated with it (3 for position, 3 for color).</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=68>const positionColors = new Float32Array([
+    1.0, -1.0, 0.0, // position
+    1.0, 0.0, 0.0, // 🔴
+    -1.0, -1.0, 0.0, 
+    0.0, 1.0, 0.0, // 🟢
+    0.0, 1.0, 0.0,
+    0.0, 0.0, 1.0 // 🔵
+]);
+
+let positionColorBuffer = createGPUBuffer(device, positionColors, GPUBufferUsage.VERTEX);
+</pre></code><div class="code-fragments-caption">1_05_colored_triangle_with_a_single_buffer/index.html:68-77 Unified Position and Color Data</div></div><p>When creating data for this buffer, we supply 18 floating-point numbers (3 vertices * 6 floats per vertex), with positions and colors interleaved:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=84>const pipelineDesc = {
+    layout,
+    vertex: {
+        module: shaderModule,
+        entryPoint: 'vs_main',
+        buffers: [positionColorBufferLayoutDesc]
+    },
+    fragment: {
+        module: shaderModule,
+        entryPoint: 'fs_main',
+        targets: [colorState]
+    },
+    primitive: {
+        topology: 'triangle-list',
+        frontFace: 'cw',
+        cullMode: 'back'
+    }
+};
+</pre></code><div class="code-fragments-separator">• • •</div><pre><code class="language-javascript code-block" startNumber=118>passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
+passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+passEncoder.setPipeline(pipeline);
+passEncoder.setVertexBuffer(0, positionColorBuffer);
+passEncoder.draw(3, 1);
+passEncoder.end();
+</pre></code><div class="code-fragments-caption">1_05_colored_triangle_with_a_single_buffer/index.html:84-123 Pipeline Descriptor and Draw Command Formation</div></div><p>In the pipeline descriptor, we now only have one buffer descriptor in the buffers field. When encoding the render command, we set only one buffer at slot zero:</p><p>This program is functionally equivalent to the previous one, but it uses a single buffer instead of two. Using a single buffer in this case is more efficient because it avoids creating extra resources and eliminates the need to copy data twice from the CPU to the GPU. Transferring data from CPU to GPU incurs latency, so minimizing these transfers is beneficial for performance.</p><p>You might wonder when to use multiple buffers versus a single buffer. It depends on how frequently the attributes change. In this example, both the positions and colors remain constant throughout execution, making a single buffer suitable. However, if we need to update vertex colors frequently, perhaps in an animation, separating the attributes into different buffers might be preferable. This way, we can update color data without transferring the unchanged position data to the GPU.</p><pre><code class="language-html code-block">&lt;script&gt;
     async function webgpu() {
         ...
         const positionAttribDesc = {
