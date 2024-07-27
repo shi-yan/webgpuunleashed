@@ -1,3 +1,4 @@
+//cs_start: utils_create_gpu_buffer
 function createGPUBuffer(device, buffer, usage) {
     const bufferDesc = {
         size: buffer.byteLength,
@@ -30,6 +31,7 @@ function createGPUBuffer(device, buffer, usage) {
     gpuBuffer.unmap();
     return gpuBuffer;
 }
+//cs_end: utils_create_gpu_buffer
 
 async function img2texture(device, url) {
     const response = await fetch(url);
