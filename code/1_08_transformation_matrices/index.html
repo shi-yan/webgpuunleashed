@@ -8,15 +8,15 @@
 //transformation matrix </script>
 <script id="shader" type="wgsl">
 // Vertex shader
-
+//cs_start: transformation_matrix_vertex_shader
 @group(0) @binding(0)
 var<uniform> transform: mat4x4<f32>;
-
+//cs_end: transformation_matrix_vertex_shader
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
     @location(0) tex_coords: vec2<f32>,
 };
-
+//cs_start: transformation_matrix_vertex_shader
 @vertex
 fn vs_main(
     @location(0) inPos: vec3<f32>,
@@ -27,7 +27,7 @@ fn vs_main(
     out.tex_coords = inTexCoords;
     return out;
 }
-
+//cs_end: transformation_matrix_vertex_shader
 // Fragment shader
 
 @group(0) @binding(1)
@@ -115,11 +115,11 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         ]);
 
         let texCoordsBuffer = createGPUBuffer(device, texCoords, GPUBufferUsage.VERTEX);
-
+//cs_start: transformation_matrix_uniform_buffer_setup
         let translateMatrix = glMatrix.mat4.fromTranslation(glMatrix.mat4.create(), glMatrix.vec3.fromValues(-0.5, -0.5, 0.0));
 
         let uniformBuffer = createGPUBuffer(device, translateMatrix, GPUBufferUsage.UNIFORM);
-
+//cs_end: transformation_matrix_uniform_buffer_setup
         let uniformBindGroupLayout = device.createBindGroupLayout({
             entries: [
                 {
