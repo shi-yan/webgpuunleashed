@@ -157,9 +157,79 @@
     <div id="article-container">
         <article>
             <h2 >1.8 Utilizing Transformation Matrices</h2><p>In this tutorial, we're going to revisit our previous shader example to achieve the same result—an offset triangle. However, this time, we'll do it differently. Instead of using a simple offset vector, we're going to employ a transformation matrix. By multiplying our vertex positions with this transformation matrix, we'll produce the same outcome. The key takeaway here is that adding an offset vector is equivalent to applying a transformation matrix.</p><p>Transformation matrices provide a more versatile way to represent transformations. In practice, we rarely limit ourselves to applying offsets alone. Transformation matrices can handle not just offsetting but also scaling, rotation and projection. Transformation matrices is the most generic way of manipulating vertices. if you are ambitioned to become a graphics developer, knowing the transformation matrices well is very crucial, it is not something you can avoid working on graphics programming.</p><p>If you're new to graphics development, this concept might be difficult, so let's take a step by step approach to make sense of them. We will start from 2D and concrete examples. in this tutorial, our focus is scaling, translation and rotation. we will look at the projection matrix in the next chapter.</p><h3 >Scaling</h3><p>Scaling is the easiest transformation. Imagine we have a 2D vector <code class="language-math math-inline">(x,y)</code>. we want to scale this point by 3 times, the stretched vector will become <code class="language-math math-inline">(3x,3y)</code>. We can apply different multiple to x and y, for example <code class="language-math math-inline">(3,4)</code>, the resulting vector will be <code class="language-math math-inline">(3x,4y)</code>. The equation for 2D scaling is simply:</p><p class="katex-display-counter"><code class="language-math math-block">  \begin{aligned}
-  x^\prime &= 3 * x \\
-  y^\prime &= 4 * y \\
-  \end{aligned}</code></p><p>To illustrate this, consider a simplified 2D example. Imagine we have a point located at (3, 4). Now, we want to apply an offset of (5, 5) to this point. Traditionally, we would use an offset vector and add it to the vertex position to achieve the desired offset.</p><p class="katex-display-counter"><code class="language-math math-block">\begin{pmatrix}
+  x^\prime &= 3 \times x \\
+  y^\prime &= 4 \times y \\
+  \end{aligned}</code></p><p>We can rewrite the same calculation in a less intuitive matrix multiplication form. in the end of this tutorial, you should be able to appreciate why matrix is a desired way of representing transformation in computer graphics.</p><p class="katex-display-counter"><code class="language-math math-block">\begin{pmatrix}
+3 & 0 \\
+0 & 4
+\end{pmatrix} \times
+\begin{pmatrix}
+x \\
+y
+\end{pmatrix} =
+\begin{pmatrix}
+3x \\
+4y
+\end{pmatrix}</code></p><p>This calculation can be easily extended to the 3D space:</p><p class="katex-display-counter"><code class="language-math math-block">\begin{pmatrix}
+3 & 0 & 0 \\
+0 & 4 & 0 \\
+0 & 0 & 5
+\end{pmatrix} \times
+\begin{pmatrix}
+x \\
+y \\
+z
+\end{pmatrix} =
+\begin{pmatrix}
+3x \\
+4y \\
+5z
+\end{pmatrix}</code></p><h3 >Translation</h3><p>Translation is a bit more complex. Again, let's start from 2D. if we want to offset a 2D point <code class="language-math math-inline">(x,y)</code> by <code class="language-math math-inline">(3,4)</code>, the new point can be calculated as:</p><p class="katex-display-counter"><code class="language-math math-block">  \begin{aligned}
+  x^\prime &= 3 + x \\
+  y^\prime &= 4 + y \\
+  \end{aligned}</code></p><p>Now, rewriting it into a matrix multiplication form doesn't seem to that straightforward. But we can try:</p><p class="katex-display-counter"><code class="language-math math-block">\begin{pmatrix}
+1 & \frac{3}{y} \\
+\frac{4}{x} & 1
+\end{pmatrix} \times
+\begin{pmatrix}
+x \\
+y
+\end{pmatrix} =
+\begin{pmatrix}
+x + 3 \\
+4 + y
+\end{pmatrix}</code></p><p>While this seems to work, but it is not ideal because the translation matrix is now tied not only to the offset we want to apply, but also tied to the vector <code class="language-math math-inline">(x,y)</code>; without knowing the vector, we can't derive the translation matrix. and this is unwanted, because in graphics applications, we want to define a transformation matrix once, and apply it to any vertex and create the same transformation regardless the actual position of the vertex.</p><p>We can play a trick to make the translation matrix only related to the offset:</p><p class="katex-display-counter"><code class="language-math math-block">\begin{pmatrix}
+1 & 0 & 3 \\
+0 & 1 & 4 \\
+0 & 0 & 1
+\end{pmatrix} \times
+\begin{pmatrix}
+x \\
+y \\
+1
+\end{pmatrix} =
+\begin{pmatrix}
+x + 3 \\
+y + 4 \\
+1
+\end{pmatrix}</code></p><p>We we are doing here is expanding the matrix into 3x3, with the offset defined in the last column. For the point location, we also extend it into a 3x1 vector, so that it can still multiply with the matrix. Here, the translation matrix is only related to the offset, and multiplying it with the vector, we now have a vector <code class="language-math math-inline">(x+3, y+4, 1)</code>, the first two element is the offset 2D point.</p><p>With this approach, we seem to add extra data and calculation, but we can create a matrix that satisfy our desired property. We can also modify the 2D scaling matrix by also extending it to 3x3, so that it can have the same form as the translation matrix.</p><p>Extending it to 3D is also straightforward, we only need to use a 4x4 matrix.</p><p class="katex-display-counter"><code class="language-math math-block">\begin{pmatrix}
+1 & 0 & 0 & 3 \\
+0 & 1 & 0 & 4 \\
+0 & 0 & 1 & 5 \\
+0 & 0 & 0 & 1
+\end{pmatrix} \times
+\begin{pmatrix}
+x \\
+y \\
+z \\
+1
+\end{pmatrix} =
+\begin{pmatrix}
+x + 3 \\
+y + 4 \\
+z + 5 \\
+1
+\end{pmatrix}</code></p><h3 >Rotation</h3><p>To illustrate this, consider a simplified 2D example. Imagine we have a point located at (3, 4). Now, we want to apply an offset of (5, 5) to this point. Traditionally, we would use an offset vector and add it to the vertex position to achieve the desired offset.</p><p class="katex-display-counter"><code class="language-math math-block">\begin{pmatrix}
 1 & 2 & 3\\
 a & b & c
 \end{pmatrix}</code></p><p>Now, let's introduce a transformation matrix. By multiplying this matrix with our vector, we can achieve the same offset effect. Importantly, a transformation matrix also enables us to perform scaling or rotation. The versatility of transformation matrices extends to handling a wide array of transformations.</p><p>One significant advantage of using transformation matrices is the ability to merge a series of transformations into a single composite transformation by merely multiplying them together. This is equivalent to applying the transformations sequentially. Consequently, we can break down complex transformations into a sequence of simpler matrices. Despite its non-intuitive nature, matrix multiplication for transformations is prevalent in computer graphics due to its generic and flexible nature.</p><p>We introduce transformation matrices as a stepping stone before exploring the creation of cameras in our 3D scenes in the next tutorial. Understanding matrices is essential as it forms the basis for many advanced graphics techniques.</p><p>In addition to transformation matrices, we'd like to introduce you to a valuable third-party library called glMatrix. While manually creating transformation matrices for 2D points may not be too challenging, it becomes quite tedious for 3D points. This is where glMatrix comes into play; it can generate transformation matrices and handle various vector and matrix-related calculations used extensively in computer graphics. We'll rely on this library throughout our journey in this book.</p><pre><code class="language-html code-block">&lt;script id="shader" type="wgsl"&gt;

@@ -433,3 +433,25 @@ code {
 .comment:hover {
     background-color: var(--card-hover-background-color);
 }
+
+.katex-display-counter {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    max-width: calc(100% - 32px);
+    overflow: hidden;
+    line-height: 42px;
+}
+
+.katex-display-counter code {
+    background-color: transparent !important;
+    display: inline-block;
+    flex-grow: 1;
+}
+
+.katex-display-counter::after {
+    counter-increment: katexEqnNo;
+    content: "(" counter(katexEqnNo) ")";
+    float: right;
+    vertical-align: middle;
+}
