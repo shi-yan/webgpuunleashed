@@ -6,7 +6,6 @@
 <script src="../utils/utils.js"></script>
 <script id="shader" type="wgsl">
 // Vertex shader
-//cs_start: different_vertex_colors_shader
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
     @location(0) color: vec3<f32>,
@@ -27,7 +26,6 @@ fn vs_main(
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     return vec4<f32>(in.color, 1.0);
 }
-//cs_end: different_vertex_colors_shader
 </script>
 
 <script>
@@ -59,7 +57,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             arrayStride: 4 * 3, // sizeof(float) * 3
             stepMode: 'vertex'
         };
-//cs_start: different_vertex_colors_setup_attribute
         const colorAttribDesc = {
             shaderLocation: 1, // @location(1)
             offset: 0,
@@ -71,13 +68,11 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             arrayStride: 4 * 3, // sizeof(float) * 3
             stepMode: 'vertex'
         };
-//cs_end: different_vertex_colors_setup_attribute
         const positions = new Float32Array([
             1.0, -1.0, 0.0, -1.0, -1.0, 0.0, 0.0, 1.0, 0.0
         ]);
 
         let positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
-//cs_start: different_vertex_colors_setup_attribute
         const colors = new Float32Array([
             1.0,
             0.0,
@@ -91,14 +86,12 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         ]);
 
         let colorBuffer = createGPUBuffer(device, colors, GPUBufferUsage.VERTEX);
-//cs_end: different_vertex_colors_setup_attribute
         const pipelineLayoutDesc = { bindGroupLayouts: [] };
         const layout = device.createPipelineLayout(pipelineLayoutDesc);
 
         const colorState = {
             format: 'bgra8unorm'
         };
-//cs_start: different_vertex_colors_pipeline
         const pipelineDesc = {
             layout,
             vertex: {
@@ -119,7 +112,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         };
 
         pipeline = device.createRenderPipeline(pipelineDesc);
-//cs_end: different_vertex_colors_pipeline
         let colorTexture = context.getCurrentTexture();
         let colorTextureView = colorTexture.createView();
 
@@ -133,7 +125,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         const renderPassDesc = {
             colorAttachments: [colorAttachment]
         };
-//cs_start: different_vertex_colors_pipeline
         commandEncoder = device.createCommandEncoder();
 
         passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
@@ -145,7 +136,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         passEncoder.end();
 
         device.queue.submit([commandEncoder.finish()]);
-//cs_end: different_vertex_colors_pipeline
     }
 
     webgpu();

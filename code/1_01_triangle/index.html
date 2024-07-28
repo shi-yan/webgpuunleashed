@@ -5,7 +5,6 @@
 </body>
 <script src="../utils/utils.js"></script>
 <script id="shader" type="wgsl">
-//cs_start: triangle_shader
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
 };
@@ -25,7 +24,6 @@ fn vs_main(
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     return vec4<f32>(0.3, 0.2, 0.1, 1.0);
 }
-//cs_end: triangle_shader
 </script>
 
 <script>
@@ -44,21 +42,14 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         const context = configContext(device, canvas)
 
         // create shaders
-//cs_start: triangle_load_shader
         let code = document.getElementById('shader').innerText;
         const shaderDesc = { code: code };
         let shaderModule = device.createShaderModule(shaderDesc);
-//cs_end: triangle_load_shader
-//cs_start: triangle_pipeline_layout
         const pipelineLayoutDesc = { bindGroupLayouts: [] };
         const layout = device.createPipelineLayout(pipelineLayoutDesc);
-//cs_end: triangle_pipeline_layout
-//cs_start: triangle_color_state
         const colorState = {
             format: 'bgra8unorm'
         };
-//cs_end: triangle_color_state
-//cs_start: triangle_pipeline_define
         const pipelineDesc = {
             layout,
             vertex: {
@@ -79,7 +70,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         };
 
         pipeline = device.createRenderPipeline(pipelineDesc);
-//cs_end: triangle_pipeline_define
         let colorTexture = context.getCurrentTexture();
         let colorTextureView = colorTexture.createView();
 
@@ -93,7 +83,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         const renderPassDesc = {
             colorAttachments: [colorAttachment]
         };
-//cs_start: triangle_command
         commandEncoder = device.createCommandEncoder();
 
         passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
@@ -103,7 +92,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         passEncoder.end();
 
         device.queue.submit([commandEncoder.finish()]);
-//cs_end: triangle_command
     }
 
     webgpu();

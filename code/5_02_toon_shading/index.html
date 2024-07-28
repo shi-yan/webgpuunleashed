@@ -34,7 +34,6 @@
 <script src="../utils/utils.js"></script>
 
 <script id="object_outline_shader" type="wgsl">
-//cs_start: outline_shader    
     @group(0) @binding(0)
     var<uniform> modelView: mat4x4<f32>;
     @group(0) @binding(1)
@@ -67,7 +66,6 @@
     fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         return vec4<f32>( 0.0,0.0,0.0,1.0);
     }
-//cs_end: outline_shader    
 </script>
 
 <script id="object_with_shadow_shader" type="wgsl">
@@ -85,12 +83,10 @@
     @group(0) @binding(5)
     var<uniform> shininess:f32;// = 20.0;
 
-//cs_start: painterly_shader
     // Instead of setting colors as RGB, we use scalars here as we only want to calculate intensity.
     const diffuseConstant:f32 = 1.0;
     const specularConstant:f32 = 0.0;
     const ambientConstant:f32 = 0.0;
-//cs_end: painterly_shader
 
     struct VertexOutput {
         @builtin(position) clip_position: vec4<f32>,
@@ -169,12 +165,10 @@
             }
         }
         visibility /= 25.0;
-//cs_start: painterly_shader
         // We apply the same Phong shading, but instead of deriving the final color, we obtain an intensity.
         var intensity:f32 = max(dot(-lightDir, n), 0.0)* diffuseConstant + specular(-lightDir, viewDir, n, shininess) * specularConstant;
         // With the light intensity, we look up the final color.
         var diffuse:vec3<f32> = textureSample(t_shade, s_shade, intensity * visibility).xyz;
-//cs_end: painterly_shader
 
         if (face) {
             var wldLoc2light:vec3<f32> = in.wldLoc-lightLoc;
@@ -256,16 +250,13 @@
             let shaderModule = shaderModuleFromCode(device, 'object_with_shadow_shader');
             let shaderModuleLight = shaderModuleFromCode(device, 'light_view_shader');
             let shaderModuleOutline = shaderModuleFromCode(device, 'object_outline_shader');
-//cs_start: outline_pipeline
             let { positionBuffer, normalBuffer, indexBuffer, indexSize } = await loadObj(device, '../data/teapot.obj');
             this.positionBuffer = positionBuffer;
             // The normal buffer contains vertex normals calculated as averages of adjacent surface normals.
             this.normalBuffer = normalBuffer;
             this.indexBuffer = indexBuffer;
             this.indexSize = indexSize;
-//cs_end: outline_pipeline
 
-//cs_start: 1d_lookup_texture_setup
             // 1D texture, width is hardcoded to 128.
             const shadeTextureDesc = {
                 size: [128],
@@ -310,7 +301,6 @@
             }, { width: 128 });
             // Wait for completion.
             await device.queue.onSubmittedWorkDone();
-//cs_end: 1d_lookup_texture_setup
 
             let uniformBindGroupLayoutLight = device.createBindGroupLayout({
                 entries: [
@@ -641,7 +631,6 @@
             this.lightPipeline = device.createRenderPipeline(lightPipelineDesc);
 
             const outlinePipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayoutOutline] };
-            //cs_start: outline_pipeline
             const outlinePipelineDesc = {
                 layout: device.createPipelineLayout(outlinePipelineLayoutDesc),
                 vertex: {
@@ -665,7 +654,6 @@
                     format: 'depth32float'
                 }
             }
-            //cs_end: outline_pipeline
 
             this.outlinePipeline = device.createRenderPipeline(outlinePipelineDesc);
         }

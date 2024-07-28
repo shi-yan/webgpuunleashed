@@ -6,7 +6,6 @@
 <script src="../utils/utils.js"></script>
 <script id="shader" type="wgsl">
 // Vertex shader
-//cs_start: hardcode_vertex_color_vertex_stage
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
     @location(0) color: vec3<f32>,
@@ -21,14 +20,11 @@ fn vs_main(
     out.color = vec3<f32>(0.0, 0.0, 1.0);
     return out;
 }
-//cs_end: hardcode_vertex_color_vertex_stage
 // Fragment shader
-//cs_start: hardcode_vertex_color_fragment_stage
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     return vec4<f32>(in.color, 1.0);
 }
-//cs_end: hardcode_vertex_color_fragment_stage
 </script>
 
 <script>

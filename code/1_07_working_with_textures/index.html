@@ -8,7 +8,6 @@
 </script>
 <script id="shader" type="wgsl">
 // Vertex shader
-//cs_start: texture_vertex_shader
 @group(0) @binding(0)
 var<uniform> offset: vec3<f32>;
 
@@ -27,9 +26,7 @@ fn vs_main(
     out.tex_coords = inTexCoords;
     return out;
 }
-//cs_end: texture_vertex_shader
 // Fragment shader
-//cs_start: texture_fragment_shader
 @group(0) @binding(1)
 var t_diffuse: texture_2d<f32>;
 @group(0) @binding(2)
@@ -39,7 +36,6 @@ var s_diffuse: sampler;
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     return textureSample(t_diffuse, s_diffuse, in.tex_coords);
 }
-//cs_end: texture_fragment_shader
 </script>
 
 <script>
@@ -48,11 +44,9 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             showWarning("WebGPU support is not available. A WebGPU capable browser is required to run this sample.");
             throw new Error("WebGPU support is not available");
         }
-//cs_start: texture_fetch
         const response = await fetch('../data/baboon.png');
         const blob = await response.blob();
         const imgBitmap = await createImageBitmap(blob);
-//cs_end: texture_fetch
         const adapter = await navigator.gpu.requestAdapter();
         console.log(adapter);
 
@@ -61,7 +55,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
         const context = configContext(device, canvas)
 
-//cs_start: texture_texture_creation
         const textureDescriptor = {
             size: { width: imgBitmap.width, height: imgBitmap.height },
             format: 'rgba8unorm',
@@ -70,8 +63,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         const texture = device.createTexture(textureDescriptor);
 
         device.queue.copyExternalImageToTexture({ source: imgBitmap }, { texture }, textureDescriptor.size);
-//cs_end: texture_texture_creation
-//cs_start: texture_sampler_creation
         const sampler = device.createSampler({
             addressModeU: 'repeat',
             addressModeV: 'repeat',
@@ -81,8 +72,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         });
 
         let shaderModule = shaderModuleFromCode(device, 'shader');
-//cs_end: texture_sampler_creation
-//cs_start: texture_vertex_buffer_and_uniforms
         const positionAttribDesc = {
             shaderLocation: 0, // @location(0)
             offset: 0,
@@ -179,7 +168,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 }
             ]
         });
-//cs_end: texture_vertex_buffer_and_uniforms
         const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout] };
         const layout = device.createPipelineLayout(pipelineLayoutDesc);
 
@@ -222,7 +210,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             colorAttachments: [colorAttachment]
         };
         commandEncoder = device.createCommandEncoder();
-//cs_start: texture_command_submission
         passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
         passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
         passEncoder.setPipeline(pipeline);
@@ -231,7 +218,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         passEncoder.setVertexBuffer(1, texCoordsBuffer);
         passEncoder.draw(3, 1);
         passEncoder.end();
-//cs_end: texture_command_submission
         device.queue.submit([commandEncoder.finish()]);
     }
 

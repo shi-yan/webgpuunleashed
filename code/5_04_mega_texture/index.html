@@ -29,7 +29,6 @@
     //talk about debugging max(level, 0); id out of range *4
 </script>
 <script id="tile_visibility_shader" type="wgsl">
-//cs_start: visibility_shader
 @group(0) @binding(0)
 var<uniform> transform: mat4x4<f32>;
 @group(0) @binding(1)
@@ -84,7 +83,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     discard;
     return vec4(1.0,0.0,0.0,1.0);
 }
-//cs_end: visibility_shader
 </script>
 
 <script id="tile_shader" type="wgsl">
@@ -117,7 +115,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     }
     
     // Fragment shader
-//cs_start: tile_render_shader
     @group(0)
     @binding(2)
     var<uniform> level_tile_count: array<vec4<u32>, 8>; //must align to 16bytes
@@ -152,11 +149,9 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         ((y-floor(y))*tileSizeWithoutPadding + padding) * tileSizeWithoutPadding/ ((padding*2 + tileSizeWithoutPadding)*textureSizeWithoutPadding)
         ), 0);
     }
-//cs_end: tile_render_shader
 </script>
 
 <script>
-    //cs_start: basic_setup
     const imageWidth = 10752;
     const imageHeight = 9216;
     const tileSizeWithoutPadding = 256;
@@ -169,14 +164,12 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     const tileV = Math.ceil(imageHeight / tileSizeWithoutPadding);
 
     let levelTileCount = [];
-    //cs_end: basic_setup
     let isDragging = false;
     let prevX = 0;
     let prevY = 0;
     let pivotX = 0;
     let pivotY = 0;
     let scale = 1.0;
-    //cs_start: basic_setup
     for (let l = 0; l < levelCount; ++l) {
         const leveltileSizeWithoutPadding = tileSizeWithoutPadding * Math.pow(2, l);
 
@@ -191,8 +184,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     for (let i = 0; i < levelCount; ++i) {
         overallTileCount += levelTileCount[i * 4] * levelTileCount[i * 4 + 1];
     }
-    //cs_end: basic_setup
-    //cs_start: tile_key
     function keyToLevel(key) {
         let keyRemain = key;
         let level = 0;
@@ -217,9 +208,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
         return y * tileH + x + base;
     }
-    //cs_end: tile_key
     console.log("overalltilecount", overallTileCount);
-//cs_start: key_id_manager
     class KeyIdManager {
 
         constructor() {
@@ -277,8 +266,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             return result;
         }
     }
-//cs_end: key_id_manager
-//cs_start: visible_tile_manager
     class VisibleTileHashTable {
         constructor() {
             this.texture = null;
@@ -298,8 +285,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             this.tileTexCoordBuffer = createGPUBuffer(device, new Float32Array(overallTileCount * 2), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST);
             this.tileTexCoordBufferUpdate = createGPUBuffer(device, new Float32Array(overallTileCount * 2), GPUBufferUsage.COPY_SRC | GPUBufferUsage.MAP_WRITE);
         }
-//cs_end: visible_tile_manager
-//cs_start: texture_loading_helper
         async loadTileIntoTexture(device, bufferUpdate, imageWidth, imageHeight, x, y, level, tileKey, id) {
             const writeArray = new Float32Array(bufferUpdate.getMappedRange(tileKey * 2 * 4, 8));
             writeArray.set([(tileSizeWithoutPadding / textureSizeWithoutPadding) * (id % (textureSizeWithoutPadding / tileSizeWithoutPadding)),
@@ -317,8 +302,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 origin: { x: (padding * 2 + tileSizeWithoutPadding) * (id % (textureSizeWithoutPadding / tileSizeWithoutPadding)), y: (padding * 2 + tileSizeWithoutPadding) * Math.floor(id / (textureSizeWithoutPadding / tileSizeWithoutPadding)) }
             }, { width: tileSizeWithoutPadding + padding * 2, height: tileSizeWithoutPadding + padding * 2 });
         }
-//cs_end: texture_loading_helper
-//cs_start: visible_tile_manager
         async assembleTexture(device, imageWidth, imageHeight, tiles) {
             await this.tileTexCoordBufferUpdate.mapAsync(GPUMapMode.WRITE, 0, overallTileCount * 2 * 4);
 
@@ -331,7 +314,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             this.tileTexCoordBufferUpdate.unmap();
         }
     }
-//cs_end: visible_tile_manager
     class Tile {
         constructor() {
             this.visibilityPipeline = null;
@@ -353,7 +335,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
             const shaderDescTile = { code: codeTile };
             let shaderModuleTile = device.createShaderModule(shaderDescTile);
-//cs_start: visibility_js
             const positionAttribDesc = {
                 shaderLocation: 0, // @location(0)
                 offset: 0,
@@ -403,7 +384,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             this.tileVisibilityBufferZeros = createGPUBuffer(device, new Uint32Array(overallTileCount), GPUBufferUsage.COPY_SRC);
             this.tileVisibilityBuffer = createGPUBuffer(device, new Uint32Array(overallTileCount), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST);
             this.tileVisibilityBufferRead = createGPUBuffer(device, new Uint32Array(overallTileCount), GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
-//cs_end: visibility_js
             let uniformBindGroupLayoutVisibility = device.createBindGroupLayout({
                 entries: [
                     {
@@ -591,7 +571,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
             this.tilePipeline = device.createRenderPipeline(tilePipelineDesc);
         }
-//cs_start: visibility_js
         encodeVisibility(encoder) {
             encoder.setPipeline(this.visibilityPipeline);
             encoder.setBindGroup(0, this.uniformBindGroupVisibility);
@@ -599,7 +578,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             encoder.setVertexBuffer(1, this.tileLocBuffer);
             encoder.draw(4, tileH * tileV);
         }
-//cs_end: visibility_js
         encodeTile(encoder) {
             encoder.setPipeline(this.tilePipeline);
             encoder.setBindGroup(0, this.uniformBindGroupTile);
@@ -621,7 +599,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         console.log(device);
 
         let context = configContext(device, canvas);
-//cs_start: navigation
         let translateMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
             glMatrix.vec3.fromValues(0, 0, 10), glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(0.0, 1.0, 0.0));
 
@@ -630,7 +607,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         let translateMatrixUniformBuffer = createGPUBuffer(device, translateMatrix, GPUBufferUsage.UNIFORM);
 
         let projectionMatrixUniformBuffer = createGPUBuffer(device, orthProjMatrix, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
-//cs_end: navigation
         let visibleTiles = new VisibleTileHashTable();
         visibleTiles.setup(device);
 
@@ -669,7 +645,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 commandEncoder.copyBufferToBuffer(projectionMatrixUniformBufferUpdate, 0,
                     projectionMatrixUniformBuffer, 0, updatedProjectionMatrix.byteLength);
             }
-//cs_start: visibility_js
             commandEncoder.copyBufferToBuffer(tile.tileVisibilityBufferZeros, 0,
                 tile.tileVisibilityBuffer, 0, overallTileCount * 4);
             const passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
@@ -678,7 +653,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             passEncoder.end();
             commandEncoder.copyBufferToBuffer(tile.tileVisibilityBuffer, 0,
                 tile.tileVisibilityBufferRead, 0, overallTileCount * 4);
-//cs_end: visibility_js
             device.queue.submit([commandEncoder.finish()]);
             await device.queue.onSubmittedWorkDone();
 
@@ -686,7 +660,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 projectionMatrixUniformBufferUpdate.destroy();
                 updatedProjectionMatrix = null;
             }
-//cs_start: read_back_result
             await tile.tileVisibilityBufferRead.mapAsync(GPUMapMode.READ, 0, overallTileCount * 4);
 
             let vb = tile.tileVisibilityBufferRead.getMappedRange(0, overallTileCount * 4);
@@ -702,7 +675,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
             await visibleTiles.assembleTexture(device, imageWidth,
                 imageHeight, vt);
-//cs_end: read_back_result
             /*if (!hasDumped) {
                 await downloadTexture(device, visibleTiles.texture);
             }*/
@@ -738,7 +710,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         }
 
         requestAnimationFrame(render);
-//cs_start: navigation
         canvas.onmousedown = (e) => {
             isDragging = true;
             var rect = canvas.getBoundingClientRect();
@@ -792,7 +763,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             updatedProjectionMatrix = glMatrix.mat4.ortho(glMatrix.mat4.create(), pivotX - canvas.width * 0.5 * scale, pivotX + canvas.width * 0.5 * scale, pivotY + canvas.height * 0.5 * scale, pivotY - canvas.height * 0.5 * scale, -1000.0, 1000.0);
         }
     }
-//cs_end: navigation
     webgpu();
 </script>
 

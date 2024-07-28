@@ -10,7 +10,6 @@
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
 };
-//cs_start: triangle_with_vertices_vertex_shader
 @vertex
 fn vs_main(
     @location(0) inPos: vec3<f32>,
@@ -19,7 +18,6 @@ fn vs_main(
     out.clip_position = vec4<f32>(inPos, 1.0);
     return out;
 }
-//cs_end: triangle_with_vertices_vertex_shader
 // Fragment shader
 
 @fragment
@@ -43,26 +41,19 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
         // create shaders
         let shaderModule = shaderModuleFromCode(device, 'shader');
-//cs_start: triangle_with_vertices_position_attribute
         const positionAttribDesc = {
             shaderLocation: 0, // @location(0)
             offset: 0,
             format: 'float32x3'
         };
-//cs_end: triangle_with_vertices_position_attribute
-//cs_start: triangle_with_vertices_position_buffer_layout
         const positionBufferLayoutDesc = {
             attributes: [positionAttribDesc],
             arrayStride: 4 * 3, // sizeof(float) * 3
             stepMode: 'vertex'
         };
-//cs_end: triangle_with_vertices_position_buffer_layout
-//cs_start: triangle_with_vertices_vertex_positions
         const positions = new Float32Array([
             1.0, -1.0, 0.0, -1.0, -1.0, 0.0, 0.0, 1.0, 0.0
         ]);
-//cs_end: triangle_with_vertices_vertex_positions
-//cs_start: triangle_with_vertices_buffer_transferring
         const positionBufferDesc = {
             size: positions.byteLength,
             usage: GPUBufferUsage.VERTEX,
@@ -74,7 +65,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             new Float32Array(positionBuffer.getMappedRange());
         writeArray.set(positions);
         positionBuffer.unmap();
-//cs_end: triangle_with_vertices_buffer_transferring
 
         const pipelineLayoutDesc = { bindGroupLayouts: [] };
         const layout = device.createPipelineLayout(pipelineLayoutDesc);
@@ -83,7 +73,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             format: 'bgra8unorm'
         };
 
-//cs_start: triangle_with_vertices_pipeline_and_command_buffer
         const pipelineDesc = {
             layout,
             vertex: {
@@ -102,7 +91,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 cullMode: 'back'
             }
         };
-//cs_end: triangle_with_vertices_pipeline_and_command_buffer
 
         pipeline = device.createRenderPipeline(pipelineDesc);
 
@@ -119,7 +107,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         const renderPassDesc = {
             colorAttachments: [colorAttachment]
         };
-//cs_start: triangle_with_vertices_pipeline_and_command_buffer
         commandEncoder = device.createCommandEncoder();
 
         passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
@@ -130,7 +117,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         passEncoder.end();
 
         device.queue.submit([commandEncoder.finish()]);
-//cs_end: triangle_with_vertices_pipeline_and_command_buffer
     }
 
     webgpu();
