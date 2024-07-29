@@ -141,7 +141,6 @@ fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -> @location(0)
         const colorState = {
             format: 'bgra8unorm'
         };
-
         const pipelineDesc = {
             layout,
             vertex: {
@@ -165,10 +164,7 @@ fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -> @location(0)
                 format: 'depth24plus-stencil8'
             }
         };
-
         pipeline = device.createRenderPipeline(pipelineDesc);
-
-
 
         // 🤔 Create Depth Backing
         const depthTextureDesc = {
@@ -181,8 +177,6 @@ fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -> @location(0)
         let depthTexture = device.createTexture(depthTextureDesc);
         let depthTextureView = depthTexture.createView();
 
-
-
         let colorTexture = context.getCurrentTexture();
         let colorTextureView = colorTexture.createView();
 
@@ -192,7 +186,6 @@ fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -> @location(0)
             loadOp: 'clear',
             storeOp: 'store'
         };
-
         const depthAttachment = {
             view: depthTextureView,
             depthClearValue: 1,
