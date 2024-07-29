@@ -156,37 +156,47 @@
 
     <div id="article-container">
         <article>
-            <h2 >1.13 Index Buffers</h2><p>In this section, we'll examine the index buffer, a crucial topic to cover before discussing model loading in the next tutorial. Previously, we explored different triangle rendering topologies, such as <code>triangle-list</code>, the most basic choice. However, it had a drawback – redundant vertices, as many vertices were shared by multiple triangles.</p><p>While both <code>triangle-strip</code> and <code>triangle-fan</code> (triangle-fan doesn't exist) are more memory-efficient, not all objects can be easily represented using these topologies. Often, manual partitioning of 3D meshes is required.</p><p>For instance, a simple cube cannot be represented by a single <code>triangle-strip</code>. Instead, we need three <code>triangle-strip</code>s to enclose the cube, with the vertical walls drawn using one strip and the top and bottom rendered separately with two additional strips. For complex 3D models like a teapot, this partitioning becomes non-trivial and results in hundreds or even thousands of pieces, which is far from ideal.</p><p>An alternative solution to this problem is the index buffer. The concept is straightforward: we maintain a pool of individual vertices, regardless of their connectivity. Then, we introduce an index buffer. Instead of storing the complete vertex data with all attributes like coordinates, colors, and texture coordinates, we only store indices into the vertex pool. The index buffer defines the connectivity of these vertices.</p><p>If a vertex is shared by multiple faces, the index buffer contains redundant vertex indices, but it never duplicates the actual vertex data. Since an index is only an integer, this approach saves significant storage space. Using the index buffer is a more generic and widely adopted solution in 3D applications.</p><p>Now, let's look at the implementation of the index buffer. Notably, the shader code remains unchanged because the graphics pipeline handles the topology and vertex processing.</p><pre><code class="language-javascript code-block">    const positions = new Float32Array([
-        -100.0, 100.0, 0.0,
-        -100.0, 100.0, 200.0,
-        100.0, 100.0, 0.0,
-        100.0, 100.0, 200.0,
-        100.0, -100.0, 0.0,
-        100.0, -100.0, 200.0,
-        -100.0, -100.0, 0.0,
-        -100.0, -100.0, 200.0,
-    ]);
+            <h2 >1.13 Index Buffers</h2><p>Before implementing model loading in the next tutorial, we need to explore the concept of index buffers. While we previously examined different triangle rendering topologies like <code>triangle-list</code>, we encountered a drawback: redundant vertices shared by multiple triangles.</p><a href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html#1_13_indices" target="_blank" class="comment"><svg style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
+                    width="32" fill="#dadadb" viewBox="0 -960 960 960"><path d="M189-160q-60 0-102.5-43T42-307q0-9 1-18t3-18l84-336q14-54 57-87.5t98-33.5h390q55 0 98 33.5t57 87.5l84 336q2 9 3.5 18.5T919-306q0 61-43.5 103.5T771-160q-42 0-78-22t-54-60l-28-58q-5-10-15-15t-21-5H385q-11 0-21 5t-15 15l-28 58q-18 38-54 60t-78 22Zm3-80q19 0 34.5-10t23.5-27l28-57q15-31 44-48.5t63-17.5h190q34 0 63 18t45 48l28 57q8 17 23.5 27t34.5 10q28 0 48-18.5t21-46.5q0 1-2-19l-84-335q-7-27-28-44t-49-17H285q-28 0-49.5 17T208-659l-84 335q-2 6-2 18 0 28 20.5 47t49.5 19Zm348-280q17 0 28.5-11.5T580-560q0-17-11.5-28.5T540-600q-17 0-28.5 11.5T500-560q0 17 11.5 28.5T540-520Zm80-80q17 0 28.5-11.5T660-640q0-17-11.5-28.5T620-680q-17 0-28.5 11.5T580-640q0 17 11.5 28.5T620-600Zm0 160q17 0 28.5-11.5T660-480q0-17-11.5-28.5T620-520q-17 0-28.5 11.5T580-480q0 17 11.5 28.5T620-440Zm80-80q17 0 28.5-11.5T740-560q0-17-11.5-28.5T700-600q-17 0-28.5 11.5T660-560q0 17 11.5 28.5T700-520Zm-360 60q13 0 21.5-8.5T370-490v-40h40q13 0 21.5-8.5T440-560q0-13-8.5-21.5T410-590h-40v-40q0-13-8.5-21.5T340-660q-13 0-21.5 8.5T310-630v40h-40q-13 0-21.5 8.5T240-560q0 13 8.5 21.5T270-530h40v40q0 13 8.5 21.5T340-460Zm140-20Z"/></svg>Launch Playground - 1_13_indices</a><p>Although <code>triangle-strip</code> is more memory-efficient, not all objects can be easily represented using this topology without manual partitioning of 3D meshes. For instance, a simple cube requires three <code>triangle-strip</code>s: one for vertical walls and two for the top and bottom. For complex 3D models like a teapot, this partitioning becomes non-trivial, potentially resulting in hundreds or thousands of pieces - far from ideal.</p><p>Index buffers offer an alternative solution. The concept is straightforward:</p><ul><li><p>Maintain a pool of unique vertices, regardless of their connectivity.</p></li><li><p>Introduce an index buffer that stores indices into the vertex pool, defining vertex connectivity.</p></li><li><p>Instead of duplicating vertex data (coordinates, colors, texture coordinates), only store redundant indices for shared vertices.</p></li></ul><p>This approach saves significant storage space since the only duplications are indices, but an index is only an integer. Index buffer is also a more generic solution for memory saving.</p><p>Let's implement index buffers. Note that the shader code remains unchanged as the graphics pipeline handles topology and vertex processing.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=73>const positions = new Float32Array([
+    -100.0, 100.0, 0.0,
+    -100.0, 100.0, 200.0,
 
-    const positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);</code></pre><p>In the JavaScript code, we first define the vertex pool, which includes all 8 vertices of the cube without any duplication, as the index buffer will eliminate redundant vertices.</p><pre><code class="language-javascript code-block">    const indices = new Uint16Array([0, 1, 2, 3, 4, 5, 6, 7, 0, 1]);
-    const indexBuffer = createGPUBuffer(device, indices, GPUBufferUsage.INDEX);
-    const indices2 = new Uint16Array([3, 1, 5, 7]);
-    const index2Buffer = createGPUBuffer(device, indices2, GPUBufferUsage.INDEX);</code></pre><p>Additionally, we introduce two index buffers. One for the vertical walls that form a single <code>triangle-strip</code> like before, and another for the cube's bottom (our cube has an open lid).</p><p>The index buffer uses an integer format (Uint16Array), as 16 bits suffice for representing simple geometry like a cube.</p><pre><code class="language-javascript code-block">    const pipelineDesc = {
-        ...
-        primitive: {
-            topology: 'triangle-strip',
-            stripIndexFormat: 'uint16',
-            frontFace: 'ccw',
-            cullMode: 'none'
-        }
-        ...
-    };</code></pre><p>When defining the pipeline, in addition to specifying the topology as <code>triangle-strip</code>, we must define the <code>stripIndexFormat</code> as <code>uint16</code>. This indicates that we'll use an index buffer for drawing.</p><pre><code class="language-javascript code-block">    passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
-    ...
-    passEncoder.setVertexBuffer(0, positionBuffer);
-    passEncoder.setIndexBuffer(indexBuffer, 'uint16');
-    passEncoder.drawIndexed(10);
-    passEncoder.setIndexBuffer(index2Buffer, 'uint16');
-    passEncoder.drawIndexed(4);
-    passEncoder.end();</code></pre><p>To issue draw commands, we first set the vertex buffer (<code>positionBuffer</code>) as before to supply the vertex pool. Then, for each draw call, we specify the index buffer using <code>setIndexBuffer</code> and call <code>drawIndexed</code> with the number of indices to render. The GPU pipeline uses the index buffer to retrieve vertex indices and then fetches the corresponding vertices, passing them to the shader. The result is identical to previous rendering but with less data sent to the GPU.</p><p>To clarify, while we initially discussed the limitations of using <code>triangle-strip</code>, in this example, we still manually partition an open cube into two <code>triangle-strip</code>s, despite an index buffer is being used. In fact, making use of an index buffer doesn't conflict with your choice of triangle topology. The point is, even if you opt for <code>triangle-list</code>, with an index buffer, substantial data size savings can still be achieved.</p>
+    100.0, 100.0, 0.0,
+    100.0, 100.0, 200.0,
+
+    100.0, -100.0, 0.0,
+    100.0, -100.0, 200.0,
+
+    -100.0, -100.0, 0.0,
+    -100.0, -100.0, 200.0,
+
+]);
+
+const positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=72:87#1_13_indices">1_13_indices/index.html:73-88 Setting Up the Vertex Pool</a></div></div><p>We define the vertex pool with all 8 unique vertices of the cube. The index buffers will handle vertex topology.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=89>const indices = new Uint16Array([0, 1, 2, 3, 4, 5, 6, 7, 0, 1]);
+
+const indexBuffer = createGPUBuffer(device, indices, GPUBufferUsage.INDEX);
+
+const indices2 = new Uint16Array([3, 1, 5, 7]);
+
+const index2Buffer = createGPUBuffer(device, indices2, GPUBufferUsage.INDEX);
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=88:94#1_13_indices">1_13_indices/index.html:89-95 Setting Up the Index Buffers</a></div></div><p>We create two index buffers: one for the vertical walls (a single <code>triangle-strip</code>) and another for the cube's bottom (the cube has an open lid). We use <code>Uint16Array</code> for the index buffer, as 16 bits suffice for simple geometry like a cube.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=158>primitive: {
+    topology: 'triangle-strip',
+    stripIndexFormat: 'uint16',
+    frontFace: 'ccw',
+    cullMode: 'none'
+},
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=157:162#1_13_indices">1_13_indices/index.html:158-163 Configuring the Pipeline Primitive</a></div></div><p>In the pipeline definition, we specify the topology as <code>triangle-strip</code> and set <code>stripIndexFormat</code> to <code>uint16</code>, indicating the use of an index buffer for drawing.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=209>passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
+passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+passEncoder.setPipeline(pipeline);
+passEncoder.setBindGroup(0, uniformBindGroup);
+passEncoder.setVertexBuffer(0, positionBuffer);
+passEncoder.setIndexBuffer(indexBuffer, 'uint16');
+passEncoder.drawIndexed(10);
+passEncoder.setIndexBuffer(index2Buffer, 'uint16');
+passEncoder.drawIndexed(4);
+passEncoder.end();
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=208:217#1_13_indices">1_13_indices/index.html:209-218 Using Index Buffers for Draw Command</a></div></div><p>To issue draw commands, we first set the vertex buffer (<code>positionBuffer</code>) to supply the vertex pool. For each draw call, we specify the index buffer using <code>setIndexBuffer</code> and call <code>drawIndexed</code> with the number of indices to render. The GPU pipeline uses the index buffer to retrieve vertex indices and fetch the corresponding vertices, passing them to the shader. This approach achieves the same result as previous rendering but with less data sent to the GPU.</p><p>It's important to note that while we initially discussed the limitations of <code>triangle-strip</code>, in this example we still manually partition an open cube into two <code>triangle-strip</code>s, despite using index buffers. The use of an index buffer doesn't conflict with your choice of triangle topology. Even if you opt for  <code>triangle-list</code>, using index buffer can still achieve substantial data size savings.</p>
         </article>
         <a href="https://github.com/shi-yan/WebGPUUnleashed/discussions" target="_blank" class="comment"><svg
             style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
