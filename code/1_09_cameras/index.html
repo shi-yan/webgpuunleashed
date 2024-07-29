@@ -9,17 +9,14 @@
 </script>
 <script id="shader" type="wgsl">
 // Vertex shader
-
 @group(0) @binding(0)
 var<uniform> transform: mat4x4<f32>;
 @group(0) @binding(1)
 var<uniform> projection: mat4x4<f32>;
-
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
     @location(0) tex_coords: vec2<f32>,
 };
-
 @vertex
 fn vs_main(
     @location(0) inPos: vec3<f32>,
@@ -30,7 +27,6 @@ fn vs_main(
     out.tex_coords = inTexCoords;
     return out;
 }
-
 // Fragment shader
 
 @group(0) @binding(2)
@@ -116,14 +112,12 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         ]);
 
         let texCoordsBuffer = createGPUBuffer(device, texCoords, GPUBufferUsage.VERTEX);
-
-        let translateMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(), 
+        let transformationMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(), 
         glMatrix.vec3.fromValues(100, 100, 100), glMatrix.vec3.fromValues(0,0,0), glMatrix.vec3.fromValues(0.0, 0.0, 1.0));
 
         let projectionMatrix = glMatrix.mat4.perspective(glMatrix.mat4.create(), 
         1.4, 640.0 / 480.0, 0.1, 1000.0);
-
-        let translateMatrixUniformBuffer = createGPUBuffer(device, translateMatrix, GPUBufferUsage.UNIFORM);
+        let transformationMatrixUniformBuffer = createGPUBuffer(device, transformationMatrix, GPUBufferUsage.UNIFORM);
 
         let projectionMatrixUniformBuffer = createGPUBuffer(device, projectionMatrix, GPUBufferUsage.UNIFORM);
 
@@ -158,7 +152,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 {
                     binding: 0,
                     resource: {
-                        buffer: translateMatrixUniformBuffer
+                        buffer: transformationMatrixUniformBuffer
                     }
                 },
                 {
@@ -178,7 +172,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 }
             ]
         });
-
         const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout] };
         const layout = device.createPipelineLayout(pipelineLayoutDesc);
 
