@@ -156,7 +156,8 @@
 
     <div id="article-container">
         <article>
-            <h2 >1.10 Triangle Strips</h2><p>Up until now, we've exclusively used triangle lists as our vertex topology. However, triangle lists are not the only way to organize vertices. The GPU pipeline provides other options that are advantageous in terms of data size efficiency. GPU memory is precious, and data transfer between CPU and GPU memory can be slow, so optimizing the amount of data we send is crucial.</p><p>While triangle lists are straightforward, they suffer from redundant vertices. Shared vertices are sent multiple times, unnecessarily inflating data size. But there's a more efficient way—<code>triangle strip</code>s.</p><p>By using the <code>triangle-strip</code> topology, we can avoid sending repetitive vertices to the GPU, thus conserving bandwidth and computational resources.</p><p>Switching the topology doesn't require changes to the shader code. Because, at the shader level, we deal with individual vertices and remain agnostic to how these vertices are organized or connected into triangles.</p><pre><code class="language-javascript code-block">const positions = new Float32Array([
+            <h2 >1.10 Triangle Strips</h2><p>Up until now, we've exclusively used triangle lists as our vertex topology. However, triangle lists are not the only way to organize vertices. The GPU pipeline provides other options that are advantageous in terms of data size efficiency. GPU memory is precious, and data transfer between CPU and GPU memory can be slow, so optimizing the amount of data we send is crucial.</p><a href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html#1_10_triangle_strips" target="_blank" class="comment"><svg style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
+                    width="32" fill="#dadadb" viewBox="0 -960 960 960"><path d="M189-160q-60 0-102.5-43T42-307q0-9 1-18t3-18l84-336q14-54 57-87.5t98-33.5h390q55 0 98 33.5t57 87.5l84 336q2 9 3.5 18.5T919-306q0 61-43.5 103.5T771-160q-42 0-78-22t-54-60l-28-58q-5-10-15-15t-21-5H385q-11 0-21 5t-15 15l-28 58q-18 38-54 60t-78 22Zm3-80q19 0 34.5-10t23.5-27l28-57q15-31 44-48.5t63-17.5h190q34 0 63 18t45 48l28 57q8 17 23.5 27t34.5 10q28 0 48-18.5t21-46.5q0 1-2-19l-84-335q-7-27-28-44t-49-17H285q-28 0-49.5 17T208-659l-84 335q-2 6-2 18 0 28 20.5 47t49.5 19Zm348-280q17 0 28.5-11.5T580-560q0-17-11.5-28.5T540-600q-17 0-28.5 11.5T500-560q0 17 11.5 28.5T540-520Zm80-80q17 0 28.5-11.5T660-640q0-17-11.5-28.5T620-680q-17 0-28.5 11.5T580-640q0 17 11.5 28.5T620-600Zm0 160q17 0 28.5-11.5T660-480q0-17-11.5-28.5T620-520q-17 0-28.5 11.5T580-480q0 17 11.5 28.5T620-440Zm80-80q17 0 28.5-11.5T740-560q0-17-11.5-28.5T700-600q-17 0-28.5 11.5T660-560q0 17 11.5 28.5T700-520Zm-360 60q13 0 21.5-8.5T370-490v-40h40q13 0 21.5-8.5T440-560q0-13-8.5-21.5T410-590h-40v-40q0-13-8.5-21.5T340-660q-13 0-21.5 8.5T310-630v40h-40q-13 0-21.5 8.5T240-560q0 13 8.5 21.5T270-530h40v40q0 13 8.5 21.5T340-460Zm140-20Z"/></svg>Launch Playground - 1_10_triangle_strips</a><p>While triangle lists are straightforward, they suffer from redundant vertices. Shared vertices are sent multiple times, unnecessarily inflating data size. But there's a more efficient way—<code>triangle strip</code>s.</p><p>By using the <code>triangle-strip</code> topology, we can avoid sending repetitive vertices to the GPU, thus conserving bandwidth and computational resources.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="triangle_strip_t.png" alt="Triangle Strip Topology Used in the Sample" sources='[]' /><div class="img-title">Triangle Strip Topology Used in the Sample</div></div></p><p>Switching the topology doesn't require changes to the shader code. Because, at the shader level, we deal with individual vertices and remain agnostic to how these vertices are organized or connected into triangles.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=99>const positions = new Float32Array([
     100.0, -100.0, 0.0,
     100.0, 100.0, 0.0,
     -100.0, -100.0, 0.0,
@@ -166,25 +167,35 @@
 let positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
 
 const texCoords = new Float32Array([
-    1.0, 0.0,
-    1.0, 1.0,
-    0.0, 0.0,
-    0.0, 1.0
+    1.0,
+    0.0,
+    // 🔴
+
+    1.0,
+    1.0,
+
+    0.0,
+    0.0,
+
+    0.0,
+    1.0
 ]);
 
-let texCoordsBuffer = createGPUBuffer(device, texCoords, GPUBufferUsage.VERTEX);</code></pre><p>To make the transition, the JavaScript code where vertex data is generated has to be updated. Previously, we had 6 vertices to form a rectangle, as a rectangle can be divided into two triangles, each consisting of 3 vertices, with two of them shared. Now, with a <code>triangle-strip</code>, we only need four points since we don't duplicate those shared vertices. We have to ensure these vertices are ordered in a zig-zag or <code>triangle-strip</code> pattern. Similar adjustments should be applied to texture coordinates, saving two coordinates.</p><pre><code class="language-javascript code-block">const pipelineDesc = {
-    ...
-    primitive: {
-        topology: 'triangle-strip',
-        frontFace: 'ccw',
-        cullMode: 'none'
-    }
-};</code></pre><p>When defining the pipeline descriptor, specify <code>triangle-strip</code> as the topology in the primitive section.</p><pre><code class="language-javascript code-block">passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
-...
+let texCoordsBuffer = createGPUBuffer(device, texCoords, GPUBufferUsage.VERTEX);
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=98:122#1_10_triangle_strips">1_10_triangle_strips/index.html:99-123 Triangle Strip Data</a></div></div><p>To make the transition, the JavaScript code where vertex data is generated has to be updated. Previously, we need 6 vertices to form a rectangle, as a rectangle can be divided into two triangles, each consisting of 3 vertices, with two of them shared. Now, with a <code>triangle-strip</code>, we only need four points since we don't duplicate those shared vertices. We have to ensure these vertices are ordered in a zig-zag or <code>triangle-strip</code> pattern. Similar adjustments should be applied to texture coordinates, saving two coordinates.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=205>primitive: {
+    topology: 'triangle-strip',
+    frontFace: 'ccw',
+    cullMode: 'none'
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=204:208#1_10_triangle_strips">1_10_triangle_strips/index.html:205-209 Topology Update</a></div></div><p>When defining the pipeline descriptor, specify <code>triangle-strip</code> as the topology in the primitive section.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=228>passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
+passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+passEncoder.setPipeline(pipeline);
+passEncoder.setBindGroup(0, uniformBindGroup);
 passEncoder.setVertexBuffer(0, positionBuffer);
 passEncoder.setVertexBuffer(1, texCoordsBuffer);
 passEncoder.draw(4, 1);
-passEncoder.end();</code></pre><p>Finally, when creating the command buffer, update the number of vertices to be drawn. Even though we're drawing only four vertices this time, the end result remains a rectangle.</p><p>This concludes the changes needed to switch primitive topology. (triangle-fan doesn't exsit. ) Another common topology choice is <code>triangle-fan</code>. Although <code>triangle-fan</code> and <code>triangle-strip</code> offer data size optimization, they require adherence to specific mesh patterns. Given it is not alway trivial how to partition a complex mesh into multiple <code>triangle-fan</code>s or <code>triangle-strip</code>s, <code>triangle-list</code>s is still the most generic option. In a future section, we'll explore a more universal approach to data optimization using the index buffer, reducing the need to conform to topology patterns.</p>
+passEncoder.end();
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=227:234#1_10_triangle_strips">1_10_triangle_strips/index.html:228-235 Draw Command</a></div></div><p>Finally, when creating the command buffer, update the number of vertices to be drawn. Even though we're drawing only four vertices this time, the end result remains a rectangle.</p><p>This concludes the changes needed to switch primitive topology. Although <code>triangle-strip</code> offer data size optimization, they require adherence to specific mesh patterns. Given it is not alway trivial how to partition a complex mesh into multiple <code>triangle-strip</code>s, <code>triangle-list</code>s is still the most generic option. In a future section, we'll explore a more universal approach to data optimization using the index buffer, reducing the need to conform to topology patterns.</p><p>WebGPU offers three additional topologies that I haven't yet discussed: <code>point-list</code>, <code>line-list</code>, and <code>line-strip</code>. These topologies are specifically used for rendering individual points and lines, rather than triangles. Unlike the previously mentioned triangle-based topologies, these do not define any triangular connectivity between vertices.</p>
         </article>
         <a href="https://github.com/shi-yan/WebGPUUnleashed/discussions" target="_blank" class="comment"><svg
             style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
