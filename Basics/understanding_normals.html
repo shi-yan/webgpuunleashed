@@ -156,28 +156,51 @@
 
     <div id="article-container">
         <article>
-            <h2 >1.15 Understanding Normals</h2><p>In this tutorial, we explore the concept of normals, a fundamental aspect of understanding lighting in 3D scenes. Lighting effects in computer graphics depend on how light interacts with the material of a surface. The direction from which light strikes a surface can alter its appearance, making it crucial to determine where a surface is facing. This directional aspect is referred to as the normal direction.</p><p>To achieve flat surfaces, you can define a normal direction for each surface. For instance, on a cube, each side should possess a distinct normal direction. All points on the same surface should share the same normal direction, creating sharp transitions at edges and corners. This approach is suitable for objects with sharp creases, like a cube.</p><p>However, for more complex geometry, such as organic models like animals, we aim for smoother, more rounded surfaces instead of sharp creases. In such cases, defining normals on vertices is preferred.</p><p>Vertex normals are like averages of all the adjacent surface normals. When rendering the surface, interpolating vertex normals results in a smooth transition on the surface, achieving a polished look.</p><p>Normals can be calculated based on geometry or loaded from a file. Most 3D model files contain not just vertex positions but also normals. In this tutorial, we extend our loading logic to include normals.</p><pre><code class="language-javascript code-block">    for (let v of obj.result.models[0].vertices) {
-        positions.push(v.x);
-        positions.push(v.y);
-        positions.push(v.z);
-        normals.push(0.0);
-        normals.push(0.0);
-        normals.push(0.0);
+            <h2 >1.15 Understanding Normals</h2><p>In this tutorial, we explore into the concept of normals, a crucial element in all aspects of computer graphics. Normals are extensively used in lighting calculations, as lighting effects in computer graphics depend on how light interacts with a surface's material. The direction from which light strikes a surface can significantly alter its appearance, making it essential to determine where a surface is facing. This directional aspect is referred to as the normal direction.</p><a href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html#1_15_normals" target="_blank" class="comment"><svg style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
+                    width="32" fill="#dadadb" viewBox="0 -960 960 960"><path d="M189-160q-60 0-102.5-43T42-307q0-9 1-18t3-18l84-336q14-54 57-87.5t98-33.5h390q55 0 98 33.5t57 87.5l84 336q2 9 3.5 18.5T919-306q0 61-43.5 103.5T771-160q-42 0-78-22t-54-60l-28-58q-5-10-15-15t-21-5H385q-11 0-21 5t-15 15l-28 58q-18 38-54 60t-78 22Zm3-80q19 0 34.5-10t23.5-27l28-57q15-31 44-48.5t63-17.5h190q34 0 63 18t45 48l28 57q8 17 23.5 27t34.5 10q28 0 48-18.5t21-46.5q0 1-2-19l-84-335q-7-27-28-44t-49-17H285q-28 0-49.5 17T208-659l-84 335q-2 6-2 18 0 28 20.5 47t49.5 19Zm348-280q17 0 28.5-11.5T580-560q0-17-11.5-28.5T540-600q-17 0-28.5 11.5T500-560q0 17 11.5 28.5T540-520Zm80-80q17 0 28.5-11.5T660-640q0-17-11.5-28.5T620-680q-17 0-28.5 11.5T580-640q0 17 11.5 28.5T620-600Zm0 160q17 0 28.5-11.5T660-480q0-17-11.5-28.5T620-520q-17 0-28.5 11.5T580-480q0 17 11.5 28.5T620-440Zm80-80q17 0 28.5-11.5T740-560q0-17-11.5-28.5T700-600q-17 0-28.5 11.5T660-560q0 17 11.5 28.5T700-520Zm-360 60q13 0 21.5-8.5T370-490v-40h40q13 0 21.5-8.5T440-560q0-13-8.5-21.5T410-590h-40v-40q0-13-8.5-21.5T340-660q-13 0-21.5 8.5T310-630v40h-40q-13 0-21.5 8.5T240-560q0 13 8.5 21.5T270-530h40v40q0 13 8.5 21.5T340-460Zm140-20Z"/></svg>Launch Playground - 1_15_normals</a><p><div class="img-container"><img class="img" onclick="openImage(this)" src="normals.png" alt="Flat vs. Smooth Normals Visualized in 2D" sources='[]' /><div class="img-title">Flat vs. Smooth Normals Visualized in 2D</div></div></p><p>The concept of a surface's facing direction is a simplified description. In reality, how normals change on a surface and where they should be defined can vary depending on the application. In the simplest scenario, when rendering flat surfaces with sharp creases or features, we can attach one normal to each face, allowing normals to change abruptly at these features. An edge or vertex joining multiple faces will likely have multiple normals, one for each adjacent face, reflecting the discontinuity of surface smoothness.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="normalinterpolation.png" alt="Vertex Normals Can Be Interpolated on a Triangle, Generating Smooth Normal Transitions" sources='[]' /><div class="img-title">Vertex Normals Can Be Interpolated on a Triangle, Generating Smooth Normal Transitions</div></div></p><p>In other scenarios, we might prefer a smooth surface where normals don't change suddenly. In this case, normals can be defined on vertices instead, as an average of nearby surface normals. These vertex-defined normals will be interpolated during the rasterization stage, generating smooth normal transitions across triangles and resulting in smoother rendering.</p><p>For more complex cases, such as modeling microstructures like rough walls or wrinkled surfaces, both per-face and per-vertex normals may lack sufficient resolution. In these situations, we can store normals in a texture map, allowing a single triangle to have numerous normals sampled from the texture.</p><p>Normals can be calculated based on geometry or loaded from a file. Most 3D model files contain not only vertex positions but also normals. In this tutorial, we extend our loading logic to include normals.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=90>for (let f of obj.result.models[0].faces) {
+    let points = [];
+    let facet_indices = [];
+    for (let v of f.vertices) {
+        const index = v.vertexIndex - 1;
+        indices.push(index);
+
+        const vertex = glMatrix.vec3.fromValues(positions[index * 3], positions[index * 3 + 1], positions[index * 3 + 2]);
+
+        minX = Math.min(positions[index * 3], minX);
+        maxX = Math.max(positions[index * 3], maxX);
+
+        minY = Math.min(positions[index * 3 + 1], minY);
+        maxY = Math.max(positions[index * 3 + 1], maxY);
+
+        minZ = Math.min(positions[index * 3 + 2], minZ);
+        maxZ = Math.max(positions[index * 3 + 2], maxZ);
+        points.push(vertex);
+        facet_indices.push(index);
     }
 
-    positions = new Float32Array(positions);
-    normals = new Float32Array(normals);
+    const v1 = glMatrix.vec3.subtract(glMatrix.vec3.create(), points[1], points[0]);
+    const v2 = glMatrix.vec3.subtract(glMatrix.vec3.create(), points[2], points[0]);
+    const cross = glMatrix.vec3.cross(glMatrix.vec3.create(), v1, v2);
+    const normal = glMatrix.vec3.normalize(glMatrix.vec3.create(), cross);
 
-    let positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
-    let normalBuffer = createGPUBuffer(device, normals, GPUBufferUsage.VERTEX);</code></pre><p>It's not different from loading vertex positions. For each normal, it is also a vector of 3 float points. We just need to repeat what we've done for vertex positions in order to load normals.</p><pre><code class="language-javascript code-block">
-@group(0) @binding(0)
+    for (let i of facet_indices) {
+        normals[i * 3] += normal[0];
+        normals[i * 3 + 1] += normal[1];
+        normals[i * 3 + 2] += normal[2];
+    }
+}
+let normalBuffer = createGPUBuffer(device, normals, GPUBufferUsage.VERTEX);
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=89:121#utils">utils/utils.js:90-122 Calculating Surface Normals</a></div></div><p>We calculate normals as the cross product of two of a triangle edges.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=13>@group(0) @binding(0)
 var&lt;uniform&gt; modelView: mat4x4&lt;f32&gt;;
 @group(0) @binding(1)
 var&lt;uniform&gt; projection: mat4x4&lt;f32&gt;;
 @group(0) @binding(2)
 var&lt;uniform&gt; normal: mat4x4&lt;f32&gt;;
-
-struct VertexOutput {
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=12:17#1_15_normals">1_15_normals/index.html:13-18 New Uniform for Normal Transformation</a></div></div><p>In the shader code, we introduce a new uniform called <code>normal transformation</code>, which is a distinct transformation matrix for normals. Although this transformation matrix is derived from the same modelview matrix applied to geometry, we cannot simply use the modelview matrix for normal transformation.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="nonuniformnormal.png" alt="2D Illustration of a Normal Under Non-Uniform Scaling" sources='[]' /><div class="img-title">2D Illustration of a Normal Under Non-Uniform Scaling</div></div></p><p>Understanding the reason for this separate transformation is a key takeaway of this tutorial. Let's explain using a 2D illustration. Imagine we have a line and its normal, and we apply a transformation to it. As long as the transformation involves only translation, rotation, and uniform scaling, the normal, under the same transformation, should remain perpendicular to the transformed line. However, this does not hold true if non-uniform scaling is involved. For example, if we stretch the line along the x-axis only, the new normal under the same stretch is no longer perpendicular to the line. Consequently, we need to find a different transformation for the normals that ensures they remain perpendicular to the surfaces after transformation.</p><p>To understand this mathematically, let's consider two vectors <code class="language-math math-inline">v</code> and <code class="language-math math-inline">n</code>, where <code class="language-math math-inline">v</code> is the tangent vector of the original surface and <code class="language-math math-inline">n</code> is the original surface normal. They exhibit the following relationship due to their perpendicularity:</p><p class="katex-display-counter"><code class="language-math math-block">    v \times n^\intercal = 0</code></p><p>Let <code class="language-math math-inline">M</code> be the transformation matrix. We know that <code class="language-math math-inline">MM^{-1} = \mathbb{I}</code>, where <code class="language-math math-inline">\mathbb{I}</code> is the identity matrix. If we incorporate this into the equation above, we obtain:</p><p class="katex-display-counter"><code class="language-math math-block">\begin{aligned}
+    v \times n^\intercal &= 0 \\
+    v \times M \times M^{-1} \times n^\intercal &= 0
+    v \times M \times (n \times M^{-1\intercal})^\intercal &= 0
+\end{aligned}</code></p><p>Since <code class="language-math math-inline">v \times M</code> represents the transformed tangent vector, let's denote it as <code class="language-math math-inline">v^\prime</code>. We know that <code class="language-math math-inline">v^\prime \times (n^\prime)^\intercal = 0</code>, where <code class="language-math math-inline">n^\prime</code> is the transformed normal. Therefore, we can deduce:</p><p class="katex-display-counter"><code class="language-math math-block">n^\prime = n \times M^(-1\intercal)</code></p><p>Therefore, <code class="language-math math-inline">M^{-1\intercal}</code> is the normal transformation matrix we seek, which is the transpose of the inverse of the modelview matrix. Having derived the appropriate normal transformation matrix, let's examine the corresponding shader code:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=19>struct VertexOutput {
     @builtin(position) clip_position: vec4&lt;f32&gt;,
     @location(0) normal: vec3&lt;f32&gt;
 };
@@ -192,10 +215,7 @@ fn vs_main(
     out.normal = normalize(normal * vec4&lt;f32&gt;(inNormal, 0.0)).xyz;
     return out;
 }
-
-// Fragment shader
-
-@fragment
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=18:32#1_15_normals">1_15_normals/index.html:19-33 Vertex Shader for Transform Normals</a></div></div><p>In the vertex stage entry point, we introduce a new vertex attribute at <code>@location(1)</code> called <code>inNormal</code>. This attribute is a vector of three floating-point values representing the surface normal. We apply the normal transformation to this input, and the resulting transformed normal is typically passed to the fragment shader, where lighting calculations are performed.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=35>@fragment
 fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -&gt; @location(0) vec4&lt;f32&gt; {
     if (face) {
         var normal:vec3&lt;f32&gt; = normalize(in.normal);
@@ -205,25 +225,41 @@ fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -&gt; @location
         return vec4&lt;f32&gt;(0.0, 1.0, 0.0 ,1.0);
     }
 }
-</code></pre><p>Loading normals is similar to loading vertex positions. For each normal, represented as a vector of three floating-point numbers, we repeat the process used for vertex positions.</p><p>In the shader code, we introduce a new uniform called "normal transformation" because we need a distinct transformation for normals compared to the model-view matrix used for vertex positions. This separation is necessary for accurate rendering of normals.</p><p>(need to explain this?)</p><p>In the vertex stage entry point, a new vertex attribute at @location(1) called inNormal is introduced. This attribute is a vector of three floats. We apply the normal transformation to this input. The output is usually passed to the fragment shader, where lighting calculations typically occur.</p><p>For this tutorial, we visualize normals by rendering them as colors. Normal vectors are normalized first since normal interpolation can affect their length. Normals are, by definition, unit vectors. This visualization helps us understand how normals are distributed on the surface before diving into lighting calculations.</p><pre><code class="language-javascript code-block">    const normalAttribDesc = {
-        shaderLocation: 1, // @location(1)
-        offset: 0,
-        format: 'float32x3'
-    };
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=34:43#1_15_normals">1_15_normals/index.html:35-44 Fragment Shader Visualize Normals as Colors</a></div></div><p>Normals are typically utilized in rendering algorithms within the fragment shader. However, since we haven't yet discussed lighting or other complex rendering algorithms that involve normals, we'll simply visualize them by rendering them as colors for this tutorial. We first normalize the normal vectors because the interpolation process during rasterization can affect their length. By definition, normals are always unit vectors as they represent directions. This color-based visualization helps us understand the distribution of normals across the surface.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=150>const normalAttribDesc = {
+    shaderLocation: 1, // @location(1)
+    offset: 0,
+    format: 'float32x3'
+};
 
-    const normalBufferLayoutDesc = {
-        attributes: [normalAttribDesc],
-        arrayStride: 4 * 3, // sizeof(float) * 3
-        stepMode: 'vertex'
-    };</code></pre><p>In the JavaScript code, we introduce a normal attribute descriptor. It resembles the position attribute descriptor but specifies shaderLocation as 1 for normals.</p><pre><code class="language-javascript code-block">    const pipelineDesc = {
-        ...
-        vertex: {
-            module: shaderModule,
-                entryPoint: 'vs_main',
-                buffers: [positionBufferLayoutDesc, normalBufferLayoutDesc]
-        },
-        ...
-    };</code></pre><p>When defining the pipeline descriptor, both the position and normal buffers need to be provided for vertex buffers. During rendering, two vertex buffers must be set.</p><p>Now, let's render the teapot. You'll notice that the teapot's surface displays a rainbow of colors. These colors represent the normal directions at each point on the surface. Since our normals are defined at the vertex level, and GPU interpolation handles the transition from the vertex buffer to the fragment shader, the teapot's color transition is incredibly smooth. There are no visible triangles or sharp edges. This technique is instrumental in achieving realistic and smooth lighting effects.</p>
+const normalBufferLayoutDesc = {
+    attributes: [normalAttribDesc],
+    arrayStride: 4 * 3, // sizeof(float) * 3
+    stepMode: 'vertex'
+};
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=149:159#1_15_normals">1_15_normals/index.html:150-160 Vertex Attribute Configuration for Normals</a></div></div><p>Moving on to the JavaScript code, we introduce a normal attribute descriptor. This descriptor is similar to the position attribute descriptor, but it specifies <code>shaderLocation</code> as 1 to correspond with the <code>@location(1)</code> we defined for normals in the shader code.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=167>const pipelineDesc = {
+    layout,
+    vertex: {
+        module: shaderModule,
+        entryPoint: 'vs_main',
+        buffers: [positionBufferLayoutDesc, normalBufferLayoutDesc]
+    },
+    fragment: {
+        module: shaderModule,
+        entryPoint: 'fs_main',
+        targets: [colorState]
+    },
+    primitive: {
+        topology: 'triangle-list',
+        frontFace: 'ccw',
+        cullMode: 'none'
+    },
+    depthStencil: {
+        depthWriteEnabled: true,
+        depthCompare: 'less',
+        format: 'depth24plus-stencil8'
+    }
+};
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=166:188#1_15_normals">1_15_normals/index.html:167-189 Configure the Pipeline</a></div></div><p>When defining the pipeline descriptor, we must provide both the position and normal buffers as vertex buffers. Consequently, during the rendering process, two vertex buffers need to be set.</p><p>Now, let's proceed to render the teapot. Upon visualization, you'll observe that the teapot's surface exhibits a vibrant spectrum of colors. These colors correspond to the normal directions at each point on the surface. Since we've defined our normals at the vertex level, and the GPU handles the interpolation from the vertex buffer to the fragment shader, the color transition across the teapot's surface appears remarkably smooth. There are no discernible triangles or sharp edges, demonstrating the effectiveness of this technique. This smooth transition of normals is crucial for achieving realistic and seamless lighting effects in more complex rendering scenarios.</p>
         </article>
         <a href="https://github.com/shi-yan/WebGPUUnleashed/discussions" target="_blank" class="comment"><svg
             style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"

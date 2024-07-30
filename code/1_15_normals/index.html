@@ -10,14 +10,12 @@
 <script src="../utils/OBJFile.js"> </script>
 <script id="shader" type="wgsl">
 // Vertex shader
-
 @group(0) @binding(0)
 var<uniform> modelView: mat4x4<f32>;
 @group(0) @binding(1)
 var<uniform> projection: mat4x4<f32>;
 @group(0) @binding(2)
 var<uniform> normal: mat4x4<f32>;
-
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
     @location(0) normal: vec3<f32>
@@ -33,9 +31,7 @@ fn vs_main(
     out.normal = normalize(normal * vec4<f32>(inNormal, 0.0)).xyz;
     return out;
 }
-
 // Fragment shader
-
 @fragment
 fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -> @location(0) vec4<f32> {
     if (face) {
@@ -46,7 +42,6 @@ fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -> @location(0)
         return vec4<f32>(0.0, 1.0, 0.0 ,1.0);
     }
 }
-
 </script>
 
 <script>
@@ -152,7 +147,6 @@ fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -> @location(0)
             arrayStride: 4 * 3, // sizeof(float) * 3
             stepMode: 'vertex'
         };
-
         const normalAttribDesc = {
             shaderLocation: 1, // @location(1)
             offset: 0,
@@ -164,14 +158,12 @@ fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -> @location(0)
             arrayStride: 4 * 3, // sizeof(float) * 3
             stepMode: 'vertex'
         };
-
         const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout] };
         const layout = device.createPipelineLayout(pipelineLayoutDesc);
 
         const colorState = {
             format: 'bgra8unorm'
         };
-
         const pipelineDesc = {
             layout,
             vertex: {
@@ -195,7 +187,6 @@ fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -> @location(0)
                 format: 'depth24plus-stencil8'
             }
         };
-
         pipeline = device.createRenderPipeline(pipelineDesc);
 
         const depthTextureDesc = {

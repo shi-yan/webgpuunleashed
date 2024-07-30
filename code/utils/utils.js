@@ -74,7 +74,6 @@ async function loadObj(device, url) {
 
     let minZ = Number.MAX_VALUE;
     let maxZ = Number.MIN_VALUE;
-
     for (let v of obj.result.models[0].vertices) {
         positions.push(v.x);
         positions.push(v.y);
@@ -88,9 +87,9 @@ async function loadObj(device, url) {
     normals = new Float32Array(normals);
 
     let positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
-
     let indices = [];
-
+    
+//cs_start: normal_loading
     for (let f of obj.result.models[0].faces) {
         let points = [];
         let facet_indices = [];
@@ -124,6 +123,7 @@ async function loadObj(device, url) {
         }
     }
     let normalBuffer = createGPUBuffer(device, normals, GPUBufferUsage.VERTEX);
+//cs_end: normal_loading
 
     const indexSize = indices.length;
 
