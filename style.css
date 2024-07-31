@@ -455,3 +455,51 @@ code {
     float: right;
     vertical-align: middle;
 }
+
+.older_newer_link_section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto;
+    grid-template-areas: "left right";
+}
+
+.older_newer_link {
+    text-decoration: none;
+    color: var(--normal-text-color);
+    font-size: 24px;
+    line-height: 24px;
+    font-family: 'Yanone Kaffeesatz', sans-serif;
+}
+
+.older_newer_link_right {
+    text-align: right;
+    grid-area: right;
+    border-right-style: solid;
+    border-right-width: 2px;
+    border-right-color: transparent;
+    transition-duration: 0.3s;
+    padding: 4px;
+    padding-right: 16px;
+}
+
+.older_newer_link_right:hover {
+    border-right-style: solid;
+    border-right-width: 2px;
+    border-right-color: var(--normal-text-color);
+}
+
+.older_newer_link_left {
+    grid-area: left;
+    border-left-style: solid;
+    border-left-width: 2px;
+    border-left-color: transparent;
+    transition-duration: 0.3s;
+    padding: 4px;
+    padding-left: 16px;
+}
+
+.older_newer_link_left:hover {
+    border-left-style: solid;
+    border-left-width: 2px;
+    border-left-color: var(--normal-text-color);
+}
