@@ -235,6 +235,7 @@ async run(canvas, code) {...}</code></pre><p>we need to have an event listener a
         }
     
         window.addEventListener('click', (e) => {
+            const sub = e.currentTarget.parentElement.getElementsByTagName("ul")[0];
             if (sub.style.display === "block") {
                 sub.style.display = "none";
             }

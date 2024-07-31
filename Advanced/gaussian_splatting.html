@@ -364,6 +364,7 @@ out.clip_position = vec4&lt;f32&gt;(ndcCenter.xy + ndcOffset, ndcCenter.z, 1.0);
         }
     
         window.addEventListener('click', (e) => {
+            const sub = e.currentTarget.parentElement.getElementsByTagName("ul")[0];
             if (sub.style.display === "block") {
                 sub.style.display = "none";
             }

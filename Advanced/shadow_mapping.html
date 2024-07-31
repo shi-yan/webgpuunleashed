@@ -341,6 +341,7 @@ imagedataToImage(imageData);</code></pre><p>here we read back the shadow map int
         }
     
         window.addEventListener('click', (e) => {
+            const sub = e.currentTarget.parentElement.getElementsByTagName("ul")[0];
             if (sub.style.display === "block") {
                 sub.style.display = "none";
             }

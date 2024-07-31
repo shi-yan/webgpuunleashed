@@ -209,6 +209,7 @@ let orthProjMatrix = glMatrix.mat4.ortho(glMatrix.mat4.create(), -320.0, 320.0, 
         }
     
         window.addEventListener('click', (e) => {
+            const sub = e.currentTarget.parentElement.getElementsByTagName("ul")[0];
             if (sub.style.display === "block") {
                 sub.style.display = "none";
             }

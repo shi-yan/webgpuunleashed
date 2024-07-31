@@ -247,6 +247,7 @@ let uniformBuffer = createGPUBuffer(device, uniformData, GPUBufferUsage.UNIFORM)
         }
     
         window.addEventListener('click', (e) => {
+            const sub = e.currentTarget.parentElement.getElementsByTagName("ul")[0];
             if (sub.style.display === "block") {
                 sub.style.display = "none";
             }

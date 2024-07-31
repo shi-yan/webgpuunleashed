@@ -259,6 +259,7 @@ canvas.height = 480;</code></pre><p>The display size can be controlled by CSS:</
         }
     
         window.addEventListener('click', (e) => {
+            const sub = e.currentTarget.parentElement.getElementsByTagName("ul")[0];
             if (sub.style.display === "block") {
                 sub.style.display = "none";
             }
