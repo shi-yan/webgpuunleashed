@@ -219,13 +219,6 @@ passEncoder.end();
 device.queue.submit([commandEncoder.finish()]);
 </pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=85:93#1_01_triangle">1_01_triangle/index.html:86-94 Submit Command Buffer to Render a Triangle</a></div></div><p>With the pipeline defined, we need to create the <code>colorAttachment</code>, which is similar to what we covered in the first tutorial, so I'll omit the details here. After that, the final step is command creation and submission. This process is nearly identical to what we've done before, with the key differences being the use of our newly created pipeline and the invocation of the <code>draw()</code> function.</p><p>The <code>draw()</code> function triggers the rendering process. The first parameter specifies the number of vertices we want to render, and the second parameter indicates the instance count. Since we are rendering a single triangle, the total number of vertices is 3. The vertex indices are automatically generated for the vertex shader.</p><p>The instance count determines how many times we want to duplicate the triangle. This technique can speed up rendering when we need to render a large number of identical geometries, such as grass or leaves in a video game. In this example, we specify a single instance because we only need to draw one triangle.</p>
         </article>
-        <a href="https://github.com/shi-yan/WebGPUUnleashed/discussions" target="_blank" class="comment"><svg
-            style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
-            width="32" fill="#dadadb"
-            viewBox="0 0 480 512"><!--!Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
-            <path
-                d="M186.1 328.7c0 20.9-10.9 55.1-36.7 55.1s-36.7-34.2-36.7-55.1 10.9-55.1 36.7-55.1 36.7 34.2 36.7 55.1zM480 278.2c0 31.9-3.2 65.7-17.5 95-37.9 76.6-142.1 74.8-216.7 74.8-75.8 0-186.2 2.7-225.6-74.8-14.6-29-20.2-63.1-20.2-95 0-41.9 13.9-81.5 41.5-113.6-5.2-15.8-7.7-32.4-7.7-48.8 0-21.5 4.9-32.3 14.6-51.8 45.3 0 74.3 9 108.8 36 29-6.9 58.8-10 88.7-10 27 0 54.2 2.9 80.4 9.2 34-26.7 63-35.2 107.8-35.2 9.8 19.5 14.6 30.3 14.6 51.8 0 16.4-2.6 32.7-7.7 48.2 27.5 32.4 39 72.3 39 114.2zm-64.3 50.5c0-43.9-26.7-82.6-73.5-82.6-18.9 0-37 3.4-56 6-14.9 2.3-29.8 3.2-45.1 3.2-15.2 0-30.1-.9-45.1-3.2-18.7-2.6-37-6-56-6-46.8 0-73.5 38.7-73.5 82.6 0 87.8 80.4 101.3 150.4 101.3h48.2c70.3 0 150.6-13.4 150.6-101.3zm-82.6-55.1c-25.8 0-36.7 34.2-36.7 55.1s10.9 55.1 36.7 55.1 36.7-34.2 36.7-55.1-10.9-55.1-36.7-55.1z" />
-        </svg> Leave a Comment on Github</a>
 
         <div class="older_newer_link_section">
             <div class="older_newer_link_left">
@@ -238,7 +231,7 @@ device.queue.submit([commandEncoder.finish()]);
                     PREV POST
                 </p>
                 <p>
-                    <a class="older_newer_link" href="/WebGPUUnleashedBasics/creating_an_empty_canvas.html">Creating an Empty Canvas</a>
+                    <a class="older_newer_link" href="/WebGPUUnleashed/Basics/creating_an_empty_canvas.html">Creating an Empty Canvas</a>
                 </p>
             </div>
 
@@ -252,10 +245,18 @@ device.queue.submit([commandEncoder.finish()]);
                     </svg>
                 </p>
                 <p>
-                    <a class="older_newer_link" href="/WebGPUUnleashedBasics/drawing_a_triangle_with_defined_vertices.html">Drawing a Triangle with Defined Vertices</a>
+                    <a class="older_newer_link" href="/WebGPUUnleashed/Basics/drawing_a_triangle_with_defined_vertices.html">Drawing a Triangle with Defined Vertices</a>
                 </p>
             </div>
         </div>
+
+        <a href="https://github.com/shi-yan/WebGPUUnleashed/discussions" target="_blank" class="comment"><svg
+            style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
+            width="32" fill="#dadadb"
+            viewBox="0 0 480 512"><!--!Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
+            <path
+                d="M186.1 328.7c0 20.9-10.9 55.1-36.7 55.1s-36.7-34.2-36.7-55.1 10.9-55.1 36.7-55.1 36.7 34.2 36.7 55.1zM480 278.2c0 31.9-3.2 65.7-17.5 95-37.9 76.6-142.1 74.8-216.7 74.8-75.8 0-186.2 2.7-225.6-74.8-14.6-29-20.2-63.1-20.2-95 0-41.9 13.9-81.5 41.5-113.6-5.2-15.8-7.7-32.4-7.7-48.8 0-21.5 4.9-32.3 14.6-51.8 45.3 0 74.3 9 108.8 36 29-6.9 58.8-10 88.7-10 27 0 54.2 2.9 80.4 9.2 34-26.7 63-35.2 107.8-35.2 9.8 19.5 14.6 30.3 14.6 51.8 0 16.4-2.6 32.7-7.7 48.2 27.5 32.4 39 72.3 39 114.2zm-64.3 50.5c0-43.9-26.7-82.6-73.5-82.6-18.9 0-37 3.4-56 6-14.9 2.3-29.8 3.2-45.1 3.2-15.2 0-30.1-.9-45.1-3.2-18.7-2.6-37-6-56-6-46.8 0-73.5 38.7-73.5 82.6 0 87.8 80.4 101.3 150.4 101.3h48.2c70.3 0 150.6-13.4 150.6-101.3zm-82.6-55.1c-25.8 0-36.7 34.2-36.7 55.1s10.9 55.1 36.7 55.1 36.7-34.2 36.7-55.1-10.9-55.1-36.7-55.1z" />
+        </svg> Leave a Comment on Github</a>
     </div>
     <!-- The Modal -->
     <div id="img-modal" class="modal">

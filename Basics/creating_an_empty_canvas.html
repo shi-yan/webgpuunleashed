@@ -231,13 +231,6 @@ device.queue.submit([commandEncoder.finish()]);
 </pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=48:54#1_00_empty_canvas">1_00_empty_canvas/index.html:49-55 Encode and Submit a Command</a></div></div><p>In the final stages, we create a command and submit it to the GPU for execution. This particular command is straightforward: it sets the viewport dimensions to match those of the canvas. Since we're not drawing anything, the rendering target will simply be cleared with the default clearValue, as specified by our <code>loadOp</code>.</p><p>During development, it's advisable to use distinctive colors for debugging purposes. In this case, we choose red instead of the more conventional black or white. This decision is strategic: black and white are common default colors used in many contexts. For instance, the default webpage background is typically white. Using white as the clear color could be misleading, potentially obscuring whether rendering is actually occurring or if the canvas is missing altogether. By opting for a vibrant red, we ensure a clear visual indicator that rendering operations are indeed taking place.</p><p>This approach provides an unambiguous signal of successful execution, making it easier to identify and troubleshoot any issues that may arise during the development process.</p><p>Debugging GPU code is significantly more challenging than CPU code. Generating logs from GPU execution is complex due to the parallel nature of GPU operations. This complexity also makes traditional debugging methods, such as setting breakpoints and pausing execution, impractical. In this context, color becomes an invaluable debugging tool. By associating distinct colors with different meanings, we can enhance our ability to interpret results accurately. As we progress through subsequent chapters, we'll explore various examples demonstrating how colors serve as an essential debugging aid in GPU programming.</p><p>In addition, experienced graphics programmers employ other strategies to enhance code readability, maintainability and debuggability.</p><ol><li><p>Descriptive variable naming: Graphics APIs can be verbose, with seemingly repetitive code blocks throughout the source. Using detailed, descriptive names for variables helps identify and navigate the code efficiently.</p></li><li><p>Incremental development: It's advisable to start simple and gradually build complexity. Often, this means rendering solid color objects first before adding more sophisticated effects.</p></li><li><p>Consistent coding patterns: Establishing and following consistent patterns in your code can significantly improve readability and reduce errors.</p></li><li><p>Modular design: Breaking down complex rendering tasks into smaller, manageable functions or modules can make the code easier to understand and maintain.</p></li></ol><p>By adopting these practices, developers can create more robust, readable, and easily debuggable GPU code, even in the face of the unique challenges presented by graphics programming.</p><a href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html#1_00_empty_canvas" target="_blank" class="comment"><svg style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
                     width="32" fill="#dadadb" viewBox="0 -960 960 960"><path d="M189-160q-60 0-102.5-43T42-307q0-9 1-18t3-18l84-336q14-54 57-87.5t98-33.5h390q55 0 98 33.5t57 87.5l84 336q2 9 3.5 18.5T919-306q0 61-43.5 103.5T771-160q-42 0-78-22t-54-60l-28-58q-5-10-15-15t-21-5H385q-11 0-21 5t-15 15l-28 58q-18 38-54 60t-78 22Zm3-80q19 0 34.5-10t23.5-27l28-57q15-31 44-48.5t63-17.5h190q34 0 63 18t45 48l28 57q8 17 23.5 27t34.5 10q28 0 48-18.5t21-46.5q0 1-2-19l-84-335q-7-27-28-44t-49-17H285q-28 0-49.5 17T208-659l-84 335q-2 6-2 18 0 28 20.5 47t49.5 19Zm348-280q17 0 28.5-11.5T580-560q0-17-11.5-28.5T540-600q-17 0-28.5 11.5T500-560q0 17 11.5 28.5T540-520Zm80-80q17 0 28.5-11.5T660-640q0-17-11.5-28.5T620-680q-17 0-28.5 11.5T580-640q0 17 11.5 28.5T620-600Zm0 160q17 0 28.5-11.5T660-480q0-17-11.5-28.5T620-520q-17 0-28.5 11.5T580-480q0 17 11.5 28.5T620-440Zm80-80q17 0 28.5-11.5T740-560q0-17-11.5-28.5T700-600q-17 0-28.5 11.5T660-560q0 17 11.5 28.5T700-520Zm-360 60q13 0 21.5-8.5T370-490v-40h40q13 0 21.5-8.5T440-560q0-13-8.5-21.5T410-590h-40v-40q0-13-8.5-21.5T340-660q-13 0-21.5 8.5T310-630v40h-40q-13 0-21.5 8.5T240-560q0 13 8.5 21.5T270-530h40v40q0 13 8.5 21.5T340-460Zm140-20Z"/></svg>Launch Playground - 1_00_empty_canvas</a><p>The code in this chapter produces an empty canvas renderred in red. Please use the playground to interact with the code. Try changing the background to a different color.</p>
         </article>
-        <a href="https://github.com/shi-yan/WebGPUUnleashed/discussions" target="_blank" class="comment"><svg
-            style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
-            width="32" fill="#dadadb"
-            viewBox="0 0 480 512"><!--!Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
-            <path
-                d="M186.1 328.7c0 20.9-10.9 55.1-36.7 55.1s-36.7-34.2-36.7-55.1 10.9-55.1 36.7-55.1 36.7 34.2 36.7 55.1zM480 278.2c0 31.9-3.2 65.7-17.5 95-37.9 76.6-142.1 74.8-216.7 74.8-75.8 0-186.2 2.7-225.6-74.8-14.6-29-20.2-63.1-20.2-95 0-41.9 13.9-81.5 41.5-113.6-5.2-15.8-7.7-32.4-7.7-48.8 0-21.5 4.9-32.3 14.6-51.8 45.3 0 74.3 9 108.8 36 29-6.9 58.8-10 88.7-10 27 0 54.2 2.9 80.4 9.2 34-26.7 63-35.2 107.8-35.2 9.8 19.5 14.6 30.3 14.6 51.8 0 16.4-2.6 32.7-7.7 48.2 27.5 32.4 39 72.3 39 114.2zm-64.3 50.5c0-43.9-26.7-82.6-73.5-82.6-18.9 0-37 3.4-56 6-14.9 2.3-29.8 3.2-45.1 3.2-15.2 0-30.1-.9-45.1-3.2-18.7-2.6-37-6-56-6-46.8 0-73.5 38.7-73.5 82.6 0 87.8 80.4 101.3 150.4 101.3h48.2c70.3 0 150.6-13.4 150.6-101.3zm-82.6-55.1c-25.8 0-36.7 34.2-36.7 55.1s10.9 55.1 36.7 55.1 36.7-34.2 36.7-55.1-10.9-55.1-36.7-55.1z" />
-        </svg> Leave a Comment on Github</a>
 
         <div class="older_newer_link_section">
             <div class="older_newer_link_left">
@@ -250,7 +243,7 @@ device.queue.submit([commandEncoder.finish()]);
                     PREV POST
                 </p>
                 <p>
-                    <a class="older_newer_link" href="/WebGPUUnleashedIntroduction/the_gpu_pipeline.html">The GPU Pipeline</a>
+                    <a class="older_newer_link" href="/WebGPUUnleashed/Introduction/the_gpu_pipeline.html">The GPU Pipeline</a>
                 </p>
             </div>
 
@@ -264,10 +257,18 @@ device.queue.submit([commandEncoder.finish()]);
                     </svg>
                 </p>
                 <p>
-                    <a class="older_newer_link" href="/WebGPUUnleashedBasics/drawing_a_triangle.html">Drawing a Triangle</a>
+                    <a class="older_newer_link" href="/WebGPUUnleashed/Basics/drawing_a_triangle.html">Drawing a Triangle</a>
                 </p>
             </div>
         </div>
+
+        <a href="https://github.com/shi-yan/WebGPUUnleashed/discussions" target="_blank" class="comment"><svg
+            style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
+            width="32" fill="#dadadb"
+            viewBox="0 0 480 512"><!--!Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
+            <path
+                d="M186.1 328.7c0 20.9-10.9 55.1-36.7 55.1s-36.7-34.2-36.7-55.1 10.9-55.1 36.7-55.1 36.7 34.2 36.7 55.1zM480 278.2c0 31.9-3.2 65.7-17.5 95-37.9 76.6-142.1 74.8-216.7 74.8-75.8 0-186.2 2.7-225.6-74.8-14.6-29-20.2-63.1-20.2-95 0-41.9 13.9-81.5 41.5-113.6-5.2-15.8-7.7-32.4-7.7-48.8 0-21.5 4.9-32.3 14.6-51.8 45.3 0 74.3 9 108.8 36 29-6.9 58.8-10 88.7-10 27 0 54.2 2.9 80.4 9.2 34-26.7 63-35.2 107.8-35.2 9.8 19.5 14.6 30.3 14.6 51.8 0 16.4-2.6 32.7-7.7 48.2 27.5 32.4 39 72.3 39 114.2zm-64.3 50.5c0-43.9-26.7-82.6-73.5-82.6-18.9 0-37 3.4-56 6-14.9 2.3-29.8 3.2-45.1 3.2-15.2 0-30.1-.9-45.1-3.2-18.7-2.6-37-6-56-6-46.8 0-73.5 38.7-73.5 82.6 0 87.8 80.4 101.3 150.4 101.3h48.2c70.3 0 150.6-13.4 150.6-101.3zm-82.6-55.1c-25.8 0-36.7 34.2-36.7 55.1s10.9 55.1 36.7 55.1 36.7-34.2 36.7-55.1-10.9-55.1-36.7-55.1z" />
+        </svg> Leave a Comment on Github</a>
     </div>
     <!-- The Modal -->
     <div id="img-modal" class="modal">

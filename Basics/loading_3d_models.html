@@ -199,13 +199,6 @@ indices = new Uint16Array(indices);
 const indexBuffer = createGPUBuffer(device, indices, GPUBufferUsage.INDEX);
 </pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=92:116#1_14_loading_models">1_14_loading_models/index.html:93-117 Populating the Position and Index Buffer</a></div></div><p>We query for vertices from the first model (index 0) in the .obj file. We loop through the vertex pool, pushing all vertex locations into our positions buffer. For the index buffer, we loop through all faces and their vertices, pushing the vertex indices into our indices array.</p><p>Note that we decrement the vertex index by one because .obj file format indices start from one, not zero. Remember to store the index size, which indicates how many indices need to be rendered.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="teapot.png" alt="Loaded Teapot Model" sources='[]' /><div class="img-title">Loaded Teapot Model</div></div></p><p>With these updates, we now have a more interesting geometry to work with. For those new to computer graphics, you might be surprised to learn that the humble teapot has been a ubiquitous presence in graphics experiments, often serving as a canvas to demonstrate various lighting techniques and other graphic innovations. Its history within the realm of computer graphics is quite intriguing. If you're curious to explore this further, you can find more details by following this <a class="link" href="https://en.wikipedia.org/wiki/Utah_teapot" target="_blank">link</a>.</p>
         </article>
-        <a href="https://github.com/shi-yan/WebGPUUnleashed/discussions" target="_blank" class="comment"><svg
-            style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
-            width="32" fill="#dadadb"
-            viewBox="0 0 480 512"><!--!Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
-            <path
-                d="M186.1 328.7c0 20.9-10.9 55.1-36.7 55.1s-36.7-34.2-36.7-55.1 10.9-55.1 36.7-55.1 36.7 34.2 36.7 55.1zM480 278.2c0 31.9-3.2 65.7-17.5 95-37.9 76.6-142.1 74.8-216.7 74.8-75.8 0-186.2 2.7-225.6-74.8-14.6-29-20.2-63.1-20.2-95 0-41.9 13.9-81.5 41.5-113.6-5.2-15.8-7.7-32.4-7.7-48.8 0-21.5 4.9-32.3 14.6-51.8 45.3 0 74.3 9 108.8 36 29-6.9 58.8-10 88.7-10 27 0 54.2 2.9 80.4 9.2 34-26.7 63-35.2 107.8-35.2 9.8 19.5 14.6 30.3 14.6 51.8 0 16.4-2.6 32.7-7.7 48.2 27.5 32.4 39 72.3 39 114.2zm-64.3 50.5c0-43.9-26.7-82.6-73.5-82.6-18.9 0-37 3.4-56 6-14.9 2.3-29.8 3.2-45.1 3.2-15.2 0-30.1-.9-45.1-3.2-18.7-2.6-37-6-56-6-46.8 0-73.5 38.7-73.5 82.6 0 87.8 80.4 101.3 150.4 101.3h48.2c70.3 0 150.6-13.4 150.6-101.3zm-82.6-55.1c-25.8 0-36.7 34.2-36.7 55.1s10.9 55.1 36.7 55.1 36.7-34.2 36.7-55.1-10.9-55.1-36.7-55.1z" />
-        </svg> Leave a Comment on Github</a>
 
         <div class="older_newer_link_section">
             <div class="older_newer_link_left">
@@ -218,7 +211,7 @@ const indexBuffer = createGPUBuffer(device, indices, GPUBufferUsage.INDEX);
                     PREV POST
                 </p>
                 <p>
-                    <a class="older_newer_link" href="/WebGPUUnleashedBasics/index_buffers.html">Index Buffers</a>
+                    <a class="older_newer_link" href="/WebGPUUnleashed/Basics/index_buffers.html">Index Buffers</a>
                 </p>
             </div>
 
@@ -232,10 +225,18 @@ const indexBuffer = createGPUBuffer(device, indices, GPUBufferUsage.INDEX);
                     </svg>
                 </p>
                 <p>
-                    <a class="older_newer_link" href="/WebGPUUnleashedBasics/understanding_normals.html">Understanding Normals</a>
+                    <a class="older_newer_link" href="/WebGPUUnleashed/Basics/understanding_normals.html">Understanding Normals</a>
                 </p>
             </div>
         </div>
+
+        <a href="https://github.com/shi-yan/WebGPUUnleashed/discussions" target="_blank" class="comment"><svg
+            style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
+            width="32" fill="#dadadb"
+            viewBox="0 0 480 512"><!--!Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2024 Fonticons, Inc.-->
+            <path
+                d="M186.1 328.7c0 20.9-10.9 55.1-36.7 55.1s-36.7-34.2-36.7-55.1 10.9-55.1 36.7-55.1 36.7 34.2 36.7 55.1zM480 278.2c0 31.9-3.2 65.7-17.5 95-37.9 76.6-142.1 74.8-216.7 74.8-75.8 0-186.2 2.7-225.6-74.8-14.6-29-20.2-63.1-20.2-95 0-41.9 13.9-81.5 41.5-113.6-5.2-15.8-7.7-32.4-7.7-48.8 0-21.5 4.9-32.3 14.6-51.8 45.3 0 74.3 9 108.8 36 29-6.9 58.8-10 88.7-10 27 0 54.2 2.9 80.4 9.2 34-26.7 63-35.2 107.8-35.2 9.8 19.5 14.6 30.3 14.6 51.8 0 16.4-2.6 32.7-7.7 48.2 27.5 32.4 39 72.3 39 114.2zm-64.3 50.5c0-43.9-26.7-82.6-73.5-82.6-18.9 0-37 3.4-56 6-14.9 2.3-29.8 3.2-45.1 3.2-15.2 0-30.1-.9-45.1-3.2-18.7-2.6-37-6-56-6-46.8 0-73.5 38.7-73.5 82.6 0 87.8 80.4 101.3 150.4 101.3h48.2c70.3 0 150.6-13.4 150.6-101.3zm-82.6-55.1c-25.8 0-36.7 34.2-36.7 55.1s10.9 55.1 36.7 55.1 36.7-34.2 36.7-55.1-10.9-55.1-36.7-55.1z" />
+        </svg> Leave a Comment on Github</a>
     </div>
     <!-- The Modal -->
     <div id="img-modal" class="modal">

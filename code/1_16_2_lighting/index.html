@@ -49,7 +49,6 @@ struct VertexOutput {
     @location(1) normal: vec3<f32>,
     @location(2) lightDir: vec3<f32>
 };
-
 @vertex
 fn vs_main(
     @location(0) inPos: vec3<f32>,
@@ -64,9 +63,7 @@ fn vs_main(
     out.clip_position = projection * modelView * vec4<f32>(inPos, 1.0);
     return out;
 }
-
 // Fragment shader
-
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
@@ -80,7 +77,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
       
     return vec4<f32>(radiance ,1.0);
 }
-
 </script>
 
 <script>
