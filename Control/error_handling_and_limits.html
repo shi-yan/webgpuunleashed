@@ -32,18 +32,6 @@
     <link href="
         https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css
         " rel="stylesheet" />
-
-    <script>
-        function fold(e) {
-            const sub = e.currentTarget.parentElement.getElementsByTagName("ul")[0];
-            console.log("sub", e.currentTarget, sub);
-            if (sub.style.display === "block") {
-                sub.style.display = "none";
-            } else {
-                sub.style.display = "block";
-            }
-        }
-    </script>
 </head>
 
 <body>
@@ -197,6 +185,26 @@
         <div id="caption"></div>
     </div>
     <script>
+        function fold(e) {
+            const sub = e.currentTarget.parentElement.getElementsByTagName("ul")[0];
+            console.log("sub", e.currentTarget, sub);
+            if (sub.style.display === "block") {
+                sub.style.display = "none";
+            } else {
+                sub.style.display = "block";
+            }
+        }
+    
+        window.addEventListener('click', (e) => {
+            if (sub.style.display === "block") {
+                sub.style.display = "none";
+            }
+        });
+    
+        document.getElementById("menu-container").addEventListener('click',(event) => {
+            event.stopPropagation();
+        });
+       
         function openImage(img) {
             let modal = document.getElementById("img-modal");
             let modalImg = document.getElementById("img01");
