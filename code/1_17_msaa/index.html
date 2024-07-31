@@ -274,7 +274,6 @@
 
         let depthTexture = device.createTexture(depthTextureDesc);
         let depthTextureView = depthTexture.createView();
-
         const msaaTexture = device.createTexture({
             size: [canvas.width, canvas.height],
             sampleCount: 4,
@@ -286,7 +285,6 @@
 
         let colorTexture = context.getCurrentTexture();
         let colorTextureView = colorTexture.createView();
-
         let colorAttachment = {
             view: view,
             resolveTarget: colorTextureView,
@@ -294,7 +292,6 @@
             loadOp: 'clear',
             storeOp: 'store'
         };
-
         const depthAttachment = {
             view: depthTextureView,
             depthClearValue: 1,
