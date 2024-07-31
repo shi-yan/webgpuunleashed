@@ -6,7 +6,6 @@
 <script src="../utils/utils.js"></script>
 <script src="../utils/gl-matrix.js"> </script>
 <script id="mipmap-shader" type="wgsl">
-
     var<private> pos : array<vec2<f32>, 4> = array<vec2<f32>, 4>(
         vec2<f32>(-1.0, 1.0), vec2<f32>(1.0, 1.0),
         vec2<f32>(-1.0, -1.0), vec2<f32>(1.0, -1.0));
@@ -31,7 +30,6 @@
       fn fs_main(@location(0) texCoord : vec2<f32>) -> @location(0) vec4<f32> {
         return textureSample(img, imgSampler, texCoord);
       }
-
 </script>
 <script id="shader" type="wgsl">
 // Vertex shader
@@ -58,7 +56,6 @@ fn vs_main(
 }
 
 // Fragment shader
-
 @group(0) @binding(2)
 var t_diffuse: texture_2d<f32>;
 @group(0) @binding(3)
@@ -68,7 +65,6 @@ var s_diffuse: sampler;
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     return textureSample(t_diffuse, s_diffuse, in.tex_coords) ;
 }
-
 </script>
 
 <script>
@@ -89,7 +85,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         const response = await fetch('../data/checkerboard.png');
         const blob = await response.blob();
         const imgBitmap = await createImageBitmap(blob);
-
         const textureDescriptor = {
             size: { width: imgBitmap.width, height: imgBitmap.height },
             format: 'rgba8unorm',
@@ -98,7 +93,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         };
         const texture = device.createTexture(textureDescriptor);
         device.queue.copyExternalImageToTexture({ source: imgBitmap }, { texture }, textureDescriptor.size);
-
         const sampler = device.createSampler({
             addressModeU: 'repeat',
             addressModeV: 'repeat',
@@ -200,7 +194,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             };
 
             const mipmapPipeline = device.createRenderPipeline(mipmapPipelineDesc);
-
             let srcView = texture.createView({
                 baseMipLevel: 0,
                 mipLevelCount: 1
