@@ -48,7 +48,7 @@
 
 <body>
     <div id="menuToggle">
-        <input type="checkbox" />
+        <input id="menuButton" type="checkbox" />
         <span></span>
         <span></span>
         <span></span>
@@ -615,13 +615,15 @@ let projectionMatrixUniformBuffer = createGPUBuffer(device, orthProjMatrix, GPUB
         }
     
         window.addEventListener('click', (e) => {
-            const sub = e.currentTarget.parentElement.getElementsByTagName("ul")[0];
-            if (sub.style.display === "block") {
-                sub.style.display = "none";
-            }
+           // const sub = e.currentTarget.parentElement.getElementsByTagName("ul")[0];
+            document.getElementById("menuButton").checked = false;
         });
     
         document.getElementById("menu-container").addEventListener('click',(event) => {
+            event.stopPropagation();
+        });
+
+        document.getElementById("menuButton").addEventListener('click', (event) => {
             event.stopPropagation();
         });
        
