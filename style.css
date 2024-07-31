@@ -461,6 +461,10 @@ code {
     grid-template-columns: 1fr 1fr;
     grid-template-rows: auto;
     grid-template-areas: "left right";
+    padding: 4px;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .older_newer_link {
