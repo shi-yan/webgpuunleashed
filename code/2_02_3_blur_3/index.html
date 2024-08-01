@@ -42,18 +42,10 @@ var<storage> kernel: array<f32>;
 @group(0) @binding(6)
 var<uniform> kernel_size: f32;
 
-
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     var color = vec4<f32>(0.0, 0.0, 0.0, 0.0);
     var intensity: f32 = 0.0;
-    //let sigma = kernel[0];
-    //const PI = 3.1415926538;
-
-    // need to discuss uniformity
-    //'textureSample' must only be called from uniform control flow
-    // try using textureSample see what happens
-
 
     for(var y: f32 = - kernel_size; y <= kernel_size; y+=1.0) {
         let offsettedY = y + in.pixel_coord.y;
@@ -81,7 +73,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
       return color;
 }
-
 </script>
 
 <script>
@@ -167,7 +158,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         const imgSizeBuffer = new Float32Array([texture.width, texture.height]);
 
         const imgSizeUniformBuffer = createGPUBuffer(device, imgSizeBuffer, GPUBufferUsage.UNIFORM);
-
         let kValues = []
 
         const kernelSize = 8.0;
@@ -189,7 +179,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         const kernelSizeBuffer = new Float32Array([kernelSize]);
 
         const kernelBufferSizeUniformBuffer = createGPUBuffer(device, kernelSizeBuffer, GPUBufferUsage.UNIFORM);
-
         let translateMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
             glMatrix.vec3.fromValues(0, 0, 10), glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(0.0, 1.0, 0.0));
 
@@ -199,7 +188,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         let translateMatrixUniformBuffer = createGPUBuffer(device, translateMatrix, GPUBufferUsage.UNIFORM);
 
         let projectionMatrixUniformBuffer = createGPUBuffer(device, orthProjMatrix, GPUBufferUsage.UNIFORM);
-
         let uniformBindGroupLayout = device.createBindGroupLayout({
             entries: [
                 {
@@ -286,7 +274,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 }
             ]
         });
-
         const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout] };
         const layout = device.createPipelineLayout(pipelineLayoutDesc);
 

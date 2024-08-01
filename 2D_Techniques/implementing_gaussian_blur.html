@@ -144,7 +144,8 @@
 
     <div id="article-container">
         <article>
-            <h2 >2.2 Implementing Gaussian Blur</h2><p>2D image processing is a great use case for WebGPU. In this tutorial, we will implement one of the most common 2D image filter - gaussian blur. A naive implementation is not difficult, but we will try to implement an optimized version in a series of 5 iterations of incremental improvements.</p><p>For 2D image processing, we typically render the image needed to be processed on a screen aligned rectangle. The general setup should be familiar to us already, hence I will not repeat it. We will instead focus on the blur algorithm implemented in the fragment shader. please refer to the sample code for detailed pipeline setup etc.</p><p>let's look at the most basic version. This version shouldn't be called gaussian blur yet, as for each pixel, it only calculate an average of the nearby colors (often called the box blur), whereas a full gaussian blur calculates a weighted average based on a gaussian kernel.</p><pre><code class="language-javascript code-block">@fragment
+            <h2 >2.2 Implementing Gaussian Blur</h2><p>2D image processing is a great use case for WebGPU. In this tutorial, we will implement one of the most common 2D image filter - gaussian blur. A naive implementation is not difficult, but we will try to implement an optimized version in a series of 5 iterations of incremental improvements.</p><p>For 2D image processing, we typically render the image needed to be processed on a screen aligned rectangle. The general setup should be familiar to us already, hence I will not repeat it. We will instead focus on the blur algorithm implemented in the fragment shader. please refer to the sample code for detailed pipeline setup etc.</p><p>let's look at the most basic version. This version shouldn't be called gaussian blur yet, as for each pixel, it only calculate an average of the nearby colors (often called the box blur), whereas a full gaussian blur calculates a weighted average based on a gaussian kernel.</p><a href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html#2_02_1_blur_1" target="_blank" class="comment"><svg style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
+                    width="32" fill="#dadadb" viewBox="0 -960 960 960"><path d="M189-160q-60 0-102.5-43T42-307q0-9 1-18t3-18l84-336q14-54 57-87.5t98-33.5h390q55 0 98 33.5t57 87.5l84 336q2 9 3.5 18.5T919-306q0 61-43.5 103.5T771-160q-42 0-78-22t-54-60l-28-58q-5-10-15-15t-21-5H385q-11 0-21 5t-15 15l-28 58q-18 38-54 60t-78 22Zm3-80q19 0 34.5-10t23.5-27l28-57q15-31 44-48.5t63-17.5h190q34 0 63 18t45 48l28 57q8 17 23.5 27t34.5 10q28 0 48-18.5t21-46.5q0 1-2-19l-84-335q-7-27-28-44t-49-17H285q-28 0-49.5 17T208-659l-84 335q-2 6-2 18 0 28 20.5 47t49.5 19Zm348-280q17 0 28.5-11.5T580-560q0-17-11.5-28.5T540-600q-17 0-28.5 11.5T500-560q0 17 11.5 28.5T540-520Zm80-80q17 0 28.5-11.5T660-640q0-17-11.5-28.5T620-680q-17 0-28.5 11.5T580-640q0 17 11.5 28.5T620-600Zm0 160q17 0 28.5-11.5T660-480q0-17-11.5-28.5T620-520q-17 0-28.5 11.5T580-480q0 17 11.5 28.5T620-440Zm80-80q17 0 28.5-11.5T740-560q0-17-11.5-28.5T700-600q-17 0-28.5 11.5T660-560q0 17 11.5 28.5T700-520Zm-360 60q13 0 21.5-8.5T370-490v-40h40q13 0 21.5-8.5T440-560q0-13-8.5-21.5T410-590h-40v-40q0-13-8.5-21.5T340-660q-13 0-21.5 8.5T310-630v40h-40q-13 0-21.5 8.5T240-560q0 13 8.5 21.5T270-530h40v40q0 13 8.5 21.5T340-460Zm140-20Z"/></svg>Launch Playground - 2_02_1_blur_1</a><p>Since the javascript setup is quite similar to the texture mapping tutorial and many other previous samples, I will skip repeatedly showing you what we have known. the focus of this tutorial is mainly on the fragment shader, as that's where the algorithm is mainly implemented.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=42>@fragment
 fn fs_main(in: VertexOutput) -&gt; @location(0) vec4&lt;f32&gt; {
     const kernelSize = 8.0;
     var color = vec4&lt;f32&gt;(0.0, 0.0, 0.0, 0.0);
@@ -157,21 +158,21 @@ fn fs_main(in: VertexOutput) -&gt; @location(0) vec4&lt;f32&gt; {
                 let offsettedX = x + in.pixel_coord.x;
                 if (offsettedX &gt;= 0.0 &amp;&amp; offsettedX &lt;= img_size.x) {
                     let tex_coord = vec2(offsettedX / img_size.x, offsettedY / img_size.y);
-
                     let c = textureSampleLevel(t_diffuse, s_diffuse, tex_coord,0);
-
                     color += c;
                     intensity += 1.0;
                 }
             }
         }
     }
+      
+      color /= intensity;
+      color.w = 1.0;
 
-    color /= intensity;
-    color.w = 1.0;
-
-    return color;
-}</code></pre><p>The general idea of the above code is very simple, for each pixel, we look at its nearby 8x8 window. we fetch all pixels from this window and calculate the average color. recall that previously we said that the function textureSample has to be called in a uniform control flow. Here we are calling textureSampleLevel but it is not in a uniform control flow. what's the difference.</p><p>the textureSampleLevel function asks for one more parameter than the textureSample. The extra parameter is a level id. Hence, the textureSampleLevel function can't do mipmap, but require an explicit level index. It turns out that the logic in textureSample that determines the right mipmap levels is the component that requires the uniformity. If we do not need mipmapping, we don't have to sample texture in a uniform control flow.</p><p>Now let's look at an improved version:</p><pre><code class="language-javascript code-block">@fragment
+      return color;
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=41:66#2_02_1_blur_1">2_02_1_blur_1/index.html:42-67 Naive Implementation of Box Blur Using Nested for Loops</a></div></div><p>The general idea of the above code is very simple, for each pixel, we look at its nearby 15x15 window. we fetch all pixels from this window and calculate the average color. recall that previously we said that the function <code>textureSample</code> has to be called in a uniform control flow. Here we are calling a slight different variant of it, called <code>textureSampleLevel</code> but it is not in a uniform control flow. what's the difference?</p><p>the <code>textureSampleLevel</code> function asks for one more parameter than <code>textureSample</code>. The extra parameter is a level id. Hence, the <code>textureSampleLevel</code> function can't do mipmap, but require an explicit level index. It turns out that the logic in <code>textureSample</code> that determines the right mipmap levels is the component that requires the uniformity. If we do not need mipmapping, we don't have to sample texture in a uniform control flow. we will explain why determining the right mipmap level requires uniformity in a future chapter.</p><p>Now let's look at an improved version:</p><a href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html#2_02_2_blur_2" target="_blank" class="comment"><svg style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
+                    width="32" fill="#dadadb" viewBox="0 -960 960 960"><path d="M189-160q-60 0-102.5-43T42-307q0-9 1-18t3-18l84-336q14-54 57-87.5t98-33.5h390q55 0 98 33.5t57 87.5l84 336q2 9 3.5 18.5T919-306q0 61-43.5 103.5T771-160q-42 0-78-22t-54-60l-28-58q-5-10-15-15t-21-5H385q-11 0-21 5t-15 15l-28 58q-18 38-54 60t-78 22Zm3-80q19 0 34.5-10t23.5-27l28-57q15-31 44-48.5t63-17.5h190q34 0 63 18t45 48l28 57q8 17 23.5 27t34.5 10q28 0 48-18.5t21-46.5q0 1-2-19l-84-335q-7-27-28-44t-49-17H285q-28 0-49.5 17T208-659l-84 335q-2 6-2 18 0 28 20.5 47t49.5 19Zm348-280q17 0 28.5-11.5T580-560q0-17-11.5-28.5T540-600q-17 0-28.5 11.5T500-560q0 17 11.5 28.5T540-520Zm80-80q17 0 28.5-11.5T660-640q0-17-11.5-28.5T620-680q-17 0-28.5 11.5T580-640q0 17 11.5 28.5T620-600Zm0 160q17 0 28.5-11.5T660-480q0-17-11.5-28.5T620-520q-17 0-28.5 11.5T580-480q0 17 11.5 28.5T620-440Zm80-80q17 0 28.5-11.5T740-560q0-17-11.5-28.5T700-600q-17 0-28.5 11.5T660-560q0 17 11.5 28.5T700-520Zm-360 60q13 0 21.5-8.5T370-490v-40h40q13 0 21.5-8.5T440-560q0-13-8.5-21.5T410-590h-40v-40q0-13-8.5-21.5T340-660q-13 0-21.5 8.5T310-630v40h-40q-13 0-21.5 8.5T240-560q0 13 8.5 21.5T270-530h40v40q0 13 8.5 21.5T340-460Zm140-20Z"/></svg>Launch Playground - 2_02_2_blur_2</a><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=41>@fragment
 fn fs_main(in: VertexOutput) -&gt; @location(0) vec4&lt;f32&gt; {
     const kernelSize = 8.0;
     var color = vec4&lt;f32&gt;(0.0, 0.0, 0.0, 0.0);
@@ -194,13 +195,19 @@ fn fs_main(in: VertexOutput) -&gt; @location(0) vec4&lt;f32&gt; {
             }
         }
     }
-
+      
       color /= intensity;
       color.w = 1.0;
 
       return color;
-}</code></pre><p>this version is not that different from the previous version, but we are not apply a weight for each color. The weight is based on the gaussian value given the distance of each pixel to the center pixel.</p><p>The problem of the above version is that for each fragment, we are recalculating the gaussian value. but this is not necessary, because the 8x8 window is the same for all fragments, the gaussian value of each pixel on the 8x8 window is solely determined by its distance to the center. hence the values should be the same across all fragments. we should hence calculate the gaussian weights once and cache them in a lookup table. we can retrieve the gaussian weights instead of repeating the calculation. let's modify our code as the following.</p><pre><code class="language-javascript code-block">// Fragment shader
-...
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=40:68#2_02_2_blur_2">2_02_2_blur_2/index.html:41-69 Naive Implementation of Gaussian Blur Using Nested for Loops</a></div></div><p>this version is not that different from the previous version, but we are now applying a weight for each color. The weight is based on the gaussian value given the distance of each pixel to the center pixel, such that closer texels will contribute more to the final color than those are further away.</p><p>recall the equation of a 2D gaussian:</p><p class="katex-display-counter"><code class="language-math math-block">G(x,y) = \frac{1}{2\pi\sigma^2}e^{-\frac{x^2+y^2}{2\sigma^2}}</code></p><p>The problem of the above version is that for each fragment, we are recalculating the gaussian values. but this is not necessary, because the 15x15 window is the same for all fragments, the gaussian values of each pixel on the 15x15 window is solely determined by the distances to the center. hence the values should be the same across all fragments. we should hence calculate the gaussian weights once and cache them in a lookup table. we can retrieve the gaussian weights instead of repeating the calculation. let's modify our code as the following.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=33>@group(0) @binding(2)
+var&lt;uniform&gt; img_size: vec2&lt;f32&gt;;
+//texture doesn't need &lt;uniform&gt;, because it is non-host-sharable (what does it mean?)
+@group(0) @binding(3)
+var t_diffuse: texture_2d&lt;f32&gt;;
+@group(0) @binding(4)
+var s_diffuse: sampler;
 @group(0) @binding(5)
 var&lt;storage&gt; kernel: array&lt;f32&gt;;
 @group(0) @binding(6)
@@ -208,56 +215,147 @@ var&lt;uniform&gt; kernel_size: f32;
 
 @fragment
 fn fs_main(in: VertexOutput) -&gt; @location(0) vec4&lt;f32&gt; {
-    ...
+    var color = vec4&lt;f32&gt;(0.0, 0.0, 0.0, 0.0);
+    var intensity: f32 = 0.0;
+
     for(var y: f32 = - kernel_size; y &lt;= kernel_size; y+=1.0) {
-        ...
+        let offsettedY = y + in.pixel_coord.y;
+        if (offsettedY &gt;= 0.0 &amp;&amp; offsettedY &lt;= img_size.y ) {
             for (var x: f32 = -kernel_size; x&lt;=kernel_size; x+=1.0) {
                 let offsettedX = x + in.pixel_coord.x;
                 if (offsettedX &gt;= 0.0 &amp;&amp; offsettedX &lt;= img_size.x) {
-                    ...
+                    let indexY = u32(y + kernel_size);
+                    let indexX = u32(x + kernel_size);
+                    let index = indexY * (u32(kernel_size) * 2 + 1) + indexX;
+
+                    let tex_coord = vec2(offsettedX / img_size.x, offsettedY / img_size.y);
                     let gaussian_v = kernel[index];
-                    ...
+                    let c = textureSampleLevel(t_diffuse, s_diffuse, tex_coord,0);
+                    color += c * gaussian_v;
+                    intensity += gaussian_v;
                 }
             }
-        
+        }
     }
-...
-}</code></pre><p>the gaussian weights are calculated by javascript and passed in as a uniform array.</p><p>The problem of the code snippet we have seen so far is that for each fragment, we have to loop 8x8 times. That's a lot of calculation, especially if we time that with the number of pixels. to further optimize it, we have to reduce the number of loop iterations.</p><p>now, if we inspect the equation for the 2D gaussian, we see that it can be separated to a multiplication. take the top row as an example, we can calculated it by first treating it as a 1D problem, and calculate the horizontal weighted sum. and then we multiply exp(-y). The same can be applied to all rows. Hence we can break the calculation down to two passes. During the first pass, we calculate the 1D gaussian blur horizontally, and during the second pass, we do it again vertically. the end result is the same as calculating it in a 8x8 window.</p><p>the benefit of this approach is that we eliminated a lot of loops. Because to calculate the horizontal 1D gaussian, we only need to loop for 3 times, plus the 3 times for vertical, we only need to loop for 6 times in total, vs the 64 times previously, this is a huge saving.</p><p>but this has to be carried out in two passes with two shaders:</p><pre><code class="language-javascript code-block">    @group(0) @binding(2)
-    var&lt;uniform&gt; img_size: vec2&lt;f32&gt;;
-    @group(0) @binding(3)
-    var v_result: texture_2d&lt;f32&gt;;
-    @group(0) @binding(4)
-    var s_diffuse: sampler;
-    @group(0) @binding(5)
-    var&lt;storage&gt; kernel: array&lt;f32&gt;;
-    @group(0) @binding(6)
-    var&lt;uniform&gt; kernel_size: f32;
+      
 
-    @fragment
-    fn fs_main(in: VertexOutput) -&gt; @location(0) vec4&lt;f32&gt; {
-    
-        var color = vec4&lt;f32&gt;(0.0, 0.0, 0.0, 0.0);
-        var intensity: f32 = 0.0;
-    
-        for(var x: f32 = - kernel_size; x &lt;= kernel_size; x+=1.0) {
-            let offsettedX = x + in.pixel_coord.x;
-            if (offsettedX &gt;= 0.0 &amp;&amp; offsettedX &lt;= img_size.x ) {
-                let indexX = u32(x + kernel_size);
-                let tex_coord = vec2(offsettedX / img_size.x, in.pixel_coord.y / img_size.y);
-                
-                let gaussian_v = kernel[indexX];
-                let c = textureSampleLevel(v_result, s_diffuse, tex_coord,0);
-                color += c * gaussian_v;
-                intensity += gaussian_v;
+      color /= intensity;
+      color.w = 1.0;
+
+      return color;
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=32:74#2_02_3_blur_3">2_02_3_blur_3/index.html:33-75 Improved Gaussian Blur Using a Lookup Table</a></div></div><p>the gaussian weights are calculated by javascript and passed in as a storage array. this is the first time we have seen a storage array. the reason we want to use a storage array. The reason we are using the storage buffer here is because the size of the weight array is related to the window size. We want it to be flexible, so that we can adjust the window size. As a result, the array size can't be predetermined. runtime-sized arrays can only be used in the storage address space, not in the uniform address space, therefore we want to use the storage buffer here. Storage buffer offers other benefits too, such as supporting write back values from a shader. we will look at more storage buffer usages in the future.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=161>let kValues = []
+
+const kernelSize = 8.0;
+const sigma = 8.0;
+let intensity = 0.0;
+
+for (let y = - kernelSize; y &lt;= kernelSize; y += 1.0) {
+    for (let x = -kernelSize; x &lt;= kernelSize; x += 1.0) {
+        let gaussian_v = 1.0 / (2.0 * Math.PI * sigma * sigma) * Math.exp(-(x * x + y * y) / (2.0 * sigma * sigma));
+        intensity += gaussian_v;
+        kValues.push(gaussian_v);
+    }
+}
+
+const kernelBuffer = new Float32Array(kValues);
+
+const kernelBufferStorageBuffer  = createGPUBuffer(device, kernelBuffer, GPUBufferUsage.STORAGE);
+
+const kernelSizeBuffer = new Float32Array([kernelSize]);
+
+const kernelBufferSizeUniformBuffer = createGPUBuffer(device, kernelSizeBuffer, GPUBufferUsage.UNIFORM);
+</pre></code><div class="code-fragments-separator">• • •</div><pre><code class="language-javascript code-block" startNumber=191>let uniformBindGroupLayout = device.createBindGroupLayout({
+    entries: [
+        {
+            binding: 0,
+            visibility: GPUShaderStage.VERTEX,
+            buffer: {}
+        },
+        {
+            binding: 1,
+            visibility: GPUShaderStage.VERTEX,
+            buffer: {}
+        },
+        {
+            binding: 2,
+            visibility: GPUShaderStage.FRAGMENT,
+            buffer: {}
+        },
+        {
+            binding: 3,
+            visibility: GPUShaderStage.FRAGMENT,
+            texture: {}
+        },
+        {
+            binding: 4,
+            visibility: GPUShaderStage.FRAGMENT,
+            sampler: {}
+        },
+        {
+            binding: 5,
+            visibility: GPUShaderStage.FRAGMENT,
+            buffer: {
+                type: 'read-only-storage'
+            }
+        },
+        {
+            binding: 6,
+            visibility: GPUShaderStage.FRAGMENT,
+            buffer: {}
+        }
+    ]
+});
+
+let uniformBindGroup = device.createBindGroup({
+    layout: uniformBindGroupLayout,
+    entries: [
+        {
+            binding: 0,
+            resource: {
+                buffer: translateMatrixUniformBuffer
+            }
+        },
+        {
+            binding: 1,
+            resource: {
+                buffer: projectionMatrixUniformBuffer
+            }
+        },
+        {
+            binding: 2,
+            resource: {
+                buffer: imgSizeUniformBuffer
+            }
+        },
+        {
+            binding: 3,
+            resource: texture.createView()
+        },
+        {
+            binding: 4,
+            resource:
+                sampler
+        },
+        {
+            binding: 5,
+            resource: {
+                buffer: kernelBufferStorageBuffer
+            }
+        },
+        {
+            binding: 6,
+            resource: {
+                buffer: kernelBufferSizeUniformBuffer
             }
         }
-
-        color /= intensity;
-        color.w = 1.0;
-    
-        return color;
-    }</code></pre><p>and vertical:</p><pre><code class="language-javascript code-block">// Fragment shader
-@group(0) @binding(0)
+    ]
+});
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=160:180,190:275#2_02_3_blur_3">2_02_3_blur_3/index.html:161-276 Setting Up Gaussian Kernels in Javascript</a></div></div><p>the above code snippet shows how we populate the kernel data in javascript. notice that the usage is set to <code>STORAGE</code> to match the <code>storage</code> address space specified in the shader. And when defining the <code>uniformBindGroupLayout</code>, we need to specify <code>type: 'read-only-storage'</code>. The 2D gaussian kernel is unrolled into a 1D array. Inside the shader, we recover the 1D access index from the xy coordinates. <code>kernelSize</code> defines the window size <code>windowSize = 2 * kernelSize + 1</code>.</p><a href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html#2_02_3_blur_3" target="_blank" class="comment"><svg style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
+                    width="32" fill="#dadadb" viewBox="0 -960 960 960"><path d="M189-160q-60 0-102.5-43T42-307q0-9 1-18t3-18l84-336q14-54 57-87.5t98-33.5h390q55 0 98 33.5t57 87.5l84 336q2 9 3.5 18.5T919-306q0 61-43.5 103.5T771-160q-42 0-78-22t-54-60l-28-58q-5-10-15-15t-21-5H385q-11 0-21 5t-15 15l-28 58q-18 38-54 60t-78 22Zm3-80q19 0 34.5-10t23.5-27l28-57q15-31 44-48.5t63-17.5h190q34 0 63 18t45 48l28 57q8 17 23.5 27t34.5 10q28 0 48-18.5t21-46.5q0 1-2-19l-84-335q-7-27-28-44t-49-17H285q-28 0-49.5 17T208-659l-84 335q-2 6-2 18 0 28 20.5 47t49.5 19Zm348-280q17 0 28.5-11.5T580-560q0-17-11.5-28.5T540-600q-17 0-28.5 11.5T500-560q0 17 11.5 28.5T540-520Zm80-80q17 0 28.5-11.5T660-640q0-17-11.5-28.5T620-680q-17 0-28.5 11.5T580-640q0 17 11.5 28.5T620-600Zm0 160q17 0 28.5-11.5T660-480q0-17-11.5-28.5T620-520q-17 0-28.5 11.5T580-480q0 17 11.5 28.5T620-440Zm80-80q17 0 28.5-11.5T740-560q0-17-11.5-28.5T700-600q-17 0-28.5 11.5T660-560q0 17 11.5 28.5T700-520Zm-360 60q13 0 21.5-8.5T370-490v-40h40q13 0 21.5-8.5T440-560q0-13-8.5-21.5T410-590h-40v-40q0-13-8.5-21.5T340-660q-13 0-21.5 8.5T310-630v40h-40q-13 0-21.5 8.5T240-560q0 13 8.5 21.5T270-530h40v40q0 13 8.5 21.5T340-460Zm140-20Z"/></svg>Launch Playground - 2_02_3_blur_3</a><p>The problem of the code snippet we have seen so far is that for each fragment, we have to loop 15x15 times. That's a lot of calculation, especially if we time that with the number of pixels. to further optimize it, we have to reduce the number of loop iterations.</p><p class="katex-display-counter"><code class="language-math math-block">\begin{aligned}
+G(x,y) &= \frac{1}{2\pi\sigma^2}e^{-\frac{x^2+y^2}{2\sigma^2}}
+G(x,y) &= \frac{1}{\sqrt{2\pi\sigma^2}}e^{-\frac{x^2}{2\sigma^2}}\times \frac{1}{\sqrt{2\pi\sigma^2}}e^{-\frac{y^2}{2\sigma^2}}
+\end{aligned}</code></p><p>now, if we inspect the equation for the 2D gaussian, we see that it can be separated to a multiplication. take the left column of the gaussian kernel as an example, we can calculated it by first treating it as a 1D gaussian, and calculate the vertical weighted sum for each texel. and then we multiply it by the horizontal gaussian: <code class="language-math math-inline">\frac{1}{\sqrt{2\pi\sigma^2}}e^{-\frac{x^2}{2\sigma^2}}</code>. Hence we can break the calculation down to two passes. During the first pass, we calculate the 1D gaussian blur vertically, and during the second pass, we do it again horizontally. the end result is the same as calculating it in a 15x15 window.</p><p>the benefit of this approach is that we eliminated a lot of loops. Because to calculate the vertical 1D gaussian, we only need to loop for 15 times, plus the 15 times for horizontal, we only need to loop for 30 times in total, vs the 15x15 times previously, this is a huge saving.</p><p>but this has to be carried out in two passes with two shaders:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=33>@group(0) @binding(0)
 var&lt;uniform&gt; img_size: vec2&lt;f32&gt;;
 //texture doesn't need &lt;uniform&gt;, because it is non-host-sharable (what does it mean?)
 @group(0) @binding(1)
@@ -270,7 +368,7 @@ var&lt;storage&gt; kernel: array&lt;f32&gt;;
 var&lt;uniform&gt; kernel_size: f32;
 
 @fragment
-fn fs_main(in: VertexOutput) -&gt; @location(0) vec4&lt;f32&gt; {[text](https://indiehackers.social/)
+fn fs_main(in: VertexOutput) -&gt; @location(0) vec4&lt;f32&gt; {
     
     var color = vec4&lt;f32&gt;(0.0, 0.0, 0.0, 0.0);
     var intensity: f32 = 0.0;
@@ -291,7 +389,273 @@ fn fs_main(in: VertexOutput) -&gt; @location(0) vec4&lt;f32&gt; {[text](https://
     color.w = 1.0;
 
     return color;
-}</code></pre><p>We need to create 2 pipelines for these shaders and launch them in consecutively.</p>
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=32:66#2_02_4_blur_4">2_02_4_blur_4/index.html:33-67 First Pass Calculates the Vertical Gaussian</a></div></div><p>and horizontal:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=95>@group(0) @binding(2)
+var&lt;uniform&gt; img_size: vec2&lt;f32&gt;;
+@group(0) @binding(3)
+var v_result: texture_2d&lt;f32&gt;;
+@group(0) @binding(4)
+var s_diffuse: sampler;
+@group(0) @binding(5)
+var&lt;storage&gt; kernel: array&lt;f32&gt;;
+@group(0) @binding(6)
+var&lt;uniform&gt; kernel_size: f32;
+
+@fragment
+fn fs_main(in: VertexOutput) -&gt; @location(0) vec4&lt;f32&gt; {
+
+    var color = vec4&lt;f32&gt;(0.0, 0.0, 0.0, 0.0);
+    var intensity: f32 = 0.0;
+
+    for(var x: f32 = - kernel_size; x &lt;= kernel_size; x+=1.0) {
+        let offsettedX = x + in.pixel_coord.x;
+        if (offsettedX &gt;= 0.0 &amp;&amp; offsettedX &lt;= img_size.x ) {
+            let indexX = u32(x + kernel_size);
+            let tex_coord = vec2(offsettedX / img_size.x, in.pixel_coord.y / img_size.y);
+            
+            let gaussian_v = kernel[indexX];
+            let c = textureSampleLevel(v_result, s_diffuse, tex_coord,0);
+            color += c * gaussian_v;
+            intensity += gaussian_v;
+        }
+    }
+
+    color /= intensity;
+    color.w = 1.0;
+
+    return color;
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=94:128#2_02_4_blur_4">2_02_4_blur_4/index.html:95-129 Second Pass Calculates the Horizontal Gaussian</a></div></div><p>The kernel passed into the shader is also slightly different:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=244>let kValues = []
+
+const kernelSize = 8.0;
+const sigma = 8.0;
+let intensity = 0.0;
+
+for (let y = - kernelSize; y &lt;= kernelSize; y += 1.0) {
+    let gaussian_v = 1.0 / Math.sqrt(2.0 * Math.PI * sigma * sigma) * Math.exp(-(y * y) / (2.0 * sigma * sigma));
+    intensity += gaussian_v;
+    kValues.push(gaussian_v);
+}
+
+const kernelBuffer = new Float32Array(kValues);
+
+const kernelBufferStorageBuffer  = createGPUBuffer(device, kernelBuffer, GPUBufferUsage.STORAGE);
+
+const kernelSizeBuffer = new Float32Array([kernelSize]);
+
+const kernelBufferSizeUniformBuffer = createGPUBuffer(device, kernelSizeBuffer, GPUBufferUsage.UNIFORM);
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=243:261#2_02_4_blur_4">2_02_4_blur_4/index.html:244-262 1D Gaussian Kernel Buffer</a></div></div><p>We need to create 2 pipelines for these shaders and launch them in consecutively. the first pass only calculates the vertical results and caches the them on a temporary texture map. The second pass build on top of the first pass' results to get the final output.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=337>const pipelineLayoutDescPass1 = { bindGroupLayouts: [uniformBindGroupLayoutPass1] };
+const pipelineLayoutPass1 = device.createPipelineLayout(pipelineLayoutDescPass1);
+
+const colorStatePass1 = {
+    format: 'rgba8unorm'
+};
+
+const pipelineDescPass1 = {
+    layout: pipelineLayoutPass1,
+    vertex: {
+        module: shaderModuleVertical,
+        entryPoint: 'vs_main',
+        buffers: [pixelCoordsBufferLayoutDescPass1]
+    },
+    fragment: {
+        module: shaderModuleVertical,
+        entryPoint: 'fs_main',
+        targets: [colorStatePass1]
+    },
+    primitive: {
+        topology: 'triangle-strip',
+        frontFace: 'ccw',
+        cullMode: 'none'
+    }
+};
+
+const pipelinePass1 = device.createRenderPipeline(pipelineDescPass1);
+
+let colorAttachmentPass1 = {
+    view: pass1texture.createView(),
+    clearValue: { r: 0, g: 0, b: 0, a: 0 },
+    loadOp: 'clear',
+    storeOp: 'store'
+};
+
+const renderPassDescPass1 = {
+    colorAttachments: [colorAttachmentPass1]
+};
+commandEncoder = device.createCommandEncoder();
+
+passEncoder = commandEncoder.beginRenderPass(renderPassDescPass1);
+passEncoder.setViewport(0, 0, texture.width, texture.height, 0, 1);
+passEncoder.setPipeline(pipelinePass1);
+passEncoder.setBindGroup(0, uniformBindGroupPass1);
+passEncoder.setVertexBuffer(0, pixelCoordsBuffer);
+passEncoder.draw(4, 1);
+passEncoder.end();
+</pre></code><div class="code-fragments-separator">• • •</div><pre><code class="language-javascript code-block" startNumber=426>let uniformBindGroupPass2 = device.createBindGroup({
+    layout: uniformBindGroupLayoutPass2,
+    entries: [
+        {
+            binding: 0,
+            resource: {
+                buffer: translateMatrixUniformBuffer
+            }
+        },
+        {
+            binding: 1,
+            resource: {
+                buffer: projectionMatrixUniformBuffer
+            }
+        },
+        {
+            binding: 2,
+            resource: {
+                buffer: imgSizeUniformBuffer
+            }
+        },
+        {
+            binding: 3,
+            resource: pass1texture.createView()
+        },
+        {
+            binding: 4,
+            resource:
+                sampler
+        },
+        {
+            binding: 5,
+            resource: {
+                buffer: kernelBufferStorageBuffer
+            }
+        },
+        {
+            binding: 6,
+            resource: {
+                buffer: kernelBufferSizeUniformBuffer
+            }
+        }
+    ]
+});
+
+const pipelineLayoutDescPass2 = { bindGroupLayouts: [uniformBindGroupLayoutPass2] };
+const pipelineLayoutPass2 = device.createPipelineLayout(pipelineLayoutDescPass2);
+
+const colorStatePass2 = {
+    format: 'bgra8unorm'
+};
+
+const pipelineDescPass2 = {
+    layout: pipelineLayoutPass2,
+    vertex: {
+        module: shaderModuleHorizontal,
+        entryPoint: 'vs_main',
+        buffers: [positionBufferLayoutDesc, pixelCoordsBufferLayoutDescPass2]
+    },
+    fragment: {
+        module: shaderModuleHorizontal,
+        entryPoint: 'fs_main',
+        targets: [colorStatePass2]
+    },
+    primitive: {
+        topology: 'triangle-strip',
+        frontFace: 'ccw',
+        cullMode: 'none'
+    }
+};
+
+const pipelinePass2 = device.createRenderPipeline(pipelineDescPass2);
+
+let pass2texture = context.getCurrentTexture();
+
+let colorAttachmentPass2 = {
+    view: pass2texture.createView(),
+    clearValue: { r: 1.0, g: 0.0, b: 0.0, a: 1.0 },
+    loadOp: 'clear',
+    storeOp: 'store'
+}
+
+const renderPassDescPass2 = {
+    colorAttachments: [colorAttachmentPass2]
+}
+
+let passEncoder2 = commandEncoder.beginRenderPass(renderPassDescPass2);
+passEncoder2.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+passEncoder2.setPipeline(pipelinePass2);
+passEncoder2.setBindGroup(0, uniformBindGroupPass2);
+passEncoder2.setVertexBuffer(0, positionBuffer);
+passEncoder2.setVertexBuffer(1, pixelCoordsBuffer);
+passEncoder2.draw(4, 1);
+passEncoder2.end();
+
+
+device.queue.submit([commandEncoder.finish()]);
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=336:382,425:521#2_02_4_blur_4">2_02_4_blur_4/index.html:337-522 Setting Up 2 Rendering Passes</a></div></div><p>the exact process of creating and launching two passes is exactly the same as the the render to texture tutorial has showed.</p><a href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html#2_02_4_blur_4" target="_blank" class="comment"><svg style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
+                    width="32" fill="#dadadb" viewBox="0 -960 960 960"><path d="M189-160q-60 0-102.5-43T42-307q0-9 1-18t3-18l84-336q14-54 57-87.5t98-33.5h390q55 0 98 33.5t57 87.5l84 336q2 9 3.5 18.5T919-306q0 61-43.5 103.5T771-160q-42 0-78-22t-54-60l-28-58q-5-10-15-15t-21-5H385q-11 0-21 5t-15 15l-28 58q-18 38-54 60t-78 22Zm3-80q19 0 34.5-10t23.5-27l28-57q15-31 44-48.5t63-17.5h190q34 0 63 18t45 48l28 57q8 17 23.5 27t34.5 10q28 0 48-18.5t21-46.5q0 1-2-19l-84-335q-7-27-28-44t-49-17H285q-28 0-49.5 17T208-659l-84 335q-2 6-2 18 0 28 20.5 47t49.5 19Zm348-280q17 0 28.5-11.5T580-560q0-17-11.5-28.5T540-600q-17 0-28.5 11.5T500-560q0 17 11.5 28.5T540-520Zm80-80q17 0 28.5-11.5T660-640q0-17-11.5-28.5T620-680q-17 0-28.5 11.5T580-640q0 17 11.5 28.5T620-600Zm0 160q17 0 28.5-11.5T660-480q0-17-11.5-28.5T620-520q-17 0-28.5 11.5T580-480q0 17 11.5 28.5T620-440Zm80-80q17 0 28.5-11.5T740-560q0-17-11.5-28.5T700-600q-17 0-28.5 11.5T660-560q0 17 11.5 28.5T700-520Zm-360 60q13 0 21.5-8.5T370-490v-40h40q13 0 21.5-8.5T440-560q0-13-8.5-21.5T410-590h-40v-40q0-13-8.5-21.5T340-660q-13 0-21.5 8.5T310-630v40h-40q-13 0-21.5 8.5T240-560q0 13 8.5 21.5T270-530h40v40q0 13 8.5 21.5T340-460Zm140-20Z"/></svg>Launch Playground - 2_02_4_blur_4</a><p>this is not the end of the game though, there is one more opportunity we can improve the performance of gaussian blur harnessing the bilinear interpolation built into texture map access. if we model texture as simply a 2D array, accessing each texel would require one texture read. But a texture map is not the same as a 2D array, because we are allowed to sample it by using a non-whole coordinates. in this situation, bilinear interpolation is involved. we will end up having a weighted average of the two nearby pixels. if our goal, for example, to get the sum of two nearby texels, we using one texture read to get the average of the two values, by setting our texture read coordinates in the middle of them.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="bilinearinterpolation.png" alt="Reducing Texture Read by Leveraging Interpolation" sources='[]' /><div class="img-title">Reducing Texture Read by Leveraging Interpolation</div></div></p><p>we even smarter, we can incorporate the gaussian weight values into the formula. For example, in the above picture, we have a 1D texture map of 9 texels. Each green dot is a texel. if this is a 1D array, we would have access it for 9 times to get all its values, but if this is a texture map, we can leverage the built-in interpolations to access two texels at a time. in total, we only need 5 accesses to get the job done.</p><p>The first step is grouping nearby texels into sets of two. Assuming the color values of these texels are <code class="language-math math-inline">A, B ... I</code>, and their gaussian weights are <code class="language-math math-inline">a,b, ..., i</code>, therefore, eventually what we want to get is:</p><p class="katex-display-counter"><code class="language-math math-block">\frac{aA + bB + ... +iI}{a + b + ... + i}</code></p><p>Now, let's focus on <code class="language-math math-inline">A</code> and <code class="language-math math-inline">B</code>. if we set the texture coordinate to <code class="language-math math-inline">\frac{b}{a+b}</code>, we can get the following value sampled:</p><p class="katex-display-counter"><code class="language-math math-block">\begin{aligned}
+v &= \frac{a}{a+b} \times A + (1 - \frac{b}{a+b}) \times B
+v &= \frac{aA+bB}{a+b}
+\end{aligned}</code></p><p>since What we want is <code class="language-math math-inline">aA + bB</code>, hence we just need to scale it back by <code class="language-math math-inline">a+b</code>. We repeat this for all the two-texel groups, and in the end, we divide the weighted sum by the sum of all gaussian weights, we will essential have the same result as accessing the texture 9 times.</p><p>The above process is implemented by the following changes:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=228>let kValues = [];
+let offsets = [];
+
+const kernelSize = 8.0;
+const sigma = 8.0;
+let intensity = 0.0;
+
+for (let y = - kernelSize; y &lt;= kernelSize; y += 1.0) {
+    let gaussian_v = 1.0 / Math.sqrt(2.0 * Math.PI * sigma * sigma) * Math.exp(-(y * y) / (2.0 * sigma * sigma));
+    intensity += gaussian_v;
+    kValues.push(gaussian_v);
+    offsets.push(y);
+}
+
+let kValues2 = [];
+let offsets2 = [];
+let i = 0;
+// loop for all 2-texel groups
+for (; i &lt; kValues.length - 1; i += 2) {
+    const A = kValues[i];
+    const B = kValues[i + 1];
+    const k = A + B;
+    const alpha = A / k;
+    const offset = offsets[i] + alpha;
+    kValues2.push(k / intensity);
+    offsets2.push(offset);
+}
+// if the window size is an odd number, there should be one lingering texel left
+if (i &lt; kValues.length) {
+    const A = kValues[i];
+    const offset = offsets[i];
+    kValues2.push(A / intensity);
+    offsets2.push(offset);
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=227:260#2_02_5_blur_5">2_02_5_blur_5/index.html:228-261 Populate the Smarter Texture Access Offset and Scale-Back Weights</a></div></div><p>And in the shader, we introduced two lookups, one for the texture accessing offsets (coordinates) to give us the right mix of two nearby texels. And a scale-back factor:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=88>@group(0) @binding(2)
+var&lt;uniform&gt; img_size: vec2&lt;f32&gt;;
+@group(0) @binding(3)
+var v_result: texture_2d&lt;f32&gt;;
+@group(0) @binding(4)
+var s_diffuse: sampler;
+@group(0) @binding(5)
+var&lt;storage&gt; weights: array&lt;f32&gt;;
+@group(0) @binding(6)
+var&lt;storage&gt; offsets: array&lt;f32&gt;;
+@group(0) @binding(7)
+var&lt;uniform&gt; kernel_size: u32;
+
+@fragment
+fn fs_main(in: VertexOutput) -&gt; @location(0) vec4&lt;f32&gt; {    
+    var color = vec4&lt;f32&gt;(0.0, 0.0, 0.0, 0.0);
+
+    for(var x: u32 = 0; x &lt; kernel_size; x++) {
+        let offsettedX = offsets[x] + in.pixel_coord.x;
+            let tex_coord = vec2(offsettedX / img_size.x, in.pixel_coord.y / img_size.y);
+            // access texture in middle of two samples
+            let c = textureSampleLevel(v_result, s_diffuse, tex_coord,0);
+            // scales back by weight
+            color += c * weights[x];
+    }
+    color.w = 1.0;
+    return color;
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=87:114#2_02_5_blur_5">2_02_5_blur_5/index.html:88-115 Fragment Shader Implements Smarter Texture Access</a></div></div><p>The end result is the same, but way faster.</p><a href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html#2_02_5_blur_5" target="_blank" class="comment"><svg style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
+                    width="32" fill="#dadadb" viewBox="0 -960 960 960"><path d="M189-160q-60 0-102.5-43T42-307q0-9 1-18t3-18l84-336q14-54 57-87.5t98-33.5h390q55 0 98 33.5t57 87.5l84 336q2 9 3.5 18.5T919-306q0 61-43.5 103.5T771-160q-42 0-78-22t-54-60l-28-58q-5-10-15-15t-21-5H385q-11 0-21 5t-15 15l-28 58q-18 38-54 60t-78 22Zm3-80q19 0 34.5-10t23.5-27l28-57q15-31 44-48.5t63-17.5h190q34 0 63 18t45 48l28 57q8 17 23.5 27t34.5 10q28 0 48-18.5t21-46.5q0 1-2-19l-84-335q-7-27-28-44t-49-17H285q-28 0-49.5 17T208-659l-84 335q-2 6-2 18 0 28 20.5 47t49.5 19Zm348-280q17 0 28.5-11.5T580-560q0-17-11.5-28.5T540-600q-17 0-28.5 11.5T500-560q0 17 11.5 28.5T540-520Zm80-80q17 0 28.5-11.5T660-640q0-17-11.5-28.5T620-680q-17 0-28.5 11.5T580-640q0 17 11.5 28.5T620-600Zm0 160q17 0 28.5-11.5T660-480q0-17-11.5-28.5T620-520q-17 0-28.5 11.5T580-480q0 17 11.5 28.5T620-440Zm80-80q17 0 28.5-11.5T740-560q0-17-11.5-28.5T700-600q-17 0-28.5 11.5T660-560q0 17 11.5 28.5T700-520Zm-360 60q13 0 21.5-8.5T370-490v-40h40q13 0 21.5-8.5T440-560q0-13-8.5-21.5T410-590h-40v-40q0-13-8.5-21.5T340-660q-13 0-21.5 8.5T310-630v40h-40q-13 0-21.5 8.5T240-560q0 13 8.5 21.5T270-530h40v40q0 13 8.5 21.5T340-460Zm140-20Z"/></svg>Launch Playground - 2_02_5_blur_5</a>
         </article>
 
         <div class="older_newer_link_section">

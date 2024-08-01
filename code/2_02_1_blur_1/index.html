@@ -39,17 +39,11 @@ var t_diffuse: texture_2d<f32>;
 @group(0) @binding(4)
 var s_diffuse: sampler;
 
-
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     const kernelSize = 8.0;
     var color = vec4<f32>(0.0, 0.0, 0.0, 0.0);
     var intensity: f32 = 0.0;
-
-    // need to discuss uniformity
-    //'textureSample' must only be called from uniform control flow
-    // try using textureSample see what happens
-
 
     for(var y: f32 = - kernelSize; y <= kernelSize; y+=1.0) {
         let offsettedY = y + in.pixel_coord.y;
@@ -58,10 +52,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 let offsettedX = x + in.pixel_coord.x;
                 if (offsettedX >= 0.0 && offsettedX <= img_size.x) {
                     let tex_coord = vec2(offsettedX / img_size.x, offsettedY / img_size.y);
-
                     let c = textureSampleLevel(t_diffuse, s_diffuse, tex_coord,0);
-
-
                     color += c;
                     intensity += 1.0;
                 }
@@ -69,13 +60,11 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         }
     }
       
-
       color /= intensity;
       color.w = 1.0;
 
       return color;
 }
-
 </script>
 
 <script>

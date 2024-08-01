@@ -127,7 +127,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         let texCoordsBuffer = createGPUBuffer(device, texCoords, GPUBufferUsage.VERTEX);
 
         let translateMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
-            glMatrix.vec3.fromValues(0, 0, 10), glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(0.0, 1.0, 0.0));
+            glMatrix.vec3.fromValues(100, 100, 100), glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(0.0, 1.0, 0.0));
         let orthProjMatrix = glMatrix.mat4.ortho(glMatrix.mat4.create(), -320.0, 320.0, 240.0, -240.0, -1000.0, 1000.0);
         let translateMatrixUniformBuffer = createGPUBuffer(device, translateMatrix, GPUBufferUsage.UNIFORM);
 
