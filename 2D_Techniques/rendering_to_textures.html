@@ -30,7 +30,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script
         src="https://cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/html.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
 
 
     <link rel="stylesheet"
@@ -144,124 +144,110 @@
 
     <div id="article-container">
         <article>
-            <h2 >2.0 Rendering to Textures</h2><p>In this section, we'll explore the "render to texture" technique, a concept you might find familiar from our previous discussion on mipmaps. The "render to texture" technique involves two rendering passes. During the first pass, we use a texture map as the render target to draw something. In the second pass, we render again using that texture map. This technique is immensely useful, for instance, in creating realistic mirrors or dynamic reflections in a 3D scene.</p><p>Let's dive into the code. In this example, we'll work with two shaders: the <code>teapot_shader</code> and the <code>box_shader</code>. Our goal is to render a rotating teapot in the first pass onto a texture map and then apply that texture to a cube during the second rendering pass.</p><p>We'll encapsulate these objects in two separate classes, <code>Teapot</code> and <code>Box</code>. You've encountered the two classes before in previous examples. For simplicity, we'll render only the teapot's normals instead of applying full Phong shading.</p><pre><code class="language-html code-block">
-&lt;script id="box_shader" type="wgsl"&gt;
-...
-&lt;/script&gt;
+            <h2 >2.0 Rendering to Textures</h2><p>In this chapter, we will explore 2D techniques. You might wonder why we're focusing on 2D using a 3D API. As it turns out, WebGPU is also highly effective for accelerating 2D processing. Applications include image and video processing, user interfaces, and more. Therefore, we aim to cover some fundamental 2D-related topics.</p><p>In this tutorial, we'll discuss the "render to texture" technique, a concept you may find similarity from our previous discussion on mipmaps. This technique involves two rendering passes. In the first pass, we use a texture map as the render target, and render a 3D scene onto that texture map. In the second pass, we render again using that texture map. This approach is useful in creating mirrors or dynamic reflections in 3D scenes, among other applications.</p><p>Now, let's examine the code. In this example, we'll work with two shaders: the <code>teapot_shader</code> and the <code>box_shader</code>. Our objective is to render a rotating teapot onto a texture map during the first pass, then apply that texture to a cube in the second rendering pass.</p><p>We'll organize these objects into two separate classes: Teapot and Box. You've encountered these classes in previous examples. For simplicity, we'll render only the teapot's normals instead of applying full Phong shading.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=455>const teapotTextureSize = 512;
 
-&lt;script id="teapot_shader" type="wgsl"&gt;
-...
-&lt;/script&gt;
+const depthTextureForTeapotDesc = {
+    size: [teapotTextureSize, teapotTextureSize, 1],
+    dimension: '2d',
+    format: 'depth24plus-stencil8',
+    usage: GPUTextureUsage.RENDER_ATTACHMENT
+};
 
-&lt;script&gt;
-    class Box {
-        ...
-    }
+let depthTextureForTeapot = device.createTexture(depthTextureForTeapotDesc);
+let depthTextureViewForTeapot = depthTextureForTeapot.createView();
 
-    class Teapot {
-        ...
-    }
+const depthAttachmentForTeapot = {
+    view: depthTextureViewForTeapot,
+    depthClearValue: 1,
+    depthLoadOp: 'clear',
+    depthStoreOp: 'store',
+    stencilClearValue: 0,
+    stencilLoadOp: 'clear',
+    stencilStoreOp: 'store'
+};
+const colorTextureForTeapotDesc = {
+    size: [teapotTextureSize, teapotTextureSize, 1],
+    dimension: '2d',
+    format: 'bgra8unorm',
+    usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING 
+};
+let colorTextureForTeapot = device.createTexture(colorTextureForTeapotDesc);
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=454:481#2_00_render_to_textures">2_00_render_to_textures/index.html:455-482 Create a Texture as the Render Target for the First Pass</a></div></div><p>To set up the pipeline, we begin by creating a teapot texture with dimensions of 512x512 pixels, along with a depth map to handle occlusion. For rendering purposes, this target texture map must support both <code>RENDER_ATTACHMENT</code> and <code>TEXTURE_BINDING</code> usage flags.</p><p>Next, we establish the first render pass utilizing these two textures:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=485>let colorTextureForTeapotView = colorTextureForTeapot.createView();
+let colorForTeapotAttachment = {
+    view: colorTextureForTeapotView,
+    clearValue: { r: 0, g: 1, b: 0, a: 1 },
+    loadOp: 'clear',
+    storeOp: 'store'
+};
 
-    async function webgpu() {
-        ...
-        const teapotTextureSize = 512;
+const renderPassForTeapotDesc = {
+    colorAttachments: [colorForTeapotAttachment],
+    depthStencilAttachment: depthAttachmentForTeapot
+};
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=484:495#2_00_render_to_textures">2_00_render_to_textures/index.html:485-496 Create the First Render Pass Using the Two Textures as Attachments</a></div></div><p>For the second render pass, we will configure it as before, using the canvas as the render target.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=497>const depthTextureDesc = {
+    size: [canvas.width, canvas.height, 1],
+    dimension: '2d',
+    format: 'depth24plus-stencil8',
+    usage: GPUTextureUsage.RENDER_ATTACHMENT
+};
 
-        const depthTextureForTeapotDesc = {
-            size: [teapotTextureSize, teapotTextureSize, 1],
-            dimension: '2d',
-            format: 'depth24plus-stencil8',
-            usage: GPUTextureUsage.RENDER_ATTACHMENT
-        };
+let depthTexture = device.createTexture(depthTextureDesc);
+let depthTextureView = depthTexture.createView();
 
-        let depthTextureForTeapot = device.createTexture(depthTextureForTeapotDesc);
-        let depthTextureViewForTeapot = depthTextureForTeapot.createView();
+const depthAttachment = {
+    view: depthTextureView,
+    depthClearValue: 1,
+    depthLoadOp: 'clear',
+    depthStoreOp: 'store',
+    stencilClearValue: 0,
+    stencilLoadOp: 'clear',
+    stencilStoreOp: 'store'
+};
+</pre></code><div class="code-fragments-separator">• • •</div><pre><code class="language-javascript code-block" startNumber=528>let colorTexture = context.getCurrentTexture();
+let colorTextureView = colorTexture.createView();
 
-        const depthAttachmentForTeapot = {
-            view: depthTextureViewForTeapot,
-            depthClearValue: 1,
-            depthLoadOp: 'clear',
-            depthStoreOp: 'store',
-            stencilClearValue: 0,
-            stencilLoadOp: 'clear',
-            stencilStoreOp: 'store'
-        };
-        const colorTextureForTeapotDesc = {
-            size: [teapotTextureSize, teapotTextureSize, 1],
-            dimension: '2d',
-            format: 'bgra8unorm',
-            usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING 
-        };
-        let colorTextureForTeapot = device.createTexture(colorTextureForTeapotDesc);
+let colorAttachment = {
+    view: colorTextureView,
+    clearValue: { r: 1, g: 0, b: 0, a: 1 },
+    loadOp: 'clear',
+    storeOp: 'store'
+};
 
-        let colorTextureForTeapotView = colorTextureForTeapot.createView();
-        let colorForTeapotAttachment = {
-            view: colorTextureForTeapotView,
-            clearValue: { r: 0, g: 1, b: 0, a: 1 },
-            loadOp: 'clear',
-            storeOp: 'store'
-        };
+const renderPassDesc = {
+    colorAttachments: [colorAttachment],
+    depthStencilAttachment: depthAttachment
+};
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=496:514,527:540#2_00_render_to_textures">2_00_render_to_textures/index.html:497-541 Create the Second Render Pass</a></div></div><p>The rotation of the teapot occurs during rendering; we simply rotate the camera's position around the z-axis. Until now, we haven't discussed how to update uniforms. In previous tutorials, our uniforms were created once at the program's beginning, and their values remained constant. However, to rotate the camera, we need to continuously update the modelview matrix and the derived normal matrix.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=517>angle += 0.01;
+let modelViewMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
+    glMatrix.vec3.fromValues(Math.cos(angle) * 15.0, Math.sin(angle) * 15.0, 15), glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(0.0, 0.0, 1.0));
 
-        const renderPassForTeapotDesc = {
-            colorAttachments: [colorForTeapotAttachment],
-            depthStencilAttachment: depthAttachmentForTeapot
-        };
+let modelViewMatrixUniformBufferUpdate = createGPUBuffer(device, modelViewMatrix, GPUBufferUsage.COPY_SRC);
 
-        const depthTextureDesc = {
-            size: [canvas.width, canvas.height, 1],
-            dimension: '2d',
-            format: 'depth24plus-stencil8',
-            usage: GPUTextureUsage.RENDER_ATTACHMENT
-        };
+let modelViewMatrixInverse = glMatrix.mat4.invert(glMatrix.mat4.create(), modelViewMatrix);
 
-        let depthTexture = device.createTexture(depthTextureDesc);
-        let depthTextureView = depthTexture.createView();
+let normalMatrix = glMatrix.mat4.transpose(glMatrix.mat4.create(), modelViewMatrixInverse);
 
-        const depthAttachment = {
-            view: depthTextureView,
-            depthClearValue: 1,
-            depthLoadOp: 'clear',
-            depthStoreOp: 'store',
-            stencilClearValue: 0,
-            stencilLoadOp: 'clear',
-            stencilStoreOp: 'store'
-        };
+let normalMatrixUniformBufferUpdate = createGPUBuffer(device, normalMatrix, GPUBufferUsage.COPY_SRC);
+</pre></code><div class="code-fragments-separator">• • •</div><pre><code class="language-javascript code-block" startNumber=544>commandEncoder.copyBufferToBuffer(modelViewMatrixUniformBufferUpdate, 0,
+    modelViewMatrixUniformBuffer, 0, modelViewMatrix.byteLength);
+commandEncoder.copyBufferToBuffer(normalMatrixUniformBufferUpdate, 0,
+    normalMatrixUniformBuffer, 0, normalMatrix.byteLength);
+</pre></code><div class="code-fragments-separator">• • •</div><pre><code class="language-javascript code-block" startNumber=559>await device.queue.onSubmittedWorkDone();
 
-        async function render() {
-            ...
+modelViewMatrixUniformBufferUpdate.destroy();
+normalMatrixUniformBufferUpdate.destroy();
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=516:526,543:546,558:561#2_00_render_to_textures">2_00_render_to_textures/index.html:517-562 Camera Rotation for Each Frame</a></div></div><p>The code snippet above demonstrates how the uniform buffer is updated. For each frame, we create two staging buffers with the updated content: one for the modelview matrix and another for the normal matrix. Note that we request the <code>COPY_SRC</code> usage, as we will copy the updated data from these buffers. For the actual uniform buffers, we need to request both <code>UNIFORM</code> and <code>COPY_DST</code> usages, as they are the destinations of the data copy.</p><p>At the beginning of draw command formation, we call the function <code>copyBufferToBuffer</code> to perform the data copy. Other draw commands follow, ensuring that the uniforms are updated before drawing.</p><p>It's crucial to call <code>buffer.destroy()</code> to release the staging buffers. However, make sure they are destroyed after calling <code>onSubmittedWorkDone</code>. This function serves as a synchronization mechanism to ensure that rendering is complete with both buffers before we release them.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=548>let passEncoder = commandEncoder.beginRenderPass(renderPassForTeapotDesc);
+passEncoder.setViewport(0, 0, teapotTextureSize, teapotTextureSize, 0, 1);
+teapot.encode(passEncoder);
+passEncoder.end();
 
-            let colorTexture = context.getCurrentTexture();
-            let colorTextureView = colorTexture.createView();
+passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
+passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+box.encode(passEncoder);
+passEncoder.end();
 
-            let colorAttachment = {
-                view: colorTextureView,
-                clearValue: { r: 1, g: 0, b: 0, a: 1 },
-                loadOp: 'clear',
-                storeOp: 'store'
-            };
-
-            const renderPassDesc = {
-                colorAttachments: [colorAttachment],
-                depthStencilAttachment: depthAttachment
-            };
-
-
-            commandEncoder = device.createCommandEncoder();
-            ...
-
-            passEncoder = commandEncoder.beginRenderPass(renderPassForTeapotDesc);
-            passEncoder.setViewport(0, 0, teapotTextureSize, teapotTextureSize, 0, 1);
-            teapot.encode(passEncoder);
-            passEncoder.end();
-
-            passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
-            passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
-            box.encode(passEncoder);
-            passEncoder.end();
-            ...
-        }
-        ...
-    }
-&lt;/script&gt;</code></pre><p>To set up the pipeline, we begin by creating a teapot texture with a size of 512x512 and a depth map to handle occlusion. For rendering purposes, this target texture map must support both RENDER_ATTACHMENT and TEXTURE_BINDING.</p><p>The rotation of the teapot occurs during rendering, and after completing the teapot pass, we render the cube with the teapot's texture applied to its surface. The result is a cube with the teapot's rotation visibly reflected on its surface.</p>
+device.queue.submit([commandEncoder.finish()]);
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=547:557#2_00_render_to_textures">2_00_render_to_textures/index.html:548-558 Two Pass Rendering</a></div></div><p>Here is the two-pass rendering code, which forms one submission. The second pass will run after the first pass is complete. By that time, the texture map will be updated with the rotated teapot. During the second pass, we apply the teapot texture to the cube.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="rotateteapottexture.png" alt="Rotating Teapot on a Cube" sources='[]' /><div class="img-title">Rotating Teapot on a Cube</div></div></p>
         </article>
 
         <div class="older_newer_link_section">

@@ -452,7 +452,6 @@
 
         let teapot = new Teapot();
         await teapot.setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer);
-
         const teapotTextureSize = 512;
 
         const depthTextureForTeapotDesc = {
@@ -481,10 +480,8 @@
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING 
         };
         let colorTextureForTeapot = device.createTexture(colorTextureForTeapotDesc);
-
         let box = new Box();
         await box.setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, colorTextureForTeapot);
-
         let colorTextureForTeapotView = colorTextureForTeapot.createView();
         let colorForTeapotAttachment = {
             view: colorTextureForTeapotView,
@@ -497,8 +494,6 @@
             colorAttachments: [colorForTeapotAttachment],
             depthStencilAttachment: depthAttachmentForTeapot
         };
-
-
         const depthTextureDesc = {
             size: [canvas.width, canvas.height, 1],
             dimension: '2d',
@@ -518,7 +513,6 @@
             stencilLoadOp: 'clear',
             stencilStoreOp: 'store'
         };
-
         async function render() {
             angle += 0.01;
             let modelViewMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
@@ -531,7 +525,6 @@
             let normalMatrix = glMatrix.mat4.transpose(glMatrix.mat4.create(), modelViewMatrixInverse);
 
             let normalMatrixUniformBufferUpdate = createGPUBuffer(device, normalMatrix, GPUBufferUsage.COPY_SRC);
-
             let colorTexture = context.getCurrentTexture();
             let colorTextureView = colorTexture.createView();
 
@@ -547,13 +540,11 @@
                 depthStencilAttachment: depthAttachment
             };
 
-
             const commandEncoder = device.createCommandEncoder();
             commandEncoder.copyBufferToBuffer(modelViewMatrixUniformBufferUpdate, 0,
                 modelViewMatrixUniformBuffer, 0, modelViewMatrix.byteLength);
             commandEncoder.copyBufferToBuffer(normalMatrixUniformBufferUpdate, 0,
                 normalMatrixUniformBuffer, 0, normalMatrix.byteLength);
-
             let passEncoder = commandEncoder.beginRenderPass(renderPassForTeapotDesc);
             passEncoder.setViewport(0, 0, teapotTextureSize, teapotTextureSize, 0, 1);
             teapot.encode(passEncoder);
@@ -564,14 +555,11 @@
             box.encode(passEncoder);
             passEncoder.end();
 
-
             device.queue.submit([commandEncoder.finish()]);
-
             await device.queue.onSubmittedWorkDone();
 
             modelViewMatrixUniformBufferUpdate.destroy();
             normalMatrixUniformBufferUpdate.destroy();
-
             requestAnimationFrame(render);
         }
 
