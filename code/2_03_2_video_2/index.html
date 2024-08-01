@@ -223,14 +223,12 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         };
 
         pipeline = device.createRenderPipeline(pipelineDesc);
-
         function render() {
             requestAnimationFrame(render);
 
             if (copyVideo) {
 
                 const externalTexture = device.importExternalTexture({ source: videoTag });
-
                 let colorTexture = context.getCurrentTexture();
                 let colorTextureView = colorTexture.createView();
 
@@ -244,7 +242,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 const renderPassDesc = {
                     colorAttachments: [colorAttachment]
                 };
-
                 let uniformBindGroup = device.createBindGroup({
                     layout: uniformBindGroupLayout,
                     entries: [

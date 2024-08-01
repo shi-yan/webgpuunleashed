@@ -144,99 +144,120 @@
 
     <div id="article-container">
         <article>
-            <h2 >2.3 Video Rendering</h2><p>We have seen how to load and render images as textures. It is also possible to load a video as a texture. This is very useful if we want to create a web based video processing application.</p><p>a video can be viewed as nothing more than a set of images. so it is not too much different from image textures. The question is how to update the images. In this tutorial, we will look at two methods. One method requires manual update whenever a new frame is loaded. The other approach does the image update automatically via external texture.</p><h3 >Manual Frame Update</h3><p>First, we need to introduce a function, given a url to a video file, we install a hidden video tag in the document. and we monitor the moment the video plays.</p><pre><code class="language-javascript code-block">    let copyVideo = false;
-    let videoTag = null;
+            <h2 >2.3 Video Rendering</h2><p>We have seen how to load and render images as textures. It is also possible to load a video as a texture. This is very useful if we want to create a web based video processing application.</p><p>a video can be viewed as nothing more than a set of images. so it is not too much different from image textures. The question is how to update the images. In this tutorial, we will look at two methods. One method requires manual update whenever a new frame is loaded. The other approach does the image update automatically via external texture.</p><h3 >Manual Frame Update</h3><a href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html#2_03_1_video_1" target="_blank" class="comment"><svg style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
+                    width="32" fill="#dadadb" viewBox="0 -960 960 960"><path d="M189-160q-60 0-102.5-43T42-307q0-9 1-18t3-18l84-336q14-54 57-87.5t98-33.5h390q55 0 98 33.5t57 87.5l84 336q2 9 3.5 18.5T919-306q0 61-43.5 103.5T771-160q-42 0-78-22t-54-60l-28-58q-5-10-15-15t-21-5H385q-11 0-21 5t-15 15l-28 58q-18 38-54 60t-78 22Zm3-80q19 0 34.5-10t23.5-27l28-57q15-31 44-48.5t63-17.5h190q34 0 63 18t45 48l28 57q8 17 23.5 27t34.5 10q28 0 48-18.5t21-46.5q0 1-2-19l-84-335q-7-27-28-44t-49-17H285q-28 0-49.5 17T208-659l-84 335q-2 6-2 18 0 28 20.5 47t49.5 19Zm348-280q17 0 28.5-11.5T580-560q0-17-11.5-28.5T540-600q-17 0-28.5 11.5T500-560q0 17 11.5 28.5T540-520Zm80-80q17 0 28.5-11.5T660-640q0-17-11.5-28.5T620-680q-17 0-28.5 11.5T580-640q0 17 11.5 28.5T620-600Zm0 160q17 0 28.5-11.5T660-480q0-17-11.5-28.5T620-520q-17 0-28.5 11.5T580-480q0 17 11.5 28.5T620-440Zm80-80q17 0 28.5-11.5T740-560q0-17-11.5-28.5T700-600q-17 0-28.5 11.5T660-560q0 17 11.5 28.5T700-520Zm-360 60q13 0 21.5-8.5T370-490v-40h40q13 0 21.5-8.5T440-560q0-13-8.5-21.5T410-590h-40v-40q0-13-8.5-21.5T340-660q-13 0-21.5 8.5T310-630v40h-40q-13 0-21.5 8.5T240-560q0 13 8.5 21.5T270-530h40v40q0 13 8.5 21.5T340-460Zm140-20Z"/></svg>Launch Playground - 2_03_1_video_1</a><p>First, we need to introduce a function, given a url to a video file, we install a hidden video tag in the document. and we monitor the moment the video plays.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=57>function setupVideo(url) {
+    const video = document.createElement('video');
 
-    function setupVideo(url) {
-        const video = document.createElement('video');
+    let playing = false;
+    let timeupdate = false;
 
-        let playing = false;
-        let timeupdate = false;
+    video.playsInline = true;
+    video.muted = true;
+    video.loop = true;
 
-        video.playsInline = true;
-        video.muted = true;
-        video.loop = true;
+    // Waiting for these 2 events ensures
+    // there is data in the video
 
-        video.addEventListener('playing', () =&gt; {
-            playing = true;
-            checkReady();
-        }, true);
+    video.addEventListener('playing', () =&gt; {
+        playing = true;
+        checkReady();
+    }, true);
 
-        video.addEventListener('timeupdate', () =&gt; {
-            timeupdate = true;
-            checkReady();
-        }, true);
+    video.addEventListener('timeupdate', () =&gt; {
+        timeupdate = true;
+        checkReady();
+    }, true);
 
-        video.src = url;
-        video.play();
+    video.src = url;
+    video.play();
 
-        function checkReady() {
-            if (playing &amp;&amp; timeupdate) {
-                copyVideo = true;
-            }
+    function checkReady() {
+        if (playing &amp;&amp; timeupdate) {
+            copyVideo = true;
         }
+    }
 
-        return video;
-    }</code></pre><p>we need to watch both playing and timeupdate events. Only both have happened, we can be sure that the video has started. if we don't wait for it being started, not only there is no video data available, even the video size could be unassigned, hence we need to wait for video start. then we need to create a texture map</p><pre><code class="language-javascript code-block">        const textureDescriptor = {
-            size: { width: videoTag.videoWidth, height: videoTag.videoHeight },
-            format: 'rgba8unorm',
-            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
-        };
-        const texture = device.createTexture(textureDescriptor);
+    return video;
+}
+</pre></code><div class="code-fragments-separator">• • •</div><pre><code class="language-javascript code-block" startNumber=307>videoTag = setupVideo('../data/Firefox.mp4');
 
-        videoTag.ontimeupdate = async (event) =&gt; {
-            let imageData = await createImageBitmap(videoTag);
-            device.queue.copyExternalImageToTexture({ source: imageData }, { texture }, textureDescriptor.size);
-        };</code></pre><p>the size of the texture map is the same as that of the video tag. notice that we need to request RENDER_ATTACHMENT usage for this texture map, because this is required by copyExternalImageToTexture function call. finally, we create another event listener for the timeupdate event. in this event handler, we create a bitmap using the createImageBitmap function. And we load its content to the texture map via copyExternalImageToTexture.</p><p>the rest of the rendering code is the same as before, we will skip the details.</p><h3 >Importing External Textures</h3><p>in the previous example, we manually perform a data copy whenever there is a video frame update. Another approach is importing an external texture from the video tag. This way, we avoid creating a texture map ourselves. But we need to be careful about the lifetime of the imported texture map. it can become expired if the video has switched to a new frame, or when the VideoFrame's close() function is called.</p><pre><code class="language-javascript code-block">function render() {
-            requestAnimationFrame(render);
-
+(async () =&gt; {
+    return new Promise(resolve =&gt; {
+        let timer = setInterval(() =&gt; {
             if (copyVideo) {
-
-                const externalTexture = device.importExternalTexture({ source: videoTag });
-
-                ...
-
-                let uniformBindGroup = device.createBindGroup({
-                    layout: uniformBindGroupLayout,
-                    entries: [
-                        {
-                            binding: 0,
-                            resource: {
-                                buffer: translateMatrixUniformBuffer
-                            }
-                        },
-                        {
-                            binding: 1,
-                            resource: {
-                                buffer: projectionMatrixUniformBuffer
-                            }
-                        },
-                        {
-                            binding: 2,
-                            resource: externalTexture
-                        },
-                        {
-                            binding: 3,
-                            resource:
-                                sampler
-                        }
-                    ]
-                });
-
-                commandEncoder = device.createCommandEncoder();
-
-                passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
-                passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
-                passEncoder.setPipeline(pipeline);
-                passEncoder.setBindGroup(0, uniformBindGroup);
-                passEncoder.setVertexBuffer(0, positionBuffer);
-                passEncoder.setVertexBuffer(1, texCoordsBuffer);
-                passEncoder.draw(4, 1);
-                passEncoder.end();
-
-                device.queue.submit([commandEncoder.finish()]);
+                clearInterval(timer);
+                resolve();
             }
-        }</code></pre><p>to void texture expiration, it's important that we import and use the texture immediately in the same render function call. and is also the reason that we create a bindgroup for each rendering frame to incorporated the new external texture map.</p>
+        }, 300);
+    })
+})().then(() =&gt; {
+    webgpu();
+});
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=56:89,306:319#2_03_1_video_1">2_03_1_video_1/index.html:57-320 Helper Function to Load Video</a></div></div><p>we need to watch both <code>playing</code> and <code>timeupdate</code> events. Only both have happened, we can be sure that the video has started. if we don't wait for it being started, not only there is no video data available, even the video size could be unassigned, hence we need to wait for video start. then we need to create a texture map. notice that we wait for the video is loaded and playing, then we call WebGPU initialization. only when we can be sure videoTag is ready for access.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=106>const textureDescriptor = {
+    size: { width: videoTag.videoWidth, height: videoTag.videoHeight },
+    format: 'rgba8unorm',
+    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+};
+const texture = device.createTexture(textureDescriptor);
+
+videoTag.ontimeupdate = async (event) =&gt; {
+    let imageData = await createImageBitmap(videoTag);
+    //console.log(imageData)
+    device.queue.copyExternalImageToTexture({ source: imageData }, { texture }, textureDescriptor.size);
+};
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=105:116#2_03_1_video_1">2_03_1_video_1/index.html:106-117 On Frame Updates, Loading the Frame on Texture</a></div></div><p>the size of the texture map is the same as that of the video tag. notice that we need to request RENDER_ATTACHMENT usage for this texture map, because this is required by copyExternalImageToTexture function call. finally, we create another event listener for the timeupdate event. in this event handler, we create a bitmap using the createImageBitmap function. And we load its content to the texture map via copyExternalImageToTexture.</p><p>the rest of the rendering code is the same as before, we will skip the details.</p><h3 >Importing External Textures</h3><a href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html#2_03_2_video_2" target="_blank" class="comment"><svg style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
+                    width="32" fill="#dadadb" viewBox="0 -960 960 960"><path d="M189-160q-60 0-102.5-43T42-307q0-9 1-18t3-18l84-336q14-54 57-87.5t98-33.5h390q55 0 98 33.5t57 87.5l84 336q2 9 3.5 18.5T919-306q0 61-43.5 103.5T771-160q-42 0-78-22t-54-60l-28-58q-5-10-15-15t-21-5H385q-11 0-21 5t-15 15l-28 58q-18 38-54 60t-78 22Zm3-80q19 0 34.5-10t23.5-27l28-57q15-31 44-48.5t63-17.5h190q34 0 63 18t45 48l28 57q8 17 23.5 27t34.5 10q28 0 48-18.5t21-46.5q0 1-2-19l-84-335q-7-27-28-44t-49-17H285q-28 0-49.5 17T208-659l-84 335q-2 6-2 18 0 28 20.5 47t49.5 19Zm348-280q17 0 28.5-11.5T580-560q0-17-11.5-28.5T540-600q-17 0-28.5 11.5T500-560q0 17 11.5 28.5T540-520Zm80-80q17 0 28.5-11.5T660-640q0-17-11.5-28.5T620-680q-17 0-28.5 11.5T580-640q0 17 11.5 28.5T620-600Zm0 160q17 0 28.5-11.5T660-480q0-17-11.5-28.5T620-520q-17 0-28.5 11.5T580-480q0 17 11.5 28.5T620-440Zm80-80q17 0 28.5-11.5T740-560q0-17-11.5-28.5T700-600q-17 0-28.5 11.5T660-560q0 17 11.5 28.5T700-520Zm-360 60q13 0 21.5-8.5T370-490v-40h40q13 0 21.5-8.5T440-560q0-13-8.5-21.5T410-590h-40v-40q0-13-8.5-21.5T340-660q-13 0-21.5 8.5T310-630v40h-40q-13 0-21.5 8.5T240-560q0 13 8.5 21.5T270-530h40v40q0 13 8.5 21.5T340-460Zm140-20Z"/></svg>Launch Playground - 2_03_2_video_2</a><p>in the previous example, we manually perform a data copy whenever there is a video frame update. Another approach is importing an external texture from the video tag. This way, we avoid creating a texture map ourselves. But we need to be careful about the lifetime of the imported texture map. it can become expired if the video has switched to a new frame, or when the VideoFrame's close() function is called.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=226>function render() {
+    requestAnimationFrame(render);
+
+    if (copyVideo) {
+
+        const externalTexture = device.importExternalTexture({ source: videoTag });
+</pre></code><div class="code-fragments-separator">• • •</div><pre><code class="language-javascript code-block" startNumber=245>            let uniformBindGroup = device.createBindGroup({
+                layout: uniformBindGroupLayout,
+                entries: [
+                    {
+                        binding: 0,
+                        resource: {
+                            buffer: translateMatrixUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 1,
+                        resource: {
+                            buffer: projectionMatrixUniformBuffer
+                        }
+                    },
+                    {
+                        binding: 2,
+                        resource: externalTexture
+                    },
+                    {
+                        binding: 3,
+                        resource:
+                            sampler
+                    }
+                ]
+            });
+
+
+            commandEncoder = device.createCommandEncoder();
+
+            passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
+            passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+            passEncoder.setPipeline(pipeline);
+            passEncoder.setBindGroup(0, uniformBindGroup);
+            passEncoder.setVertexBuffer(0, positionBuffer);
+            passEncoder.setVertexBuffer(1, texCoordsBuffer);
+            passEncoder.draw(4, 1);
+            passEncoder.end();
+
+            device.queue.submit([commandEncoder.finish()]);
+        }
+    }
+
+    requestAnimationFrame(render);
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=225:230,244:288#2_03_2_video_2">2_03_2_video_2/index.html:226-289 Auto Loading a Frame Using importExternalTexture</a></div></div><p>to void texture expiration, it's important that we import and use the texture immediately in the same render function call. and is also the reason that we create a bindgroup for each rendering frame to incorporated the new external texture map.</p>
         </article>
 
         <div class="older_newer_link_section">
