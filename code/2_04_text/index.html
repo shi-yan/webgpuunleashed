@@ -142,10 +142,10 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             0.0,
             1.0,
 
-            1.0,
+            texture.w,
             0.0,
 
-            1.0,
+            texture.w,
             1.0
         ]);
 
@@ -241,7 +241,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 },
                 {
                     binding: 2,
-                    resource: texture.createView()
+                    resource: texture.texture.createView()
                 },
                 {
                     binding: 3,
