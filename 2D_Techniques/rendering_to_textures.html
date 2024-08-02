@@ -248,7 +248,7 @@ box.encode(passEncoder);
 passEncoder.end();
 
 device.queue.submit([commandEncoder.finish()]);
-</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=547:557#2_00_render_to_textures">2_00_render_to_textures/index.html:548-558 Two Pass Rendering</a></div></div><p>Here is the two-pass rendering code, which forms one submission. The second pass will run after the first pass is complete. By that time, the texture map will be updated with the rotated teapot. During the second pass, we apply the teapot texture to the cube.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="rotateteapottexture.png" alt="Rotating Teapot on a Cube" sources='[]' /><div class="img-title">Rotating Teapot on a Cube</div></div></p>
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=547:557#2_00_render_to_textures">2_00_render_to_textures/index.html:548-558 Two Pass Rendering</a></div></div><p>Here is the two-pass rendering code, which forms one submission. The second pass will run after the first pass is complete. By that time, the texture map will be updated with the rotated teapot. During the second pass, we apply the teapot texture to the cube.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="thumb_rotateteapottexture.png" original_src="rotateteapottexture.png" alt="Rotating Teapot on a Cube" sources='[]' /><div class="img-title">Rotating Teapot on a Cube</div></div></p>
         </article>
 
         <div class="older_newer_link_section">
