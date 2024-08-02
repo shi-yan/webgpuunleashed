@@ -380,7 +380,6 @@
             encoder.drawIndexed(this.indexSize);
         }
     }
-
     class Arcball {
         constructor() {
             this.radius = 5.0;
@@ -388,9 +387,7 @@
             this.upVector = glMatrix.vec4.fromValues(0.0, 0.0, 1.0, 0.0);
             this.currentRotation = glMatrix.mat4.create();
         }
-
         yawPitch(originalX, originalY, currentX, currentY) {
-
             let originalPoint = glMatrix.vec3.fromValues(1.0, originalX, originalY);
             let newPoint = glMatrix.vec3.fromValues(1.0, currentX, currentY);
 
@@ -412,9 +409,7 @@
                 this.upVector = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), this.upVector, rotationMatrix);
             }
         }
-
         roll(originalX, originalY, currentX, currentY) {
-
             const originalVec = glMatrix.vec3.fromValues(originalX, originalY, 0.0);
             const currentVec = glMatrix.vec3.fromValues(currentX, currentY, 0.0);
 
@@ -438,7 +433,6 @@
                 this.upVector = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), this.upVector, rotationMatrix);
             }
         }
-
         getMatrices() {
             let modelViewMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
                 glMatrix.vec3.fromValues(this.forwardVector[0], this.forwardVector[1], this.forwardVector[2]),
@@ -447,7 +441,6 @@
             return modelViewMatrix;
         }
     }
-
     async function webgpu() {
         if (!navigator.gpu) {
             showWarning("WebGPU support is not available. A WebGPU capable browser is required to run this sample.");
@@ -649,7 +642,6 @@
         });
         requestAnimationFrame(render);
         resizeObserver.observe(canvas);
-
         let prevX = 0.0;
         let prevY = 0.0;
         let isDragging = false;
@@ -663,7 +655,6 @@
 
             const width = rect.right - rect.left;
             const height = rect.bottom - rect.top;
-
             let radius = width;
 
             if (height < radius) {
@@ -671,22 +662,18 @@
             }
 
             radius *= 0.5;
-
             const originX = width * 0.5;
             const originY = height * 0.5;
 
             prevX = (x - originX) / radius;
             prevY = (originY - y) / radius;
-
             if ((prevX * prevX + prevY * prevY) < 0.64) {
                 isDragging = yawPitch;
             }
             else {
                 isDragging = roll;
             }
-
         }
-
         canvas.onmousemove = (event) => {
             if (isDragging != 0) {
                 var rect = canvas.getBoundingClientRect();
@@ -709,7 +696,6 @@
 
                 currX = (x - originX) / radius;
                 currY = (originY - y) / radius;
-
                 if (isDragging == yawPitch) {
                     arcball.yawPitch(prevX, prevY, currX, currY);
                 }
@@ -725,8 +711,6 @@
         canvas.onmouseup = (event) => {
             isDragging = 0;
         }
-
-
     }
 
     webgpu();

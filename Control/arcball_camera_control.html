@@ -143,153 +143,148 @@
 
     <div id="article-container">
         <article>
-            <h2 >3.1 Arcball Camera Control</h2><p>another common interaction we want to have is being able to rotate the 3d object we are rendering. this is often implemented via a concept called Arcball. The idea is simple, we enclose the 3d object inside a virtual 3d sphere, and we use mouse to rotate this 3d sphere. The mouse cursor move in a 2D plan, but 3d sphere rotation is 3d. how can a 2d movement control a 3d rotation. because for 3d rotation, we can rotate in 3 different directions, raw pitch and yaw.</p><p>we can handle this situation by projecting our virtual sphere onto the screen plane. when the mouse cursor is moving within the projected area, we use the x axis to do yaw and the y axis to do pitch. But when our mouse cursor is outside the projected area, we will rotate the object along the roll direction.</p><p>In this demo, we want to visualize the projected sphere by drawing a ring that highlights the silluatte of the sphere. Rendering this ring is a very standard operation, which we have seen many times in this book, I will hence skip the details here. please refer to the sample code for the implementation details.</p><p>One thing to note when rendering this ring is that we are using the line-strip type for geometry primitive for the pipeline.</p><p>For visualization, we will be rendering the same teapot. The difference is that we can rotate this teapot freely this time. I will again skip the details, as it's almost the same as before.</p><p>For the Arcball, we would like to enclose its implementation in a class:</p><pre><code class="language-javascript code-block">    class Arcball {
-        constructor() {
-            this.radius = 5.0;
-            this.forwardVector = glMatrix.vec4.fromValues(this.radius, 0.0, 0.0, 0.0);
-            this.upVector = glMatrix.vec4.fromValues(0.0, 0.0, 1.0, 0.0);
-            this.currentRotation = glMatrix.mat4.create();
+            <h2 >3.1 Arcball Camera Control</h2><p>Another common interaction in 3D rendering is the ability to rotate the 3D object. This is often implemented using a concept called Arcball. The idea is simple: we enclose the 3D object inside a virtual 3D sphere and use the mouse to rotate this sphere. While the mouse cursor moves in a 2D plane, it controls the 3D rotation of the sphere. But how can 2D movement control 3D rotation? In 3D space, rotation can occur in three different directions: roll, pitch, and yaw.</p><a href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html#3_01_arcball" target="_blank" class="comment"><svg style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
+                    width="32" fill="#dadadb" viewBox="0 -960 960 960"><path d="M189-160q-60 0-102.5-43T42-307q0-9 1-18t3-18l84-336q14-54 57-87.5t98-33.5h390q55 0 98 33.5t57 87.5l84 336q2 9 3.5 18.5T919-306q0 61-43.5 103.5T771-160q-42 0-78-22t-54-60l-28-58q-5-10-15-15t-21-5H385q-11 0-21 5t-15 15l-28 58q-18 38-54 60t-78 22Zm3-80q19 0 34.5-10t23.5-27l28-57q15-31 44-48.5t63-17.5h190q34 0 63 18t45 48l28 57q8 17 23.5 27t34.5 10q28 0 48-18.5t21-46.5q0 1-2-19l-84-335q-7-27-28-44t-49-17H285q-28 0-49.5 17T208-659l-84 335q-2 6-2 18 0 28 20.5 47t49.5 19Zm348-280q17 0 28.5-11.5T580-560q0-17-11.5-28.5T540-600q-17 0-28.5 11.5T500-560q0 17 11.5 28.5T540-520Zm80-80q17 0 28.5-11.5T660-640q0-17-11.5-28.5T620-680q-17 0-28.5 11.5T580-640q0 17 11.5 28.5T620-600Zm0 160q17 0 28.5-11.5T660-480q0-17-11.5-28.5T620-520q-17 0-28.5 11.5T580-480q0 17 11.5 28.5T620-440Zm80-80q17 0 28.5-11.5T740-560q0-17-11.5-28.5T700-600q-17 0-28.5 11.5T660-560q0 17 11.5 28.5T700-520Zm-360 60q13 0 21.5-8.5T370-490v-40h40q13 0 21.5-8.5T440-560q0-13-8.5-21.5T410-590h-40v-40q0-13-8.5-21.5T340-660q-13 0-21.5 8.5T310-630v40h-40q-13 0-21.5 8.5T240-560q0 13 8.5 21.5T270-530h40v40q0 13 8.5 21.5T340-460Zm140-20Z"/></svg>Launch Playground - 3_01_arcball</a><p>We handle this by projecting our virtual sphere onto the screen plane. When the mouse cursor moves within the projected area, the x-axis movement controls yaw, and the y-axis movement controls pitch. If the mouse cursor moves outside the projected area, we rotate the object along the roll direction.</p><p>In this demo, we visualize the projected sphere by drawing a ring that highlights the silhouette of the sphere. Rendering this ring is a standard operation seen many times in this book, so I will skip the details here. Please refer to the sample code for implementation details.</p><p>One thing to note when rendering this ring is that we use the line-strip type for the geometry primitive in the pipeline.</p><p>For visualization, we will render the same teapot as before, but this time, we can rotate it freely. Again, I will skip the details as it is almost the same as before.</p><p>For the Arcball, we encapsulate its implementation in a class:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=383>class Arcball {
+    constructor() {
+        this.radius = 5.0;
+        this.forwardVector = glMatrix.vec4.fromValues(this.radius, 0.0, 0.0, 0.0);
+        this.upVector = glMatrix.vec4.fromValues(0.0, 0.0, 1.0, 0.0);
+        this.currentRotation = glMatrix.mat4.create();
+    }
+    yawPitch(originalX, originalY, currentX, currentY) {
+</pre></code><div class="code-fragments-separator">• • •</div><pre><code class="language-javascript code-block" startNumber=411>}
+roll(originalX, originalY, currentX, currentY) {
+</pre></code><div class="code-fragments-separator">• • •</div><pre><code class="language-javascript code-block" startNumber=435>}
+getMatrices() {
+</pre></code><div class="code-fragments-separator">• • •</div><pre><code class="language-javascript code-block" startNumber=442>    }
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=382:389,410:411,434:435,441:442#3_01_arcball">3_01_arcball/index.html:383-443 Arcball Class</a></div></div><p>Let me explain the class members. The radius is the distance between the focal point, or the rotation center, and the camera. The <code>forwardVector</code> defines the viewing direction from the camera's position to the focal point. It is initialized with (radius, 0.0, 0.0), meaning the camera starts at (radius, 0.0, 0.0) and looks at the origin. The <code>upVector</code> is perpendicular to the <code>forwardVector</code> and points upward from the camera's perspective.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="thumb_arcball.png" original_src="arcball.png" alt="The Arcball" sources='[]' /><div class="img-title">The Arcball</div></div></p><p>The <code>currentRotation</code> is the rotation matrix of our Arcball.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=390>yawPitch(originalX, originalY, currentX, currentY) {
+    let originalPoint = glMatrix.vec3.fromValues(1.0, originalX, originalY);
+    let newPoint = glMatrix.vec3.fromValues(1.0, currentX, currentY);
+
+    let rotationAxis = glMatrix.vec3.cross(glMatrix.vec3.create(), originalPoint, newPoint);
+
+    rotationAxis = glMatrix.vec4.fromValues(rotationAxis[0], rotationAxis[1], rotationAxis[2], 0.0);
+
+    rotationAxis = glMatrix.vec4.transformMat4(glMatrix.mat4.create(), rotationAxis, this.currentRotation);
+
+    rotationAxis = glMatrix.vec3.normalize(glMatrix.vec3.create(), glMatrix.vec3.fromValues(rotationAxis[0], rotationAxis[1], rotationAxis[2]));
+
+    let sin = glMatrix.vec3.length(rotationAxis) / (glMatrix.vec3.length(originalPoint) * glMatrix.vec3.length(newPoint));
+
+    let rotationMatrix = glMatrix.mat4.fromRotation(glMatrix.mat4.create(), Math.asin(sin) * -0.03, rotationAxis);
+
+    if (rotationMatrix !== null) {
+        this.currentRotation = glMatrix.mat4.multiply(glMatrix.mat4.create(), rotationMatrix, this.currentRotation);
+        this.forwardVector = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), this.forwardVector, rotationMatrix);
+        this.upVector = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), this.upVector, rotationMatrix);
+    }
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=389:410#3_01_arcball">3_01_arcball/index.html:390-411 Arcball Rotation Matrix Calculation</a></div></div><p>The first function we examine controls the yaw and pitch. This function takes two inputs: the original mouse position (originalX, originalY) and the current mouse position (currentX, currentY) in screen space. Initially, the camera is positioned at (radius, 0, 0), so the plane parallel to the screen is the yz-plane. The first step is to project the original and current points in screen space to the yz-plane: (1.0, originalX, originalY) and (1.0, currentX, currentY). We use coordinates (1.0, ...) instead of (radius, ...) to simplify calculations by treating our imaginary sphere as having a radius of 1. This simplification does not affect correctness because we perform calculations in the sphere's coordinate system.</p><p>Next, we need to calculate the axis around which we will apply the rotation. This axis is perpendicular to the plane formed by the original and current vectors, so we get it by performing a cross product of the two vectors.</p><p>The above calculation assumes there is no previous rotation in the system, meaning the yz plane is still aligned with the screen plane. If there have been previous rotations, we need to apply these rotations to the rotation axis. Finally, we normalize this rotation axis to a unit vector.</p><p>Next, we need to obtain the rotation angle, derived by first calculating the sine value and then using the arcsine function. The maximum rotation angle is less than 90 degrees.</p><p>Finally, we calculate the rotation matrix using the axis and the rotation angle. In the code, we check if the rotation matrix is null because, when the original and current vectors are very close, numerical instability might result in an invalid rotation matrix.</p><p>If we have a valid rotation matrix, we then merge the existing rotation with the new rotation matrix and use them to rotate the camera's forward and up vectors.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=412>roll(originalX, originalY, currentX, currentY) {
+    const originalVec = glMatrix.vec3.fromValues(originalX, originalY, 0.0);
+    const currentVec = glMatrix.vec3.fromValues(currentX, currentY, 0.0);
+
+    const crossProd = glMatrix.vec3.cross(glMatrix.vec3.create(), originalVec, currentVec);
+
+
+    let rad = glMatrix.vec3.dot(glMatrix.vec3.normalize(glMatrix.vec3.create(), originalVec),
+        glMatrix.vec3.normalize(glMatrix.vec3.create(), currentVec));
+
+    if (rad &gt; 1.0) {
+        // cross product can be larger than 1.0 due to numerical error
+        rad = Math.PI * Math.sign(crossProd[2]);
+    }
+    else {
+        rad = Math.acos(rad) * Math.sign(crossProd[2]);
+    }
+
+    let rotationMatrix = glMatrix.mat4.fromRotation(glMatrix.mat4.create(), -rad, this.forwardVector);
+    if (rotationMatrix !== null) {
+        this.currentRotation = glMatrix.mat4.multiply(glMatrix.mat4.create(), rotationMatrix, this.currentRotation);
+        this.upVector = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), this.upVector, rotationMatrix);
+    }
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=411:434#3_01_arcball">3_01_arcball/index.html:412-435 Arcball Roll Calculation</a></div></div><p>The second function to examine is the roll function. This function is triggered when the mouse cursor is dragged outside the ring. For rolling, the rotation axis is always perpendicular to the screen plane, either pointing toward the viewer or away from them. Therefore, we perform our calculations in the screen plane's coordinates, making the original and current vectors (originalX, originalY, 0.0) and (currentX, currentY, 0.0) respectively.</p><p>We calculate the cross product to get the rotation axis. Ideally, this axis should be either <code class="language-math math-inline">(0, 0, 1)</code> or <code class="language-math math-inline">(0, 0, -1)</code>, but only the last component matters for determining the rotation direction.</p><p>For the rotation angle, we calculate it using the dot product and the arccosine function. Numerical errors might result in the dot product being slightly larger than 1, which would cause the arccosine function to return NaN. To prevent this, we treat the rotation angle as either <code class="language-math math-inline">\pi</code> or <code class="language-math math-inline">-\pi</code> in such cases. Otherwise, we use the arccosine value for the angle and the sign of the last component of the rotation axis to determine the direction.</p><p>Finally, we convert the rotation angle into a rotation matrix. Although the calculations are performed in the screen plane, we apply the rotation in the camera's coordinate system. Since the rotation axis for rolling is the same as the camera's forward vector, we create the rotation matrix using the forward vector and the rotation angle.</p><p>Once we have the rotation matrix, we merge the existing rotation with the new rotation matrix and update the <code>upVector</code> since rolling doesn't change the <code>forwardVector</code>.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=436>getMatrices() {
+    let modelViewMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
+        glMatrix.vec3.fromValues(this.forwardVector[0], this.forwardVector[1], this.forwardVector[2]),
+        glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(this.upVector[0], this.upVector[1], this.upVector[2]));
+
+    return modelViewMatrix;
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=435:441#3_01_arcball">3_01_arcball/index.html:436-442 Helper Function to Access the Current Rotation Matrix</a></div></div><p>Finally, in the Arcball class, we need a function to get the <code>modelViewMatrix</code> according to the updated forward and up vectors. We can achieve this by calling the <code>lookAt</code> helper function provided by glMatrix. When rendering our 3D object, we just need to call this function to get the <code>modelViewMatrix</code>.</p><p>Next, let's look at how to handle the mouse events:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=645>let prevX = 0.0;
+let prevY = 0.0;
+let isDragging = false;
+const yawPitch = 1;
+const roll = 2;
+
+canvas.onmousedown = (event) =&gt; {
+    var rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    const width = rect.right - rect.left;
+    const height = rect.bottom - rect.top;
+    let radius = width;
+
+    if (height &lt; radius) {
+        radius = height;
+    }
+
+    radius *= 0.5;
+    const originX = width * 0.5;
+    const originY = height * 0.5;
+
+    prevX = (x - originX) / radius;
+    prevY = (originY - y) / radius;
+    if ((prevX * prevX + prevY * prevY) &lt; 0.64) {
+        isDragging = yawPitch;
+    }
+    else {
+        isDragging = roll;
+    }
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=644:675#3_01_arcball">3_01_arcball/index.html:645-676 Mousedown Event Handling</a></div></div><p>In the <code>mousedown</code> event handler, our main goal is to determine the type of movement: <code>yawPitch</code> or <code>roll</code>. Recall that if the cursor is within the projected sphere, we will perform yaw and pitch; if it is outside, we perform roll. Here’s an explanation of what this function does, section by section:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=652>var rect = canvas.getBoundingClientRect();
+const x = event.clientX - rect.left;
+const y = event.clientY - rect.top;
+
+const width = rect.right - rect.left;
+const height = rect.bottom - rect.top;
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=651:656#3_01_arcball">3_01_arcball/index.html:652-657 Get Cursor Position From Canvas</a></div></div><p>These lines are a common formula to get the mouse cursor position within a canvas, using the top left corner as the origin.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=658>let radius = width;
+
+if (height &lt; radius) {
+    radius = height;
+}
+
+radius *= 0.5;
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=657:663#3_01_arcball">3_01_arcball/index.html:658-664 Select the Shorter Edge</a></div></div><p>These lines select the minimum of the width and height, halve it, and use it as the radius. We do this to ensure the projected sphere fits within the screen area, so the radius can be as large as the shorter side of the screen.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=665>const originX = width * 0.5;
+const originY = height * 0.5;
+
+prevX = (x - originX) / radius;
+prevY = (originY - y) / radius;
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=664:668#3_01_arcball">3_01_arcball/index.html:665-669 Coordinates Transformation</a></div></div><p>These lines transform the coordinate system from using the top left corner as the origin to using the center of the screen plane as the origin. We flip the Y axis because the canvas coordinate system has the y-axis pointing downwards, whereas the screen coordinate system has it pointing up.</p><p>We also normalize the coordinates by the radius because we want the rotation sensitivity to be unaffected by the size of the canvas.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=670>if ((prevX * prevX + prevY * prevY) &lt; 0.64) {
+    isDragging = yawPitch;
+}
+else {
+    isDragging = roll;
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=669:674#3_01_arcball">3_01_arcball/index.html:670-675 Determining Rotation Type</a></div></div><p>Finally, we calculate the distance from the mouse cursor to the screen center and use a fixed threshold of 0.64 to determine the rotation type. If the cursor falls within 0.8 of the shortest side of the canvas, we consider it yaw and pitch; otherwise, it is roll.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=677>canvas.onmousemove = (event) =&gt; {
+    if (isDragging != 0) {
+</pre></code><div class="code-fragments-separator">• • •</div><pre><code class="language-javascript code-block" startNumber=699>        if (isDragging == yawPitch) {
+            arcball.yawPitch(prevX, prevY, currX, currY);
         }
-        ...
-    }</code></pre><p>let me explain the members, radius is the distance between the focal point or the rotation center and the camera. The forward vector defines viewing direction from the camera's position to the focal point. The forward vector is initialized by (radius, 0.0, 0.0), meaning the camera is initialized at the (radius, 0.0, 0.0) and looking at the origin. The up vector is the direction perpendicular to the forward vector and point towards the up direction of the camera.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="thumb_arcball.png" original_src="arcball.png" alt="The Arcball" sources='[]' /><div class="img-title">The Arcball</div></div></p><p>The current rotation is the rotation matrix of our Arcball.</p><pre><code class="language-javascript code-block">    class Arcball {
-        ...
-        yawPitch(originalX, originalY, currentX, currentY) {
-
-            let originalPoint = glMatrix.vec3.fromValues(1.0, originalX, originalY);
-            let newPoint = glMatrix.vec3.fromValues(1.0, currentX, currentY);
-
-            let rotationAxis = glMatrix.vec3.cross(glMatrix.vec3.create(), originalPoint, newPoint);
-
-            rotationAxis = glMatrix.vec4.fromValues(rotationAxis[0], rotationAxis[1], rotationAxis[2], 0.0);
-
-            rotationAxis = glMatrix.vec4.transformMat4(glMatrix.mat4.create(), rotationAxis, this.currentRotation);
-
-            rotationAxis = glMatrix.vec3.normalize(glMatrix.vec3.create(), glMatrix.vec3.fromValues(rotationAxis[0], rotationAxis[1], rotationAxis[2]));
-
-            let sin = glMatrix.vec3.length(rotationAxis) / (glMatrix.vec3.length(originalPoint) * glMatrix.vec3.length(newPoint));
-
-            let rotationMatrix = glMatrix.mat4.fromRotation(glMatrix.mat4.create(), Math.asin(sin) * -0.03, rotationAxis);
-
-            if (rotationMatrix !== null) {
-                this.currentRotation = glMatrix.mat4.multiply(glMatrix.mat4.create(), rotationMatrix, this.currentRotation);
-                this.forwardVector = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), this.forwardVector, rotationMatrix);
-                this.upVector = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), this.upVector, rotationMatrix);
-            }
+        else if (isDragging == roll) {
+            arcball.roll(prevX, prevY, currX, currY);
         }
-        ...
-    }</code></pre><p>the first function we look at controls the yaw and pitch. this function takes two inputs, the original vector is the original location in the screen space. And the current is the current mouse position in the screen space. because our camera was initially positioned at (radius, 0, 0), the plane that parallel to the screen is the yz plane. The first step is projecting the original and current points in the screen space to the yz plane: (1.0, originalX, originalY), (1.0, currentX, currentY). notice that we are not using the coordinates (radius, originalX, originalY) and (radius, currentX, currentY), because we want to simplify our calculation by treating our imaginary sphere to have a radius of 1. Even the actual radius is not necessary 1. This doesn't affect the correctness, as we basically perform our calculation in the sphere's coordinate system.</p><p>Next, we need to calculate the axis around which we will apply the rotation. This axis is perpendicular to the plane formed by the original and the current vectors. Hence we get it by performing a cross product of the two vectors.</p><p>the above calculation is assuming there is no previous rotation in the system, hence the yz plane is still aligned with the screen plane. If there has been previous rotations, we need to also apply the previous rotations to the rotation axis. and finally we normalize this rotation axis to a unit vector.</p><p>next, we need to obtain the rotation angle. which is derived by first getting the sin value and an arcsin. Since the maximum rotation angle is less than 90 degrees.</p><p>finally, we will calculate the rotation matrix by using the axis and the rotation angle. in the code, we need to check the null of the rotation matrix, because when the original and the current vectors are very close, we might get an invalid rotation matrix due to numerical instability.</p><p>if we actually have a valid rotation matrix, we then merge the exisiting rotation with the new rotation matrix and use them to rotate the camera's forward and up vectors.</p><pre><code class="language-javascript code-block">
+        prevX = currX;
+        prevY = currY;
+        requestAnimationFrame(render);
+    }
+}
 
-    class Arcball {
-        ...
-
-        roll(originalX, originalY, currentX, currentY) {
-
-            const originalVec = glMatrix.vec3.fromValues(originalX, originalY, 0.0);
-            const currentVec = glMatrix.vec3.fromValues(currentX, currentY, 0.0);
-
-            const crossProd = glMatrix.vec3.cross(glMatrix.vec3.create(), originalVec, currentVec);
-
-
-            let rad = glMatrix.vec3.dot(glMatrix.vec3.normalize(glMatrix.vec3.create(), originalVec),
-                glMatrix.vec3.normalize(glMatrix.vec3.create(), currentVec));
-
-            if (rad &gt; 1.0) {
-                // cross product can be larger than 1.0 due to numerical error
-                rad = Math.PI * Math.sign(crossProd[2]);
-            }
-            else {
-                rad = Math.acos(rad) * Math.sign(crossProd[2]);
-            }
-
-            let rotationMatrix = glMatrix.mat4.fromRotation(glMatrix.mat4.create(), -rad, this.forwardVector);
-            if (rotationMatrix !== null) {
-                this.currentRotation = glMatrix.mat4.multiply(glMatrix.mat4.create(), rotationMatrix, this.currentRotation);
-                this.upVector = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), this.upVector, rotationMatrix);
-            }
-        }
-        ...
-    }</code></pre><p>The second function to look at is the roll function. This function is triggered when the mouse cursor is dragged outside the ring. for rolling, the rotation axis is always pointing at the viewer or pointing away (perpendicular to the screen plane), this time, we will perform our calculation in the screen plane's coordinate. hence the original and the current vectors are (originalX, originalY, 0.0) and (currentX, currentY, 0.0).</p><p>We again calculate the cross product to get the rotation axis. Ideally this axis should be either (0,0,1) or (0,0,-1), what maters to us is only the last component for the rotation direction.</p><p>for the rotation angle, we are gonna calculate it by the cross product and arccos. Because some numerical error could result in the dot product being larger than 1, this will cause the arccos to return NAN. hence we simply treat this rotation angle as either the PI or -PI. otherwise, we rely on the arccos value for the angle and the direction for the sign (the last component of the rotation axis).</p><p>Finally we convert the rotation angle into a rotation matrix. notice that the above is calulate in the screen plane. But when we apply the rotation angle, we need to do it in the camera's coordinate system. Since the rotation angle is the same as the camera's forward vector for rolling, we simply create the rotation matrix by using the forward vector and the rotation angle.</p><p>And again, we apply the exisiting rotation and update the upvector, since rolling won't change the forward vector.</p><pre><code class="language-javascript code-block">        getMatrices() {
-            let modelViewMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
-                glMatrix.vec3.fromValues(this.forwardVector[0], this.forwardVector[1], this.forwardVector[2]),
-                glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(this.upVector[0], this.upVector[1], this.upVector[2]));
-
-            return modelViewMatrix;
-        }</code></pre><p>finally, in the Arcball class, we need a function for us to get the modelViewMatrix according to the updated forward and up vectors. We can do this simply by calling the lookAt helper function provided by glMatrix. When we render our 3D object, we only need to call the function to get the modelViewMatrix.</p><p>next, let's look at how to handle the mouse event</p><pre><code class="language-javascript code-block">
-
-        let prevX = 0.0;
-        let prevY = 0.0;
-        let isDragging = false;
-        const yawPitch = 1;
-        const roll = 2;
-
-        canvas.onmousedown = (event) =&gt; {
-            var rect = canvas.getBoundingClientRect();
-            const x = event.clientX - rect.left;
-            const y = event.clientY - rect.top;
-
-            const width = rect.right - rect.left;
-            const height = rect.bottom - rect.top;
-
-            let radius = width;
-
-            if (height &lt; radius) {
-                radius = height;
-            }
-
-            radius *= 0.5;
-
-            const originX = width * 0.5;
-            const originY = height * 0.5;
-
-            prevX = (x - originX) / radius;
-            prevY = (originY - y) / radius;
-
-            if ((prevX * prevX + prevY * prevY) &lt; 0.64) {
-                isDragging = yawPitch;
-            }
-            else {
-                isDragging = roll;
-            }
-
-        }</code></pre><p>in the mousedown event handler, our main goal is to figure out the movement type. whether it is yawPitch or roll. Recall that if the cursor is within the projected sphere, we will do yaw and pitch, but when it is outside, we do roll. I will explain what this function does section by section:</p><pre><code class="language-javascript code-block">            var rect = canvas.getBoundingClientRect();
-            const x = event.clientX - rect.left;
-            const y = event.clientY - rect.top;
-
-            const width = rect.right - rect.left;
-            const height = rect.bottom - rect.top;</code></pre><p>these lines are a common formula to get the mouse cursor position within a canvas, using the top left corner as the origin.</p><pre><code class="language-javascript code-block">            let radius = width;
-
-            if (height &lt; radius) {
-                radius = height;
-            }
-
-            radius *= 0.5;</code></pre><p>these lines select the minimum of the width and the height, and halve that and use it as the radius. We do this because we don't want the projected sphere to be outside the screen area. hence the radius can as large as the shorter side of the screen.</p><pre><code class="language-javascript code-block">            const originX = width * 0.5;
-            const originY = height * 0.5;
-
-            prevX = (x - originX) / radius;
-            prevY = (originY - y) / radius;</code></pre><p>these lines tries to transform the coordinate system from using the top left corner as the origin to using the center of the screen plane as the origin. The reason we flip the Y axis is that the canvas coordinate system has the y axis pointing downwards whereas the screen coordinate has it pointing up.</p><p>we also normalize the coordinates by the radius. Because we want the rotation sensitivity is unaffected by the size of the canvas.</p><pre><code class="language-javascript code-block">            if ((prevX * prevX + prevY * prevY) &lt; 0.64) {
-                isDragging = yawPitch;
-            }
-            else {
-                isDragging = roll;
-            }</code></pre><p>finally, we calculate the distance from the mouse cursor to the screen center, and use the fix threshold 0.64 to determine the rotation type. If the cursor falls within 0.8 of the shortest side of the canvas, we think it's yaw and pitch, otherwise it is roll;</p><pre><code class="language-javascript code-block">        canvas.onmousemove = (event) =&gt; {
-            if (isDragging != 0) {
-                ...
-
-                if (isDragging == yawPitch) {
-                    arcball.yawPitch(prevX, prevY, currX, currY);
-                }
-                else if (isDragging == roll) {
-                    arcball.roll(prevX, prevY, currX, currY);
-                }
-                prevX = currX;
-                prevY = currY;
-                requestAnimationFrame(render);
-            }
-        }
-
-        canvas.onmouseup = (event) =&gt; {
-            isDragging = 0;
-        }</code></pre><p>Next, let's look at the mousemove function. What's omitted in the above function snipet is the same as that of the mousedown function. hence I only show the difference here. We basically call the corresponding rotation functions based on previously determined rotation type. And after that, we request for a new frame.</p><p>I will skip the rendering code, there is nothing special here. All we need to do for rendering is obtaining the latest modelView matrix from the arcball and update all necessary uniform buffers, for example the normal matrix.</p>
+canvas.onmouseup = (event) =&gt; {
+    isDragging = 0;
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=676:677,698:712#3_01_arcball">3_01_arcball/index.html:677-713 Mousemove Event Handling</a></div></div><p>Next, let’s examine the <code>mousemove</code> function. What’s omitted in the above function snippet is similar to the <code>mousedown</code> function, hence I only show the differences here. We call the corresponding rotation functions based on the previously determined rotation type. After that, we request a new frame to be rendered.</p><p>I will skip the rendering code as there is nothing special here. All we need to do for rendering is to obtain the latest <code>modelViewMatrix</code> from the Arcball class and update all necessary uniform buffers, such as the normal matrix.</p>
         </article>
 
         <div class="older_newer_link_section">
