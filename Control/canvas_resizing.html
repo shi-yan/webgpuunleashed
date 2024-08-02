@@ -195,47 +195,7 @@ if (depthTexture === null || currentCanvasWidth != canvas.width || currentCanvas
     projectionMatrixUniformBufferUpdate = createGPUBuffer(device, projectionMatrix, GPUBufferUsage.COPY_SRC);
 
 }
-</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=252:289#3_00_canvas_resizing">3_00_canvas_resizing/index.html:253-290 Resizing Buffers According to Canvas Size Change</a></div></div><pre><code class="language-javascript code-block">        async function render() {
-            const devicePixelRatio = window.devicePixelRatio || 1;
-            let currentCanvasWidth = canvas.clientWidth * devicePixelRatio;
-            let currentCanvasHeight = canvas.clientHeight * devicePixelRatio;
-
-            if (depthTexture === null || currentCanvasWidth != canvas.width || currentCanvasHeight != canvas.height) {
-                canvas.width = currentCanvasWidth;
-                canvas.height = currentCanvasHeight;
-
-                const depthTextureDesc = {
-                    size: [canvas.width, canvas.height, 1],
-                    dimension: '2d',
-                    format: 'depth24plus-stencil8',
-                    usage: GPUTextureUsage.RENDER_ATTACHMENT
-                };
-
-                if (depthTexture !== null) {
-                    depthTexture.destroy();
-                }
-
-                depthTexture = device.createTexture(depthTextureDesc);
-                let depthTextureView = depthTexture.createView();
-
-                depthAttachment = {
-                    view: depthTextureView,
-                    depthClearValue: 1,
-                    depthLoadOp: 'clear',
-                    depthStoreOp: 'store',
-                    stencilClearValue: 0,
-                    stencilLoadOp: 'clear',
-                    stencilStoreOp: 'store'
-                };
-
-                let projectionMatrix = glMatrix.mat4.perspective(glMatrix.mat4.create(),
-                    1.4, canvas.width / canvas.height, 0.1, 1000.0);
-
-                let projectionMatrixUniformBufferUpdate = createGPUBuffer(device, projectionMatrix, GPUBufferUsage.COPY_SRC);
-
-            }
-            ...
-        }</code></pre><p>In the rendering function, we first obtain the pixel density using <code>window.devicePixelRatio</code>. On high-DPI screens, such as those on a MacBook, this value can be 2, indicating that we can fit 4 times more pixels into the same physical area compared to standard pixels. To achieve finer rendering, we can create a framebuffer that is 4 times the size of the canvas. On most conventional monitors, this value is simply 1.0, and in this case, we set the framebuffer size to match the canvas size.</p><p>When the canvas size changes, such as when the old <code>canvas.width</code> does not match the new size, several resources need to be updated.</p><p>First, update the depth texture. While the canvas automatically maintains the color rendering target, the depth buffer is managed manually. Therefore, when the canvas size changes, you need to release the old depth map and create a new one with the updated dimensions.</p><p>Second, update the projection matrix. The projection matrix depends on the canvas's aspect ratio, so it needs to be adjusted when the canvas size changes. Since a uniform buffer cannot be both <code>MAP_WRITE</code> and <code>MAP_READ</code> simultaneously, you need to use a staging buffer for this process. Load the updated matrix into the staging buffer first and then copy it to the uniform buffer.</p>
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=252:289#3_00_canvas_resizing">3_00_canvas_resizing/index.html:253-290 Resizing Buffers According to Canvas Size Change</a></div></div><p>In the rendering function, we first obtain the pixel density using <code>window.devicePixelRatio</code>. On high-DPI screens, such as those on a MacBook, this value can be 2, indicating that we can fit 4 times more pixels into the same physical area compared to standard pixels. To achieve finer rendering, we can create a framebuffer that is 4 times the size of the canvas. On most conventional monitors, this value is simply 1.0, and in this case, we set the framebuffer size to match the canvas size.</p><p>When the canvas size changes, such as when the old <code>canvas.width</code> does not match the new size, several resources need to be updated.</p><p>First, update the depth texture. While the canvas automatically maintains the color rendering target, the depth buffer is managed manually. Therefore, when the canvas size changes, you need to release the old depth map and create a new one with the updated dimensions.</p><p>Second, update the projection matrix. The projection matrix depends on the canvas's aspect ratio, so it needs to be adjusted when the canvas size changes. Since a uniform buffer cannot be both <code>MAP_WRITE</code> and <code>MAP_READ</code> simultaneously, you need to use a staging buffer for this process. Load the updated matrix into the staging buffer first and then copy it to the uniform buffer.</p>
         </article>
 
         <div class="older_newer_link_section">
