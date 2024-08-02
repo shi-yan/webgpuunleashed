@@ -135,18 +135,18 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         let positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
 
         const texCoords = new Float32Array([
-            0.0,
-            0.0,
+        texture.w,
+            1.0,
             // 🔴
 
+            texture.w,
             0.0,
+
+           0.0,
             1.0,
 
-            texture.w,
             0.0,
-
-            texture.w,
-            1.0
+            0.0
         ]);
 
         let texCoordsBuffer = createGPUBuffer(device, texCoords, GPUBufferUsage.VERTEX);
