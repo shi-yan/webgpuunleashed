@@ -51,7 +51,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     function nearestPowerOf2(n) {
         return 1 << (32 - Math.clz32(n));
     }
-
     function printText(device, text) {
         const width = 320;
         const height = 240;
@@ -59,16 +58,16 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         const ctx = canvas.getContext("2d");
         ctx.clearRect(0, 0, width, height);
         ctx.globalAlpha = '0.5';
-        ctx.font = 'bold 16px Arial';
+        ctx.font = 'bold 32px Arial';
         ctx.fillStyle = 'white';
         const textMeasure = ctx.measureText(text); // TextM
 
         console.log("texture measure", textMeasure);
         console.log("width", Math.ceil(textMeasure.width))
-        ctx.fillText(text, 0, 16);
+        ctx.fillText(text, 0, 28);
 
         const textureDescriptor = {
-            size: { width: nearestPowerOf2(Math.ceil(textMeasure.width)), height: 16 },
+            size: { width: nearestPowerOf2(Math.ceil(textMeasure.width)), height: 32 },
             format: 'rgba8unorm',
             usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
         };
@@ -76,9 +75,8 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         const texture = device.createTexture(textureDescriptor);
         device.queue.copyExternalImageToTexture({ source: canvas, origin: { x: 0, y: 0 } }, { texture }, textureDescriptor.size);
 
-        return texture;
+        return {texture, w: textMeasure.width / textureDescriptor.size.width};
     }
-
     async function webgpu() {
         if (!navigator.gpu) {
             showWarning("WebGPU support is not available. A WebGPU capable browser is required to run this sample.");
@@ -92,8 +90,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
         let context = configContext(device, canvas);
 
-        let texture = printText(device, "Hello");
-
+        let texture = printText(device, "Hello World");
         const sampler = device.createSampler({
             addressModeU: 'repeat',
             addressModeV: 'repeat',
@@ -101,7 +98,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             minFilter: 'linear',
             mipmapFilter: 'linear',
         });
-
         let shaderModule = shaderModuleFromCode(device, 'shader');
 
         const positionAttribDesc = {
@@ -139,24 +135,24 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         let positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
 
         const texCoords = new Float32Array([
-            1.0,
+            0.0,
             0.0,
             // 🔴
 
-            1.0,
+            0.0,
             1.0,
 
-            0.0,
+            1.0,
             0.0,
 
-            0.0,
+            1.0,
             1.0
         ]);
 
         let texCoordsBuffer = createGPUBuffer(device, texCoords, GPUBufferUsage.VERTEX);
 
         let translateMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
-            glMatrix.vec3.fromValues(100, 100, 100), glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(0.0, 0.0, 1.0));
+            glMatrix.vec3.fromValues(0, 0, 100), glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(0.0, 1.0, 0.0));
 
         let projectionMatrix = glMatrix.mat4.perspective(glMatrix.mat4.create(),
             1.4, 640.0 / 480.0, 0.1, 1000.0);
@@ -192,7 +188,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
         const pipelineLayoutDesc = { bindGroupLayouts: [uniformBindGroupLayout] };
         const layout = device.createPipelineLayout(pipelineLayoutDesc);
-
         const colorState = {
             format: 'bgra8unorm',
             blend: {
@@ -208,7 +203,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 }
             }
         };
-
         const pipelineDesc = {
             layout,
             vertex: {
@@ -224,7 +218,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             primitive: {
                 topology: 'triangle-strip',
                 frontFace: 'ccw',
-                cullMode: 'none'
+                cullMode: 'back'
             }
         };
 
