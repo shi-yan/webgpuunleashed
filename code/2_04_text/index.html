@@ -75,7 +75,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         const texture = device.createTexture(textureDescriptor);
         device.queue.copyExternalImageToTexture({ source: canvas, origin: { x: 0, y: 0 } }, { texture }, textureDescriptor.size);
 
-        return {texture, w: textMeasure.width / textureDescriptor.size.width};
+        return {texture, w: textMeasure.width / textureDescriptor.size.width, rw: textMeasure.width};
     }
     async function webgpu() {
         if (!navigator.gpu) {
@@ -125,10 +125,10 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         };
 
         const positions = new Float32Array([
-            100.0, -100.0, 0.0,
-            100.0, 100.0, 0.0,
-            -100.0, -100.0, 0.0,
-            -100.0, 100.0, 0.0
+        texture.rw*0.5, -16.0, 0.0,
+            texture.rw*0.5, 16.0, 0.0,
+            -texture.rw*0.5, -16.0, 0.0,
+            -texture.rw*0.5, 16.0, 0.0
         ]);
 
 
@@ -152,7 +152,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         let texCoordsBuffer = createGPUBuffer(device, texCoords, GPUBufferUsage.VERTEX);
 
         let translateMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
-            glMatrix.vec3.fromValues(0, 0, 800), glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(0.0, 1.0, 0.0));
+            glMatrix.vec3.fromValues(0, 0, 500), glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(0.0, 1.0, 0.0));
 
         let projectionMatrix = glMatrix.mat4.perspective(glMatrix.mat4.create(),
             1.4, 640.0 / 480.0, 0.1, 1000.0);

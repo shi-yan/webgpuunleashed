@@ -288,7 +288,6 @@
                 projectionMatrixUniformBufferUpdate = createGPUBuffer(device, projectionMatrix, GPUBufferUsage.COPY_SRC);
 
             }
-
             let colorTexture = context.getCurrentTexture();
             let colorTextureView = colorTexture.createView();
 
@@ -322,7 +321,6 @@
                 projectionMatrixUniformBufferUpdate.destroy();
             }
         }
-
         let timeId = null;
         const resizeObserver = new ResizeObserver((entries) => {
             if (timeId) {

@@ -144,18 +144,58 @@
 
     <div id="article-container">
         <article>
-            <h2 >3.0 Canvas Resizing</h2><p>At this point, all of our samples are rendered in a fix sized canvas. But for real applications, we often want the canvas to fully occupy the full page or its container. This is a bit tricker than you might expect to resize a canvas. In this tutorial, let's look at how to achieve it.</p><p>Every canvas has two sizes, one is the framebuffer size, this size is the same as the rendering attachment. let's term it the rendering size. The other size is used for presenting the canvas onto the webpage. let's call it the display size. Our rendering applies to the framebuffer and once rendered, we can treat it as an image of the rendering size. Then we put this image onto the webpage using the display size. If the two sizes don't match, the rendered result will be stretched to match the display size.</p><p>The rendering size can be defined by either specifying the width and height attributes through the html tag:</p><pre><code class="language-html code-block">&lt;canvas width="640" height="480"&gt;&lt;/canvas&gt;</code></pre><p>or it can be configured in javascript:</p><pre><code class="language-javascript code-block">canvas.width = 640;
-canvas.height = 480;</code></pre><p>The display size can be controlled by CSS:</p><pre><code class="language-html code-block">&lt;canvas style="width: 400px; height: 300px;"&gt; &lt;/canvas&gt;</code></pre><p>Or you can specify the canvas to have a size of 100% of its parent so that it can be maximized. However, this will only affect the display size, but not the rendering size. it's up to our developers to match the two sizes. To update the rendering size, we first need to capture the canvas resizing event. We can do this using the ResizeObserver.</p><pre><code class="language-javascript code-block">        let timeId = null;
-        const resizeObserver = new ResizeObserver((entries) =&gt; {
-            if (timeId) {
-                clearTimeout(timeId);
-            }
-            timeId = setTimeout(() =&gt; {
-                requestAnimationFrame(render);
-            }, 100);
-        });
-        ...
-        resizeObserver.observe(canvas);</code></pre><p>the ResizeObserver can let you specify a call back function. When the canvas has been resized, this callback will be called. The callback function should trigger the rendering of a new frame, in the new frame, we should adjust the rendering size, and update the framebuffer and the depth buffer accordingly.</p><p>A naive approach would call requestAnimationFrame directly, but we don't want to call this function too frequently. Consider for example, when we resize the window, this will trigger a series of resizing events. Immediately rerender the scene maybe unnecessary as the window size won't be settled until we have stopped resizing the window. Also, since rendering might be costly, frequent calling it during resizing might make resizing feels sluggish. here in the above code snippet, we want to throttle the rerendering by using a timer. The ResizeObserver's callback will apply a 100ms delay to requestAnimationFrame, and if another resizing event is triggered before the timeout fires, we reset the timeout. The way we can batch the execution of rerendering.</p><pre><code class="language-javascript code-block">        async function render() {
+            <h2 >3.0 Canvas Resizing</h2><p>At this point, all of our samples have been rendered on a fixed-size canvas. However, in real applications, we often want the canvas to fully occupy the entire page or its container. Resizing a canvas to achieve this can be trickier than expected. In this tutorial, we'll explore how to accomplish this.</p><a href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html#3_00_canvas_resizing" target="_blank" class="comment"><svg style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
+                    width="32" fill="#dadadb" viewBox="0 -960 960 960"><path d="M189-160q-60 0-102.5-43T42-307q0-9 1-18t3-18l84-336q14-54 57-87.5t98-33.5h390q55 0 98 33.5t57 87.5l84 336q2 9 3.5 18.5T919-306q0 61-43.5 103.5T771-160q-42 0-78-22t-54-60l-28-58q-5-10-15-15t-21-5H385q-11 0-21 5t-15 15l-28 58q-18 38-54 60t-78 22Zm3-80q19 0 34.5-10t23.5-27l28-57q15-31 44-48.5t63-17.5h190q34 0 63 18t45 48l28 57q8 17 23.5 27t34.5 10q28 0 48-18.5t21-46.5q0 1-2-19l-84-335q-7-27-28-44t-49-17H285q-28 0-49.5 17T208-659l-84 335q-2 6-2 18 0 28 20.5 47t49.5 19Zm348-280q17 0 28.5-11.5T580-560q0-17-11.5-28.5T540-600q-17 0-28.5 11.5T500-560q0 17 11.5 28.5T540-520Zm80-80q17 0 28.5-11.5T660-640q0-17-11.5-28.5T620-680q-17 0-28.5 11.5T580-640q0 17 11.5 28.5T620-600Zm0 160q17 0 28.5-11.5T660-480q0-17-11.5-28.5T620-520q-17 0-28.5 11.5T580-480q0 17 11.5 28.5T620-440Zm80-80q17 0 28.5-11.5T740-560q0-17-11.5-28.5T700-600q-17 0-28.5 11.5T660-560q0 17 11.5 28.5T700-520Zm-360 60q13 0 21.5-8.5T370-490v-40h40q13 0 21.5-8.5T440-560q0-13-8.5-21.5T410-590h-40v-40q0-13-8.5-21.5T340-660q-13 0-21.5 8.5T310-630v40h-40q-13 0-21.5 8.5T240-560q0 13 8.5 21.5T270-530h40v40q0 13 8.5 21.5T340-460Zm140-20Z"/></svg>Launch Playground - 3_00_canvas_resizing</a><p>A canvas has two key dimensions: the framebuffer size and the display size. The framebuffer size, which we'll refer to as the rendering size, determines the size of the rendering attachment. The display size is used to present the canvas on the webpage. Our rendering applies to the framebuffer, and once rendered, we treat it as an image of the rendering size. This image is then displayed on the webpage using the display size. If the rendering size and display size do not match, the rendered result will be stretched to fit the display size.</p><p>The rendering size can be defined by specifying the width and height attributes in the HTML tag:</p><pre><code class="language-html code-block">&lt;canvas width="640" height="480"&gt;&lt;/canvas&gt;</code></pre><p>Or it can be configured in javascript:</p><pre><code class="language-javascript code-block">canvas.width = 640;
+canvas.height = 480;</code></pre><p>The display size can be controlled by CSS:</p><pre><code class="language-html code-block">&lt;canvas style="width: 400px; height: 300px;"&gt; &lt;/canvas&gt;</code></pre><p>You can also specify the canvas size to be 100% of its parent container to maximize its size. However, this adjustment affects only the display size, not the rendering size. It is up to developers to synchronize these two sizes. To update the rendering size, we first need to capture the canvas resizing event. This can be achieved using the <code>ResizeObserver</code>.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=324>let timeId = null;
+const resizeObserver = new ResizeObserver((entries) =&gt; {
+    if (timeId) {
+        clearTimeout(timeId);
+    }
+    timeId = setTimeout(() =&gt; {
+        requestAnimationFrame(render);
+    }, 100);
+});
+requestAnimationFrame(render);
+resizeObserver.observe(canvas);
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=323:333#3_00_canvas_resizing">3_00_canvas_resizing/index.html:324-334 Observe Canvas Size Change Event</a></div></div><p>The <code>ResizeObserver</code> allows you to specify a callback function that is triggered whenever the canvas is resized. This callback should initiate the rendering of a new frame. In this new frame, you should adjust the rendering size and update the framebuffer and depth buffer accordingly.</p><p>A straightforward approach might involve calling requestAnimationFrame directly. However, this could lead to excessive calls if resizing events occur frequently. For instance, resizing the window triggers a series of events, and immediately rerendering the scene might be unnecessary since the final window size may not be settled until resizing stops. Frequent rendering during resizing could also make the process feel sluggish.</p><p>In the above code snippet, we throttle the rerendering by using a timer. The <code>ResizeObserver</code> callback applies a 100ms delay to <code>requestAnimationFrame</code>. If another resizing event occurs before the timeout expires, the timeout is reset. This approach helps batch the execution of rerendering and improves performance during resizing.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=253>const devicePixelRatio = window.devicePixelRatio || 1;
+let currentCanvasWidth = canvas.clientWidth * devicePixelRatio;
+let currentCanvasHeight = canvas.clientHeight * devicePixelRatio;
+let projectionMatrixUniformBufferUpdate = null;
+if (depthTexture === null || currentCanvasWidth != canvas.width || currentCanvasHeight != canvas.height) {
+    canvas.width = currentCanvasWidth;
+    canvas.height = currentCanvasHeight;
+
+    const depthTextureDesc = {
+        size: [canvas.width, canvas.height, 1],
+        dimension: '2d',
+        format: 'depth24plus-stencil8',
+        usage: GPUTextureUsage.RENDER_ATTACHMENT
+    };
+
+    if (depthTexture !== null) {
+        depthTexture.destroy();
+    }
+
+    depthTexture = device.createTexture(depthTextureDesc);
+    let depthTextureView = depthTexture.createView();
+
+    depthAttachment = {
+        view: depthTextureView,
+        depthClearValue: 1,
+        depthLoadOp: 'clear',
+        depthStoreOp: 'store',
+        stencilClearValue: 0,
+        stencilLoadOp: 'clear',
+        stencilStoreOp: 'store'
+    };
+
+    let projectionMatrix = glMatrix.mat4.perspective(glMatrix.mat4.create(),
+        1.4, canvas.width / canvas.height, 0.1, 1000.0);
+
+    projectionMatrixUniformBufferUpdate = createGPUBuffer(device, projectionMatrix, GPUBufferUsage.COPY_SRC);
+
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=252:289#3_00_canvas_resizing">3_00_canvas_resizing/index.html:253-290 Resizing Buffers According to Canvas Size Change</a></div></div><pre><code class="language-javascript code-block">        async function render() {
             const devicePixelRatio = window.devicePixelRatio || 1;
             let currentCanvasWidth = canvas.clientWidth * devicePixelRatio;
             let currentCanvasHeight = canvas.clientHeight * devicePixelRatio;
@@ -195,7 +235,7 @@ canvas.height = 480;</code></pre><p>The display size can be controlled by CSS:</
 
             }
             ...
-        }</code></pre><p>in the rendering function, we first obtain the pixel density via window.devicePixelRatio , on high dpi screen, such as that of a macbook, this value can be two, meaning we can put 4x more pixels in the same area of a normal pixel. Hence we can create a framebuffer 4x the size of the canvas to make our rendering finer. On most conventional monitors, this value is simply 1.0. In this scenario, we simply let the framebuffer size match that of the canvas.</p><p>If we detect the canvas has changed, i.e. the old canvas.width doesn't match the new size, we need to update a series of resources. The first to update the the depth texture. Our color rendering target is maintained automatically by the canvas, but the depth is maintained by us. Hence when the canvas size has changed, we have to release the old depth map and recreate a new one with the right size. The second thing to update is the projection matrix, as we recall, its creation is related to the aspect ratio of the canvas. Since we can't directly update the uniform buffer, because a uniform buffer can't be a MAP_WRITE at the same time, we will have to put the matrix in a staging buffer first and then do a buffer copy.</p>
+        }</code></pre><p>In the rendering function, we first obtain the pixel density using <code>window.devicePixelRatio</code>. On high-DPI screens, such as those on a MacBook, this value can be 2, indicating that we can fit 4 times more pixels into the same physical area compared to standard pixels. To achieve finer rendering, we can create a framebuffer that is 4 times the size of the canvas. On most conventional monitors, this value is simply 1.0, and in this case, we set the framebuffer size to match the canvas size.</p><p>When the canvas size changes, such as when the old <code>canvas.width</code> does not match the new size, several resources need to be updated.</p><p>First, update the depth texture. While the canvas automatically maintains the color rendering target, the depth buffer is managed manually. Therefore, when the canvas size changes, you need to release the old depth map and create a new one with the updated dimensions.</p><p>Second, update the projection matrix. The projection matrix depends on the canvas's aspect ratio, so it needs to be adjusted when the canvas size changes. Since a uniform buffer cannot be both <code>MAP_WRITE</code> and <code>MAP_READ</code> simultaneously, you need to use a staging buffer for this process. Load the updated matrix into the staging buffer first and then copy it to the uniform buffer.</p>
         </article>
 
         <div class="older_newer_link_section">
