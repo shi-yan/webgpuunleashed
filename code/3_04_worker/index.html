@@ -52,7 +52,6 @@
 <script>
     const worker = new Worker('./worker.js');
 
-
     worker.addEventListener('message', (ev) => {
         switch (ev.data.type) {
             case 'log': {
@@ -64,7 +63,6 @@
             }
         }
     });
-
     try {
         const offscreenCanvas = canvas.transferControlToOffscreen();
         const devicePixelRatio = window.devicePixelRatio || 1;
@@ -76,7 +74,6 @@
         console.warn(err.message);
         worker.terminate();
     }
-
 
 </script>
 

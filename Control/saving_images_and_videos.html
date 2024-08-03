@@ -143,131 +143,137 @@
 
     <div id="article-container">
         <article>
-            <h2 >3.3 Saving Images and Videos</h2><p>In this tutorial, we are going to look at how to dump our rendering as image and video. This is useful for applications like video and image editing.</p><p>saving images is not difficult, as the canvas element has a built-in feature to save its content to a blob. in the demo, I add the image dumping logic at the end of the rendering function, because I want to be sure that when a user click save image, the content is up-to-date. Hence we want to render the scene again before saving, and only when the rendering is done, we save the image.</p><pre><code class="language-javascript code-block">            if (takeScreenshot) {
-                takeScreenshot = false;
-                canvas.toBlob((blob) =&gt; {
-                    saveBlob(blob, `screencapture-${canvas.width}x${canvas.height}.png`);
-                });
-            }</code></pre><p>The thing is that blob is not yet a visible image, we need to dump it as a file. To do that, we can introduce a helper function:</p><pre><code class="language-javascript code-block">    const saveBlob = (function () {
-        const a = document.createElement('a');
-        document.body.appendChild(a);
-        a.style.display = 'none';
-        return function saveData(blob, fileName) {
-            const url = window.URL.createObjectURL(blob);
-            a.href = url;
-            a.download = fileName;
-            a.click();
-            a.parentNode.removeChild(a);
+            <h2 >3.3 Saving Images and Videos</h2><p>In this tutorial, we'll explore how to save rendered content as images and videos. This capability is useful for applications involving video and image editing.</p><a href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html#3_03_save_image_and_video" target="_blank" class="comment"><svg style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
+                    width="32" fill="#dadadb" viewBox="0 -960 960 960"><path d="M189-160q-60 0-102.5-43T42-307q0-9 1-18t3-18l84-336q14-54 57-87.5t98-33.5h390q55 0 98 33.5t57 87.5l84 336q2 9 3.5 18.5T919-306q0 61-43.5 103.5T771-160q-42 0-78-22t-54-60l-28-58q-5-10-15-15t-21-5H385q-11 0-21 5t-15 15l-28 58q-18 38-54 60t-78 22Zm3-80q19 0 34.5-10t23.5-27l28-57q15-31 44-48.5t63-17.5h190q34 0 63 18t45 48l28 57q8 17 23.5 27t34.5 10q28 0 48-18.5t21-46.5q0 1-2-19l-84-335q-7-27-28-44t-49-17H285q-28 0-49.5 17T208-659l-84 335q-2 6-2 18 0 28 20.5 47t49.5 19Zm348-280q17 0 28.5-11.5T580-560q0-17-11.5-28.5T540-600q-17 0-28.5 11.5T500-560q0 17 11.5 28.5T540-520Zm80-80q17 0 28.5-11.5T660-640q0-17-11.5-28.5T620-680q-17 0-28.5 11.5T580-640q0 17 11.5 28.5T620-600Zm0 160q17 0 28.5-11.5T660-480q0-17-11.5-28.5T620-520q-17 0-28.5 11.5T580-480q0 17 11.5 28.5T620-440Zm80-80q17 0 28.5-11.5T740-560q0-17-11.5-28.5T700-600q-17 0-28.5 11.5T660-560q0 17 11.5 28.5T700-520Zm-360 60q13 0 21.5-8.5T370-490v-40h40q13 0 21.5-8.5T440-560q0-13-8.5-21.5T410-590h-40v-40q0-13-8.5-21.5T340-660q-13 0-21.5 8.5T310-630v40h-40q-13 0-21.5 8.5T240-560q0 13 8.5 21.5T270-530h40v40q0 13 8.5 21.5T340-460Zm140-20Z"/></svg>Launch Playground - 3_03_save_image_and_video</a><p>Saving images is straightforward, thanks to the canvas element’s built-in method for exporting content to a blob. In the demo, I’ve added the image-saving logic at the end of the rendering function to ensure that when a user clicks "Save Image," the content is up-to-date. Thus, we first render the scene again before saving, and only save the image once rendering is complete.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=61>let takeScreenshot = false;
+
+screenshotButton.onclick = () =&gt; {
+    takeScreenshot = true;
+}
+</pre></code><div class="code-fragments-separator">• • •</div><pre><code class="language-javascript code-block" startNumber=357>if (takeScreenshot) {
+    takeScreenshot = false;
+    canvas.toBlob((blob) =&gt; {
+        saveBlob(blob, `screencapture-${canvas.width}x${canvas.height}.png`);
+    });
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=60:64,356:361#3_03_save_image_and_video">3_03_save_image_and_video/index.html:61-362 Save Canvas to Blob</a></div></div><p>However, a blob is not directly visible as an image; it needs to be saved as a file. For this, we use a helper function:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=122>const saveBlob = (function () {
+    const a = document.createElement('a');
+    document.body.appendChild(a);
+    a.style.display = 'none';
+    return function saveData(blob, fileName) {
+        const url = window.URL.createObjectURL(blob);
+        a.href = url;
+        a.download = fileName;
+        a.click();
+        a.parentNode.removeChild(a);
+    };
+}());
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=121:132#3_03_save_image_and_video">3_03_save_image_and_video/index.html:122-133 Helper Function to Download a Blob as an Image</a></div></div><p>This function works by creating a hidden link element, encoding the blob as an object URL using window.URL.createObjectURL(blob), and programmatically clicking the link to trigger the download before removing it from the DOM.</p><p>The above example demonstrates how to save the canvas as an image. Sometimes, it’s also useful to dump textures or intermediate buffers created during a render pass for debugging purposes. We will cover this in later chapters.</p><p>Saving videos is more complex. In the demo, we use a new API called WebCodecs, which allows us to encode video frames directly in the browser.</p><p>Most APIs in the computing realm are organized hierarchically, ranging from low-level APIs that are difficult to use but highly flexible to high-level APIs that are easier to use but may be limited to specific use cases.</p><p>Web standards differ in this regard. Many web APIs are designed to perform one specific function. For example, before WebCodecs, we had the <code>&lt;video&gt;</code> tag for playing videos and WebRTC for video conferencing, but neither provided a low-level video API for encoding frames.</p><p>This changed with the advent of cloud gaming. As cloud gaming introduced higher demands for video stream control to ensure low-latency gameplay, Google introduced WebCodecs to offer low-level video APIs.</p><p>We will use the same button to start and stop video recording.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=71>recordButton.onclick = async () =&gt; {
+    if (encoder === null) {
+        const options = {
+            suggestedName: 'video.webm',
+            types: [
+                {
+                    description: 'Webm video',
+                    accept: {
+                        'video/webm': ['.webm']
+                    }
+                }
+            ],
         };
-    }());</code></pre><p>The principle of this function is simple, we create a hidden link, and we encode the blob as an object url using the window.URL.createObjectURL(blob); then we programmatically click on this link to trigger the download before removing it from the dom tree.</p><p>The above shows how to dump the canvas as an image. sometimes, it is also useful to dump textures or intermediant buffers a render pass might create for debugging purpose. We can see how to do that in later chapters.</p><p>Dumping video is more involved. In the demo, we will use a new API introduced recently called WebCodec, which lets us encode video frames directly in browser.</p><p>Most apis we see in the computer realm are organized in a heirachy way. from low level apis that are difficult to use but flexible to high level apis that easy but might be limited to a specific use case.</p><p>Web standards are different. most web apis seem to be designed to do one specific thing only. for example, before webcodec, we had the video tag for playing videos, and webrtc to do video conferences. but none of them expose a low level video api for encoding frames.</p><p>this has changed when cloud gaming came out, people realized that cloud gaming is more demanding in terms of video stream control to ensure low latency game play. google hence introduced webcodec to expose low level video apis.</p><p>we will be using the same button for start and stop recording the video.</p><pre><code class="language-javascript code-block">    recordButton.onclick = async () =&gt; {
-        if (encoder === null) {
-            const options = {
-                suggestedName: 'video.webm',
-                types: [
-                    {
-                        description: 'Webm video',
-                        accept: {
-                            'video/webm': ['.webm']
-                        }
-                    }
-                ],
-            };
 
-            let fileHandle = await window.showSaveFilePicker(options);
+        let fileHandle = await window.showSaveFilePicker(options);
 
-            fileWritableStream = await fileHandle.createWritable();
+        fileWritableStream = await fileHandle.createWritable();
+        // This WebMWriter thing comes from the third-party library
+        webmWriter = new WebMWriter({
+            fileWriter: fileWritableStream,
+            codec: 'VP9',
+            width: canvas.width,
+            height: canvas.height
+        });
+        encoder = new VideoEncoder({
+            output: chunk =&gt; webmWriter.addFrame(chunk),
+            error: e =&gt; console.error(e)
+        });
+        // Configure to your liking
+        encoder.configure({
+            codec: "vp09.00.10.08",
+            width: canvas.width,
+            height: canvas.height,
+            bitrate: 2_000_000,
+            latencyMode: 'realtime',
+            framerate: 25
+        });
+        frameCount = 0;
+        beginTime = window.performance.now();
+        recordButton.innerText = 'Stop';
+    } else {
+        encoder.flush();
+        await webmWriter.complete();
+        fileWritableStream.close();
 
-            // This WebMWriter thing comes from the third-party library
-            webmWriter = new WebMWriter({
-                fileWriter: fileWritableStream,
-                codec: 'VP9',
-                width: canvas.width,
-                height: canvas.height
-            });
-
-            encoder = new VideoEncoder({
-                output: chunk =&gt; webmWriter.addFrame(chunk),
-                error: e =&gt; console.error(e)
-            });
-            // Configure to your liking
-            encoder.configure({
-                codec: "vp09.00.10.08",
-                width: canvas.width,
-                height: canvas.height,
-                bitrate: 2_000_000,
-                latencyMode: 'realtime',
-                framerate: 25
-            });
-            frameCount = 0;
-            beginTime = window.performance.now();
-            recordButton.innerText = 'Stop';
-        } else {
-            encoder.flush();
-            await webmWriter.complete();
-            fileWritableStream.close();
-
-            webmWriter = null;
-            fileWritableStream = null;
-            encoder = null;
-            recordButton.innerText = 'Record';
-        }
-    }</code></pre><p>When the encoder hasn't being created, we treat it as starting recording. the first step is showing a file browser dialog to let the user to specify a filename for the video.</p><pre><code class="language-javascript code-block">            const options = {
-                suggestedName: 'video.webm',
-                types: [
-                    {
-                        description: 'Webm video',
-                        accept: {
-                            'video/webm': ['.webm']
-                        }
-                    }
-                ],
-            };
-
-            let fileHandle = await window.showSaveFilePicker(options);
-
-            fileWritableStream = await fileHandle.createWritable();</code></pre><p>for the file format, we are using the webm format, a free video format created by google. If video format is unfamiliar to you, I can briefly cover some background. most video files we see are actually a container format, inside which there are usually multiple media streams or tracks. A movie for example, might contain a video track and a audio track. they use different codecs for encoding. When we use WebCodec for encoding, we can only encode individual frames. These frames needs to be assembled to a track and then enclosed into a container. Otherwise we will not be able to play what we encode. unfortunately assembling a container format, or muxing, is not part of the webcodec standard. hence, we have to make use of a third party library, called the webm-writer2.js.</p><p>once we have the writable stream, we can create the muxing object:</p><pre><code class="language-javascript code-block">            // This WebMWriter thing comes from the third-party library
-            webmWriter = new WebMWriter({
-                fileWriter: fileWritableStream,
-                codec: 'VP9',
-                width: canvas.width,
-                height: canvas.height
-            });</code></pre><p>for video codec, we are using VP9, one of the most common codec format used by webm. and the width and height are set to match the canvas size.</p><pre><code class="language-javascript code-block">            encoder = new VideoEncoder({
-                output: chunk =&gt; webmWriter.addFrame(chunk),
-                error: e =&gt; console.error(e)
-            });
-            // Configure to your liking
-            encoder.configure({
-                codec: "vp09.00.10.08",
-                width: canvas.width,
-                height: canvas.height,
-                bitrate: 2_000_000,
-                latencyMode: 'realtime',
-                framerate: 25
-            });</code></pre><p>finally, we create the encoder and configure it. the encoder takes two callbacks. The output callback is triggered when a frame is encoded. we simply pass the data chunk to the webmWriter to assemble the video file. and the error callback is called upon errors.</p><p>to configure the encoder, we specify vp9 for codec, bitrate and framerate etc. and finally we set the frameCount to zero and get the high precision timestamp. we primarily use the frameCount to decide when to encode a key frame and when to encode a intra frame. One keyframes, a video codec often only employ spacial compression. whereas on intra frames, a video codec employs temporal compression also. intra frames have a higher compression rate, but they can't be decompressed by only looking at themselves. we have to find the previous key frame and all intra frames between this keyframe and the current frame to decode it. because compression error can accumulate, therefore every several intra frames, we need to encode a key frame. unlike an intra frame, a keyframe can be decoded by itself. but a keyframe is large in size than an intra frame.</p><p>encoding a frame also requires a timestamp, therefore we record the time when video recording begins.</p><pre><code class="language-javascript code-block">            frameCount = 0;
-            beginTime = window.performance.now();</code></pre><p>similar to the image dumping code, for video encoding, we also put the code after a frame is rendered. here if the encoder has been initialized, we first obtain the current time. and we provide the canvas and the elapsed time since the beginning to a VideoFrame. we call the encode function and for every 10 frames, we encode a key frame.</p><pre><code class="language-javascript code-block">
-    function render() {
-        ...
-            if (encoder !== null) {
-                let currentTime = window.performance.now();
-                const frame = new VideoFrame(canvas, { timestamp: (currentTime - beginTime) * 1000 });
-                encoder.encode(frame, { keyFrame: frameCount % 10 == 0 });
-                frame.close();
-                frameCount++;
+        webmWriter = null;
+        fileWritableStream = null;
+        encoder = null;
+        recordButton.innerText = 'Record';
+    }
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=70:120#3_03_save_image_and_video">3_03_save_image_and_video/index.html:71-121 Handle the Record Event</a></div></div><p>When the encoder is not yet created, we initiate recording. The first step is to show a file picker dialog for the user to specify a filename for the video:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=73>const options = {
+    suggestedName: 'video.webm',
+    types: [
+        {
+            description: 'Webm video',
+            accept: {
+                'video/webm': ['.webm']
             }
-    }</code></pre><p>and finally when the user clicks on the record button again, we stop the recoding and dump the video file:</p><pre><code class="language-javascript code-block">recordButton.onclick = async () =&gt; {
-        if (encoder === null) {
-            ...
-        } else {
-            encoder.flush();
-            await webmWriter.complete();
-            fileWritableStream.close();
-
-            webmWriter = null;
-            fileWritableStream = null;
-            encoder = null;
-            recordButton.innerText = 'Record';
         }
-    }</code></pre><p>here we first flush the encoder to finish all pending frames that hasn't being encoded yet. Then we close the webmWriter and the file stream. The saved file should be playable now using a video player.</p>
+    ],
+};
+
+let fileHandle = await window.showSaveFilePicker(options);
+
+fileWritableStream = await fileHandle.createWritable();
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=72:86#3_03_save_image_and_video">3_03_save_image_and_video/index.html:73-87 Select a File to Save the Video To</a></div></div><p>For the file format, we are using WebM, a free video format developed by Google. If you are unfamiliar with video formats, here is a brief overview: most video files are actually container formats that can hold multiple media streams or tracks. For example, a movie might include a video track and an audio track, each encoded with different codecs.</p><p>When using WebCodecs for encoding, we can only encode individual frames. These frames need to be assembled into a track and then placed into a container format to be playable. Unfortunately, muxing (the process of assembling a container format) is not part of the WebCodecs standard. Therefore, we use a third-party library called <code>webm-writer2.js</code> to handle this task.</p><p>Once we have the writable stream, we create the muxing object:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=89>webmWriter = new WebMWriter({
+    fileWriter: fileWritableStream,
+    codec: 'VP9',
+    width: canvas.width,
+    height: canvas.height
+});
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=88:93#3_03_save_image_and_video">3_03_save_image_and_video/index.html:89-94 Create a Webm Muxer</a></div></div><p>We use the VP9 codec, a common choice for WebM, and set the width and height to match the canvas size.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=95>encoder = new VideoEncoder({
+    output: chunk =&gt; webmWriter.addFrame(chunk),
+    error: e =&gt; console.error(e)
+});
+// Configure to your liking
+encoder.configure({
+    codec: "vp09.00.10.08",
+    width: canvas.width,
+    height: canvas.height,
+    bitrate: 2_000_000,
+    latencyMode: 'realtime',
+    framerate: 25
+});
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=94:106#3_03_save_image_and_video">3_03_save_image_and_video/index.html:95-107 Create a VP9 Encoder</a></div></div><p>Finally, we create and configure the encoder. The encoder uses two callbacks: the output callback, which is triggered when a frame is encoded, and the error callback, which is called if an error occurs. We pass the data chunk to the <code>webmWriter</code> to assemble the video file.</p><p>To configure the encoder, we specify <code>VP9</code> as the codec, along with parameters such as <code>bitrate</code> and <code>framerate</code>. We also initialize the <code>frameCount</code> to zero and capture a high-precision timestamp. The <code>frameCount</code> helps determine when to encode <code>keyframes</code> versus <code>intra-frames</code>. <code>Keyframes</code> typically use spatial compression, while <code>intra-frames</code> use both spatial and temporal compression. <code>Intra-frames</code> have a higher compression rate but cannot be decompressed on their own; they require the previous keyframe and all intra-frames between them to be decoded. Due to the accumulation of compression errors, we periodically encode <code>keyframes</code>, which can be decoded independently but are larger in size compared to <code>intra-frames</code>.</p><p>Encoding a frame also requires a timestamp, so we record the time when video recording begins.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=108>frameCount = 0;
+beginTime = window.performance.now();
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=107:108#3_03_save_image_and_video">3_03_save_image_and_video/index.html:108-109 Create a Frame Counter and Timestamp</a></div></div><p>Similar to the image dumping code, we also place the video encoding code after a frame is rendered. If the encoder has been initialized, we first capture the current time. We then create a <code>VideoFrame</code> using the canvas and the elapsed time since the recording began. We call the encode function, and every 10 frames, we encode a <code>keyframe</code>.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=314>async function render() {
+</pre></code><div class="code-fragments-separator">• • •</div><pre><code class="language-javascript code-block" startNumber=363>    if (encoder !== null) {
+        let currentTime = window.performance.now();
+        const frame = new VideoFrame(canvas, { timestamp: (currentTime - beginTime) * 1000 });
+        encoder.encode(frame, { keyFrame: frameCount % 10 == 0 });
+        frame.close();
+        frameCount++;
+    }
+
+    requestAnimationFrame(render);
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=313:313,362:371#3_03_save_image_and_video">3_03_save_image_and_video/index.html:314-372 Encode a Video Frame After a Frame Is Rendered</a></div></div><p>When the user clicks the record button again, we stop recording and save the video file:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=112>encoder.flush();
+await webmWriter.complete();
+fileWritableStream.close();
+
+webmWriter = null;
+fileWritableStream = null;
+encoder = null;
+recordButton.innerText = 'Record';
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=111:118#3_03_save_image_and_video">3_03_save_image_and_video/index.html:112-119 Muxing Encoded Frames Into a File</a></div></div><p>Here, we first flush the encoder to complete encoding any pending frames. Next, we close the <code>webmWriter</code> and the file stream. The saved file should now be playable with a video player.</p>
         </article>
 
         <div class="older_newer_link_section">

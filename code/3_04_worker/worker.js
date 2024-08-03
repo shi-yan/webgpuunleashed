@@ -2,7 +2,6 @@ importScripts("../utils/gl-matrix.js");
 importScripts("../utils/OBJFile.js");
 importScripts("../utils/utils.js");
 
-
 self.addEventListener('message', (ev) => {
     switch (ev.data.type) {
         case 'run': {
@@ -18,7 +17,6 @@ self.addEventListener('message', (ev) => {
         }
     }
 });
-
 class Teapot {
     constructor() {
         this.pipeline = null;
@@ -150,7 +148,6 @@ class Teapot {
         encoder.drawIndexed(this.indexSize);
     }
 }
-
 async function run(canvas, code) {
     let angle = 0.0;
 
@@ -159,7 +156,6 @@ async function run(canvas, code) {
     let device = await adapter.requestDevice();
 
     let context = configContext(device, canvas);
-
     let modelViewMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
         glMatrix.vec3.fromValues(Math.cos(angle) * 5.0, Math.sin(angle) * 5.0, 5), glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(0.0, 0.0, 1.0));
 
@@ -198,7 +194,6 @@ async function run(canvas, code) {
         stencilLoadOp: 'clear',
         stencilStoreOp: 'store'
     };
-
     async function render() {
         angle += 0.1;
         let modelViewMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
@@ -242,9 +237,9 @@ async function run(canvas, code) {
 
         modelViewMatrixUniformBufferUpdate.destroy();
         normalMatrixUniformBufferUpdate.destroy();
-
         requestAnimationFrame(render);
     }
 
     requestAnimationFrame(render);
+
 }

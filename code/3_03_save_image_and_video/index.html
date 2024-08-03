@@ -57,20 +57,17 @@
 
 <script>
     let angle = 0.0;
-    let takeScreenshot = false;
     let recordVideo = false;
-
+    let takeScreenshot = false;
 
     screenshotButton.onclick = () => {
         takeScreenshot = true;
     }
-
     let encoder = null;
     let webmWriter = null;
     let fileWritableStream = null;
     let frameCount = 0;
     let beginTime = 0;
-
     recordButton.onclick = async () => {
         if (encoder === null) {
             const options = {
@@ -88,7 +85,6 @@
             let fileHandle = await window.showSaveFilePicker(options);
 
             fileWritableStream = await fileHandle.createWritable();
-
             // This WebMWriter thing comes from the third-party library
             webmWriter = new WebMWriter({
                 fileWriter: fileWritableStream,
@@ -96,7 +92,6 @@
                 width: canvas.width,
                 height: canvas.height
             });
-
             encoder = new VideoEncoder({
                 output: chunk => webmWriter.addFrame(chunk),
                 error: e => console.error(e)
@@ -124,7 +119,6 @@
             recordButton.innerText = 'Record';
         }
     }
-
     const saveBlob = (function () {
         const a = document.createElement('a');
         document.body.appendChild(a);
@@ -137,7 +131,6 @@
             a.parentNode.removeChild(a);
         };
     }());
-
     class Teapot {
         constructor() {
             this.pipeline = null;
@@ -318,7 +311,6 @@
             stencilLoadOp: 'clear',
             stencilStoreOp: 'store'
         };
-
         async function render() {
             angle += 0.1;
             let modelViewMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
@@ -362,14 +354,12 @@
 
             modelViewMatrixUniformBufferUpdate.destroy();
             normalMatrixUniformBufferUpdate.destroy();
-
             if (takeScreenshot) {
                 takeScreenshot = false;
                 canvas.toBlob((blob) => {
                     saveBlob(blob, `screencapture-${canvas.width}x${canvas.height}.png`);
                 });
             }
-
             if (encoder !== null) {
                 let currentTime = window.performance.now();
                 const frame = new VideoFrame(canvas, { timestamp: (currentTime - beginTime) * 1000 });

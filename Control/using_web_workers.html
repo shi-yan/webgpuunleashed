@@ -143,7 +143,8 @@
 
     <div id="article-container">
         <article>
-            <h2 >3.4 Using Web Workers</h2><p>WebGPU can be executed in a worker to further improve performance. In this example, let's see how to do that. The concept is simple, what we need to do is create a worker script, and we turn the canvas into an offscreen canvas and send it to the worker. The worker basically carry out the rendering as what we did before. This way the entire rendering work load is delegated to the worker and hour main thread can work on something else in parallel.</p><p>First, let's examine how to implement the worker script. the general structure of the worker script is as the follows:</p><pre><code class="language-javascript code-block">self.addEventListener('message', (ev) =&gt; {
+            <h2 >3.4 Using Web Workers</h2><p>To enhance performance with WebGPU, you can execute it in a Web Worker. This approach allows the rendering workload to be offloaded to a worker, freeing up the main thread for other tasks. Here’s a step-by-step guide on how to achieve this.</p><a href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html#3_04_worker" target="_blank" class="comment"><svg style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
+                    width="32" fill="#dadadb" viewBox="0 -960 960 960"><path d="M189-160q-60 0-102.5-43T42-307q0-9 1-18t3-18l84-336q14-54 57-87.5t98-33.5h390q55 0 98 33.5t57 87.5l84 336q2 9 3.5 18.5T919-306q0 61-43.5 103.5T771-160q-42 0-78-22t-54-60l-28-58q-5-10-15-15t-21-5H385q-11 0-21 5t-15 15l-28 58q-18 38-54 60t-78 22Zm3-80q19 0 34.5-10t23.5-27l28-57q15-31 44-48.5t63-17.5h190q34 0 63 18t45 48l28 57q8 17 23.5 27t34.5 10q28 0 48-18.5t21-46.5q0 1-2-19l-84-335q-7-27-28-44t-49-17H285q-28 0-49.5 17T208-659l-84 335q-2 6-2 18 0 28 20.5 47t49.5 19Zm348-280q17 0 28.5-11.5T580-560q0-17-11.5-28.5T540-600q-17 0-28.5 11.5T500-560q0 17 11.5 28.5T540-520Zm80-80q17 0 28.5-11.5T660-640q0-17-11.5-28.5T620-680q-17 0-28.5 11.5T580-640q0 17 11.5 28.5T620-600Zm0 160q17 0 28.5-11.5T660-480q0-17-11.5-28.5T620-520q-17 0-28.5 11.5T580-480q0 17 11.5 28.5T620-440Zm80-80q17 0 28.5-11.5T740-560q0-17-11.5-28.5T700-600q-17 0-28.5 11.5T660-560q0 17 11.5 28.5T700-520Zm-360 60q13 0 21.5-8.5T370-490v-40h40q13 0 21.5-8.5T440-560q0-13-8.5-21.5T410-590h-40v-40q0-13-8.5-21.5T340-660q-13 0-21.5 8.5T310-630v40h-40q-13 0-21.5 8.5T240-560q0 13 8.5 21.5T270-530h40v40q0 13 8.5 21.5T340-460Zm140-20Z"/></svg>Launch Playground - 3_04_worker</a><p>The worker script handles the rendering process. Below is a general structure of the worker script:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=5>self.addEventListener('message', (ev) =&gt; {
     switch (ev.data.type) {
         case 'run': {
             try {
@@ -158,20 +159,34 @@
         }
     }
 });
+</pre></code><div class="code-fragments-separator">• • •</div><pre><code class="language-javascript code-block" startNumber=151>async function run(canvas, code) {
+    let angle = 0.0;
 
-async run(canvas, code) {...}</code></pre><p>we need to have an event listener accepting the run message from the main thread. This event listener serves as the entry point of our rendering process. when we have received a message from the main thread, we expect three pieces of data: a message type, the shader code and the offscreen canvas. all of them are passed in as the message payload.</p><p>upon receiving the message, we first check the message type. Then we pass both the offscreen canvas and shader code into the run function. The run function is exactly the same as the previous rendering function, we won't look into its details.</p><p>now, let's focus on the main thread, and see how do we message the worker to start rendering.</p><pre><code class="language-javascript code-block">    const worker = new Worker('./worker.js');
-    ...
-    try {
-        const offscreenCanvas = canvas.transferControlToOffscreen();
-        const devicePixelRatio = window.devicePixelRatio || 1;
-        offscreenCanvas.width = canvas.clientWidth * devicePixelRatio;
-        offscreenCanvas.height = canvas.clientHeight * devicePixelRatio;
-        let code = document.getElementById('teapot_shader').innerText;
-        worker.postMessage({ type: 'run', offscreenCanvas, code }, [offscreenCanvas]);
-    } catch (err) {
-        console.warn(err.message);
-        worker.terminate();
-    }</code></pre><p>here we first load the worker script. Then we call transferControlToOffscreen to turn the canvas to an offscreen canvas and we scale its size by devicePixelRatio. After that, we obtain the shader code as a string. Finally, we post a run message to the worker to trigger the rendering. notice that when post the message, not only we need to put the offscreen canvas in the message payload, we also need to put it in the sequence of transferable.</p><p>a bit word about the concept of transferable object in javascript. an object being transferable means that there are some resources behind this object such that it's unsafe to be accessed simultaneously by more than one thread. Hence the safe way to do is transferring the object's ownership to the worker thread. We need to request this transferation by explicitly put this object in the array of transferable array (the second parameter of the postMessage call).</p><p>That's all we need to use worker for rendering.</p>
+    const adapter = await navigator.gpu.requestAdapter();
+
+    let device = await adapter.requestDevice();
+
+    let context = configContext(device, canvas);
+</pre></code><div class="code-fragments-separator">• • •</div><pre><code class="language-javascript code-block" startNumber=197>async function render() {
+</pre></code><div class="code-fragments-separator">• • •</div><pre><code class="language-javascript code-block" startNumber=240>        requestAnimationFrame(render);
+    }
+
+    requestAnimationFrame(render);
+
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=4:18,150:157,196:196,239:244#3_04_worker">3_04_worker/worker.js:5-245 General Structure of the Worker Script</a></div></div><p>In this script, we add an event listener to handle messages from the main thread. This listener acts as the entry point for the rendering process. When a message is received, it includes three pieces of data: the message type, shader code, and the offscreen canvas—all part of the message payload.</p><p>Upon receiving the message, we check its type and pass both the offscreen canvas and shader code to the run function. This function performs rendering similarly to how it did before, but the specifics are not detailed here.</p><p>Next, let’s see how to configure the main thread to communicate with the worker and start the rendering process:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=53>const worker = new Worker('./worker.js');
+</pre></code><div class="code-fragments-separator">• • •</div><pre><code class="language-javascript code-block" startNumber=66>try {
+    const offscreenCanvas = canvas.transferControlToOffscreen();
+    const devicePixelRatio = window.devicePixelRatio || 1;
+    offscreenCanvas.width = canvas.clientWidth * devicePixelRatio;
+    offscreenCanvas.height = canvas.clientHeight * devicePixelRatio;
+    let code = document.getElementById('teapot_shader').innerText;
+    worker.postMessage({ type: 'run', offscreenCanvas, code }, [offscreenCanvas]);
+} catch (err) {
+    console.warn(err.message);
+    worker.terminate();
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=52:52,65:75#3_04_worker">3_04_worker/index.html:53-76 The Main Thread Sends the Offscreen Canvas to the Worker</a></div></div><p>Here’s what’s happening in this code:</p><ul><li><p>We first load the worker script.</p></li><li><p>We then convert the canvas to an offscreen canvas using <code>transferControlToOffscreen</code> and adjust its size based on devicePixelRatio.</p></li><li><p>We retrieve the shader code as a string.</p></li><li><p>Finally, we send a run message to the worker with the offscreen canvas and shader code. Note that the offscreen canvas must be included both in the message payload and in the transferable objects array (the second parameter of <code>postMessage</code>).</p></li></ul><p>In JavaScript, a transferable object has underlying resources unsafe for simultaneous access by multiple threads. Transferring the object's ownership to the worker thread is a safe way to handle this. You request this transfer by including the object in the transferable objects array (the second parameter of <code>postMessage</code>).</p><p>With these steps, you can effectively utilize workers for rendering tasks.</p>
         </article>
 
         <div class="older_newer_link_section">
