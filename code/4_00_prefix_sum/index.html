@@ -18,15 +18,12 @@
     //https://developer.nvidia.com/gpugems/gpugems3/part-vi-gpu-computing/chapter-39-parallel-prefix-sum-scan-cuda
 </script>
 <script id="shader" type="wgsl">
-
       @binding(0) @group(0) var<storage, read> input :array<f32>;
       @binding(1) @group(0) var<storage, read_write> output :array<f32>;
       @binding(2) @group(0) var<storage, read_write> sums: array<f32>;
       const n:u32 = 512;
-
-      const bank_size:u32 = 32;
       var<workgroup> temp: array<f32,532>; //workgroup array must have a fixed size;
-
+      const bank_size:u32 = 32;
       fn bank_conflict_free_idx( idx:u32) -> u32 {
         var chunk_id:u32 = idx / bank_size;
         return idx + chunk_id;
@@ -35,7 +32,6 @@
       /*fn bank_conflict_free_idx( idx:u32) -> u32 { // fake
         return idx;
       }*/
-
       @compute @workgroup_size(256)
       fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>,
         @builtin(local_invocation_id) LocalInvocationID: vec3<u32>,
@@ -46,7 +42,6 @@
                 temp[bank_conflict_free_idx(2*thid)] = input[2*globalThid]; // load input into shared memory 
                 temp[bank_conflict_free_idx(2*thid+1)] = input[2*globalThid+1];
             }
-
             workgroupBarrier();
             var offset:u32 = 1;
 
@@ -67,14 +62,12 @@
                 output[2*thid+1] = temp[2*thid+1]; 
             }*/
             //output[thid] = 1;
-
             if (thid == 0) 
             { 
                 sums[WorkgroupID.x] = temp[bank_conflict_free_idx(n - 1)];
                 temp[bank_conflict_free_idx(n - 1)] = 0;
             } // clear the last element  
             workgroupBarrier();      
-
             for (var d:u32 = 1; d < n; d *= 2) // traverse down tree & build scan 
             {      
                 offset >>= 1;      
@@ -94,7 +87,6 @@
                 output[2*globalThid+1] = temp[bank_conflict_free_idx(2*thid+1)]; 
             }
       }
-
 </script>
 
 <script id="scan_sum_shader" type="wgsl">
@@ -272,7 +264,6 @@
         let pass1ShaderModule = shaderModuleFromCode(device, 'shader');
         let pass2ShaderModule = shaderModuleFromCode(device, 'scan_sum_shader');
         let pass3ShaderModule = shaderModuleFromCode(device, 'add_sum_shader');
-
         let pass1UniformBindGroupLayout = device.createBindGroupLayout({
             entries: [
                 {
@@ -292,7 +283,6 @@
                 }
             ]
         });
-
         let pass2UniformBindGroupLayout = device.createBindGroupLayout({
             entries: [
                 {
@@ -418,7 +408,6 @@
                 }
             ]
         });
-
         const pass1PipelineLayoutDesc = { bindGroupLayouts: [pass1UniformBindGroupLayout] };
         const pass1Layout = device.createPipelineLayout(pass1PipelineLayoutDesc);
         const pass1ComputePipeline = device.createComputePipeline({
@@ -428,7 +417,6 @@
                 entryPoint: 'main',
             },
         });
-
         const pass2PipelineLayoutDesc = { bindGroupLayouts: [pass2UniformBindGroupLayout] };
         const pass2Layout = device.createPipelineLayout(pass2PipelineLayoutDesc);
         const pass2ComputePipeline = device.createComputePipeline({
@@ -458,12 +446,10 @@
         const passEncoder = commandEncoder.beginComputePass(
             computePassDescriptor
         );
-        
         passEncoder.setPipeline(pass1ComputePipeline);
         passEncoder.setBindGroup(0, pass1UniformBindGroup);
         passEncoder.dispatchWorkgroups(chunkCount);
         passEncoder.end();
-
         const pass2Encoder = commandEncoder.beginComputePass(computePassDescriptor);
         pass2Encoder.setPipeline(pass2ComputePipeline);
         pass2Encoder.setBindGroup(0, pass2UniformBindGroup);
@@ -475,7 +461,6 @@
         pass3Encoder.setBindGroup(0, pass3UniformBindGroup);
         pass3Encoder.dispatchWorkgroups(chunkCount);
         pass3Encoder.end();
-
         if (hasTimestampQuery) {
             commandEncoder.writeTimestamp(querySet, 1);// Initial timestamp
             commandEncoder.resolveQuerySet(
@@ -485,12 +470,10 @@
                 queryBuffer,
                 0);// destination offset
         }
-        
         commandEncoder.copyBufferToBuffer(outputArrayBuffer, 0,
             readOutputArrayBuffer, 0, arraySize * 4);
         commandEncoder.copyBufferToBuffer(outputSumArrayBuffer, 0,
             readSumArrayBuffer, 0, sumSize * 4);
-
             
         device.queue.submit([commandEncoder.finish()]);
         await device.queue.onSubmittedWorkDone();
@@ -498,7 +481,6 @@
         await readOutputArrayBuffer.mapAsync(GPUMapMode.READ, 0, arraySize * 4);
 
         const d = new Float32Array(readOutputArrayBuffer.getMappedRange());
-
 
         let sum = 0;
         for (let i = 0; i < arraySize; ++i) {

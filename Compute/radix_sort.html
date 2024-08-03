@@ -143,169 +143,185 @@
 
     <div id="article-container">
         <article>
-            <h2 >4.1 Radix Sort</h2><p>Prefix sum is a crucial foundation for numerous parallel algorithms. In this chapter, we explore its role in constructing another fundamental element: a sorting algorithm known as radix sort. This sorting technique will be instrumental in our next chapter, where we apply it to implement Gaussian splatting.</p><p>The goal of radix sort is to arrange key-value pairs based on their keys, where each key is an integer. This sorting process involves examining one digit of all keys at a time. For instance, if all keys are decimal numbers less than 100, each key has two digits. During sorting, we first consider the least significant digit and rearrange the entire list based on that digit alone. Next, we move on to the most significant digit and reorder the list again. It's important to note that each step of reordering must be a stable sort. This means that if two elements have the same key, the one that appeared earlier in the input will also appear earlier in the sorted output. By ensuring this stability, the order established during the first pass based on the least significant digit can be maintained while performing subsequent passes. Therefore, once we have sorted the list digit by digit, we can be confident that the final list will be ordered by the key.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="An Image Shows a Concrete Sorting Example" sources='[]' /><div class="img-title">An Image Shows a Concrete Sorting Example</div></div></p><p>How is radix sort related to prefix sum? Let's illustrate this relationship using an even simpler case: binary keys. When our keys are binary, with only two possible values (zero and one) for each digit, sorting by a single digit is akin to performing a prefix sum on the occurrences of zeros and ones. Once we have computed the prefix sum, we can predict the new position in the sorted list for each element. For instance, if an element is zero and we know the prefix sum <code class="language-math math-inline">k</code> of all zero occurrences, the element's new location in the sorted list should be <code class="language-math math-inline">k+1</code>. Similarly, if an element is one and we know the prefix sum <code class="language-math math-inline">w</code> of all one occurrences, the element's new location should be <code class="language-math math-inline">w+1+z</code>, where <code class="language-math math-inline">z</code> is the count of all zeros.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="An Image Shows a Concrete Sorting Example" sources='[]' /><div class="img-title">An Image Shows a Concrete Sorting Example</div></div></p><p>This approach can be readily extended to digits of a different numeral system, such as decimal. However, there's a trade-off to consider when selecting the numeral system. Using a system with fewer possible values for a digit, like binary, results in keys with more digits. Consequently, more iterations are needed to complete the sorting process. Conversely, opting for a system with more values per digit shortens the key length but requires more prefix sums in each iteration and more storage to keep track of them. In our example, we will use the Quaternary numeral system.</p><p>What has been described so far is the basic concept. In practice, however, there are additional considerations, primarily due to the 256-workgroup size limit, which means we can only work on arrays of up to size 512. For longer lists, we need to divide the list into multiple 512-sized chunks. To address this, we divide our sorting algorithm into three phases.</p><p>In the first phase, we compute prefix sums within each chunk and save the results, which we refer to as local prefix sums. Additionally, we write the total count of all possible digit values into a global list.</p><p>The second phase involves computing another set of prefix sums on this global list.</p><p>The final phase is the shuffling phase. Here, based on the local prefix sums and the global digit value count, we determine the sorted position of each element in the resulting array and write the value to that location.</p><p>To completely sort a list, we must repeat the three-phase process described above for the entire length of the key's digits.</p><pre><code class="language-javascript code-block">@binding(0) @group(0) var&lt;storage, read&gt; input :array&lt;u32&gt;;
+            <h2 >4.1 Radix Sort</h2><p>Prefix sum is a crucial foundation for numerous parallel algorithms. In this chapter, we explore its role in constructing another fundamental element: a sorting algorithm known as radix sort. This sorting technique will be instrumental in our next chapter, where we apply it to implement Gaussian splatting.</p><p>The goal of radix sort is to arrange key-value pairs based on their keys, where each key is an integer. This sorting process involves examining one digit of all keys at a time. For instance, if all keys are decimal numbers less than 100, each key has two digits. During sorting, we first consider the least significant digit and rearrange the entire list based on that digit alone. Next, we move on to the most significant digit and reorder the list again. It's important to note that each step of reordering must be a stable sort. This means that if two elements have the same key, the one that appeared earlier in the input will also appear earlier in the sorted output. By ensuring this stability, the order established during the first pass based on the least significant digit can be maintained while performing subsequent passes. Therefore, once we have sorted the list digit by digit, we can be confident that the final list will be ordered by the key.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="thumb_radix.png" original_src="radix.png" alt="Example of Radix Sort" sources='[]' /><div class="img-title">Example of Radix Sort</div></div></p><p>How is radix sort related to prefix sum? Let's illustrate this relationship using an even simpler case: binary keys. When our keys are binary, with only two possible values (zero and one) for each digit, sorting by a single digit is akin to performing a prefix sum on the occurrences of zeros and ones. Once we have computed the prefix sum, we can predict the new position in the sorted list for each element. For instance, if an element is zero and we know the prefix sum <code class="language-math math-inline">k</code> of all zero occurrences, the element's new location in the sorted list should be <code class="language-math math-inline">k+1</code>. Similarly, if an element is one and we know the prefix sum <code class="language-math math-inline">w</code> of all one occurrences, the element's new location should be <code class="language-math math-inline">w+1+z</code>, where <code class="language-math math-inline">z</code> is the count of all zeros.</p><p>This approach can be readily extended to digits of a different numeral system, such as decimal. However, there's a trade-off to consider when selecting the numeral system. Using a system with fewer possible values for a digit, like binary, results in keys with more digits. Consequently, more iterations are needed to complete the sorting process. Conversely, opting for a system with more values per digit shortens the key length but requires more prefix sums in each iteration and more storage to keep track of them. In our example, we will use the Quaternary numeral system.</p><p>What has been described so far is the basic concept. In practice, however, there are additional considerations, primarily due to the 256-workgroup size limit, which means we can only work on arrays of up to size 512. For longer lists, we need to divide the list into multiple 512-sized chunks. To address this, we divide our sorting algorithm into three phases.</p><p>In the first phase, we compute prefix sums within each chunk and save the results, which we refer to as local prefix sums. Additionally, we write the total count of all possible digit values into a global list.</p><p>The second phase involves computing another set of prefix sums on this global list.</p><p>The final phase is the shuffling phase. Here, based on the local prefix sums and the global digit value count, we determine the sorted position of each element in the resulting array and write the value to that location.</p><p>To completely sort a list, we must repeat the three-phase process described above for the entire length of the key's digits.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=20>@binding(0) @group(0) var&lt;storage, read&gt; input :array&lt;u32&gt;;
 @binding(1) @group(0) var&lt;storage, read_write&gt; output :array&lt;vec4&lt;u32&gt;&gt;;
 @binding(2) @group(0) var&lt;storage, read_write&gt; sums: array&lt;u32&gt;;
-
 @binding(0) @group(1) var&lt;uniform&gt; radixMaskId:u32;
-
 const bank_size:u32 = 32;
 const n:u32 = 512;
 var&lt;workgroup&gt; temp0: array&lt;u32,532&gt;;
 var&lt;workgroup&gt; temp1: array&lt;u32,532&gt;;
 var&lt;workgroup&gt; temp2: array&lt;u32,532&gt;;
 var&lt;workgroup&gt; temp3: array&lt;u32,532&gt;;
-
 fn bank_conflict_free_idx( idx:u32) -&gt; u32 {
-    var chunk_id:u32 = idx / bank_size;
-    return idx + chunk_id;
+  var chunk_id:u32 = idx / bank_size;
+  return idx + chunk_id;
 }
 
 @compute @workgroup_size(256)
 fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3&lt;u32&gt;,
-        @builtin(local_invocation_id) LocalInvocationID: vec3&lt;u32&gt;,
-        @builtin(workgroup_id) WorkgroupID: vec3&lt;u32&gt;) {
-    var thid:u32 = LocalInvocationID.x;
-    var globalThid:u32 = GlobalInvocationID.x;
-    var mask:u32 = u32(3) &lt;&lt; (radixMaskId &lt;&lt; 1);
+  @builtin(local_invocation_id) LocalInvocationID: vec3&lt;u32&gt;,
+  @builtin(workgroup_id) WorkgroupID: vec3&lt;u32&gt;) {
+      var thid:u32 = LocalInvocationID.x;
+      var globalThid:u32 = GlobalInvocationID.x;
+      var mask:u32 = u32(3) &lt;&lt; (radixMaskId &lt;&lt; 1);
+      if (thid &lt; (n&gt;&gt;1)){
 
-    if (thid &lt; (n&gt;&gt;1)){
-        var val:u32 = (input[2*globalThid] &amp; mask) &gt;&gt; (radixMaskId &lt;&lt; 1);
-        if (val == 0) {
-            temp0[bank_conflict_free_idx(2*thid)] = 1;
-        } else if (val == 1) {
-            temp1[bank_conflict_free_idx(2*thid)] = 1;
-        } else if (val == 2) {
-            temp2[bank_conflict_free_idx(2*thid)] = 1;
-        } else if (val == 3) {
-            temp3[bank_conflict_free_idx(2*thid)] = 1;
-        }
+          var val:u32 = (input[2*globalThid] &amp; mask) &gt;&gt; (radixMaskId &lt;&lt; 1);
 
-        val = (input[2*globalThid+1] &amp; mask) &gt;&gt; (radixMaskId &lt;&lt; 1);
+          if (val == 0) {
+              temp0[bank_conflict_free_idx(2*thid)] = 1;
+          }
+          else if (val == 1) {
+              temp1[bank_conflict_free_idx(2*thid)] = 1;
+          }
+          else if (val == 2) {
+              temp2[bank_conflict_free_idx(2*thid)] = 1;
+          }
+          else if (val == 3) {
+              temp3[bank_conflict_free_idx(2*thid)] = 1;
+          }
 
-        if (val == 0) {
-            temp0[bank_conflict_free_idx(2*thid+1)] = 1;
-        } else if (val == 1) {
-            temp1[bank_conflict_free_idx(2*thid+1)] = 1;
-        } else if (val == 2) {
-            temp2[bank_conflict_free_idx(2*thid+1)] = 1;
-        } else if (val == 3) {
-            temp3[bank_conflict_free_idx(2*thid+1)] = 1;
-        }
-    }
-    workgroupBarrier();
-    var offset:u32 = 1;
+          val = (input[2*globalThid+1] &amp; mask) &gt;&gt; (radixMaskId &lt;&lt; 1);
 
-    for (var d:u32 = n&gt;&gt;1; d &gt; 0; d &gt;&gt;= 1) { 
-        if (thid &lt; d) {
-            var ai:u32 = offset*(2*thid+1)-1;     
-            var bi:u32 = offset*(2*thid+2)-1;  
-            temp0[bank_conflict_free_idx(bi)] += temp0[bank_conflict_free_idx(ai)]; 
-            temp1[bank_conflict_free_idx(bi)] += temp1[bank_conflict_free_idx(ai)]; 
-            temp2[bank_conflict_free_idx(bi)] += temp2[bank_conflict_free_idx(ai)]; 
-            temp3[bank_conflict_free_idx(bi)] += temp3[bank_conflict_free_idx(ai)]; 
-        }
-        offset *= 2;
-        workgroupBarrier();   
-    }
+          if (val == 0) {
+              temp0[bank_conflict_free_idx(2*thid+1)] = 1;
+          }
+          else if (val == 1) {
+              temp1[bank_conflict_free_idx(2*thid+1)] = 1;
+          }
+          else if (val == 2) {
+              temp2[bank_conflict_free_idx(2*thid+1)] = 1;
+          }
+          else if (val == 3) {
+              temp3[bank_conflict_free_idx(2*thid+1)] = 1;
+          }
+      }
+      workgroupBarrier();
+      var offset:u32 = 1;
 
-    if (thid == 0) { 
-        temp0[bank_conflict_free_idx(n - 1)] = 0; 
-        temp1[bank_conflict_free_idx(n - 1)] = 0; 
-        temp2[bank_conflict_free_idx(n - 1)] = 0; 
-        temp3[bank_conflict_free_idx(n - 1)] = 0; 
-    }
-    workgroupBarrier();      
+      for (var d:u32 = n&gt;&gt;1; d &gt; 0; d &gt;&gt;= 1)
+      { 
+          if (thid &lt; d)    
+          {
+              var ai:u32 = offset*(2*thid+1)-1;     
+              var bi:u32 = offset*(2*thid+2)-1;  
+              temp0[bank_conflict_free_idx(bi)] += temp0[bank_conflict_free_idx(ai)]; 
+              temp1[bank_conflict_free_idx(bi)] += temp1[bank_conflict_free_idx(ai)]; 
+              temp2[bank_conflict_free_idx(bi)] += temp2[bank_conflict_free_idx(ai)]; 
+              temp3[bank_conflict_free_idx(bi)] += temp3[bank_conflict_free_idx(ai)]; 
 
-    for (var d:u32 = 1; d &lt; n; d *= 2) // traverse down tree &amp; build scan 
-    {      
-        offset &gt;&gt;= 1;      
-        if (thid &lt; d)      
-        { 
-            var ai:u32 = offset*(2*thid+1)-1;     
-            var bi:u32 = offset*(2*thid+2)-1; 
-            var t:u32 = temp0[bank_conflict_free_idx(ai)]; 
-            temp0[bank_conflict_free_idx(ai)] = temp0[bank_conflict_free_idx(bi)]; 
-            temp0[bank_conflict_free_idx(bi)] += t;     
-                            
-            t = temp1[bank_conflict_free_idx(ai)]; 
-            temp1[bank_conflict_free_idx(ai)] = temp1[bank_conflict_free_idx(bi)]; 
-            temp1[bank_conflict_free_idx(bi)] += t; 
-                    
-            t = temp2[bank_conflict_free_idx(ai)]; 
-            temp2[bank_conflict_free_idx(ai)] = temp2[bank_conflict_free_idx(bi)]; 
-            temp2[bank_conflict_free_idx(bi)] += t;  
-                    
-            t = temp3[bank_conflict_free_idx(ai)]; 
-            temp3[bank_conflict_free_idx(ai)] = temp3[bank_conflict_free_idx(bi)]; 
-            temp3[bank_conflict_free_idx(bi)] += t;     
-        } 
-        workgroupBarrier();      
-    }
+          }    
+          offset *= 2; 
 
-    var count0:u32 = temp0[bank_conflict_free_idx(2*255)];
-    var count1:u32 = temp1[bank_conflict_free_idx(2*255)];
-    var count2:u32 = temp2[bank_conflict_free_idx(2*255)];
-    var count3:u32 = temp3[bank_conflict_free_idx(2*255)];
+          workgroupBarrier();   
+      }
 
-    var last:u32 =  (input[2*((WorkgroupID.x+1) * 256-1)] &amp; mask)  &gt;&gt; (radixMaskId &lt;&lt; 1); 
-    switch(last) {
-        case 0: {count0 += 1;}
-        case 1: {count1 += 1;}
-        case 2: {count2 += 1;}
-        case 3: {count3 += 1;}
-        default {}
-    }
+      if (thid == 0) 
+      { 
+          temp0[bank_conflict_free_idx(n - 1)] = 0; 
+          temp1[bank_conflict_free_idx(n - 1)] = 0; 
+          temp2[bank_conflict_free_idx(n - 1)] = 0; 
+          temp3[bank_conflict_free_idx(n - 1)] = 0; 
+      }
+      workgroupBarrier();      
 
-    last = (input[2*((WorkgroupID.x+1) * 256-1)+1] &amp; mask)  &gt;&gt; (radixMaskId &lt;&lt; 1); 
-    switch(last) {
-        case 0: {count0 += 1;}
-        case 1: {count1 += 1;}
-        case 2: {count2 += 1;}
-        case 3: {count3 += 1;}
-        default {}
-    }
+      for (var d:u32 = 1; d &lt; n; d *= 2) // traverse down tree &amp; build scan 
+      {      
+          offset &gt;&gt;= 1;      
+          if (thid &lt; d)      
+          { 
+              var ai:u32 = offset*(2*thid+1)-1;     
+              var bi:u32 = offset*(2*thid+2)-1; 
+              var t:u32 = temp0[bank_conflict_free_idx(ai)]; 
+              temp0[bank_conflict_free_idx(ai)] = temp0[bank_conflict_free_idx(bi)]; 
+              temp0[bank_conflict_free_idx(bi)] += t;     
+              
+              
+              t = temp1[bank_conflict_free_idx(ai)]; 
+              temp1[bank_conflict_free_idx(ai)] = temp1[bank_conflict_free_idx(bi)]; 
+              temp1[bank_conflict_free_idx(bi)] += t; 
+              
+              t = temp2[bank_conflict_free_idx(ai)]; 
+              temp2[bank_conflict_free_idx(ai)] = temp2[bank_conflict_free_idx(bi)]; 
+              temp2[bank_conflict_free_idx(bi)] += t;  
+              
+              t = temp3[bank_conflict_free_idx(ai)]; 
+              temp3[bank_conflict_free_idx(ai)] = temp3[bank_conflict_free_idx(bi)]; 
+              temp3[bank_conflict_free_idx(bi)] += t;     
+          } 
+          workgroupBarrier();      
+      }
+      if (thid == 0) {
+          var count0:u32 = temp0[bank_conflict_free_idx(2*255)];
+          var count1:u32 = temp1[bank_conflict_free_idx(2*255)];
+          var count2:u32 = temp2[bank_conflict_free_idx(2*255)];
+          var count3:u32 = temp3[bank_conflict_free_idx(2*255)];
 
-    if (thid == 0) {
-        sums[WorkgroupID.x * 4] = count0;
-        sums[WorkgroupID.x * 4+1] = count1;
-        sums[WorkgroupID.x * 4+2] = count2;
-        sums[WorkgroupID.x * 4+3] = count3;
-    }
+          var last:u32 =  (input[2*((WorkgroupID.x+1) * 256-1)] &amp; mask)  &gt;&gt; (radixMaskId &lt;&lt; 1); 
+          switch(last) {
+              case 0: {count0 += 1;}
+              case 1: {count1 += 1;}
+              case 2: {count2 += 1;}
+              case 3: {count3 += 1;}
+              default {}
+          }
 
-    if (thid &lt; (n&gt;&gt;1)) {
-        output[2*globalThid].x = temp0[bank_conflict_free_idx(2*thid)]; 
-        output[2*globalThid+1].x = temp0[bank_conflict_free_idx(2*thid+1)]; 
+          last =  (input[2*((WorkgroupID.x+1) * 256-1)+1] &amp; mask)  &gt;&gt; (radixMaskId &lt;&lt; 1); 
+          switch(last) {
+              case 0: {count0 += 1;}
+              case 1: {count1 += 1;}
+              case 2: {count2 += 1;}
+              case 3: {count3 += 1;}
+              default {}
+          }
 
-        output[2*globalThid].y = temp1[bank_conflict_free_idx(2*thid)]; 
-        output[2*globalThid+1].y = temp1[bank_conflict_free_idx(2*thid+1)]; 
+          sums[WorkgroupID.x * 4] = count0;
+          sums[WorkgroupID.x * 4+1] = count1;
+          sums[WorkgroupID.x * 4+2] = count2;
+          sums[WorkgroupID.x * 4+3] = count3;
+      }
+      if (thid &lt; (n&gt;&gt;1)){
+          output[2*globalThid].x = temp0[bank_conflict_free_idx(2*thid)]; 
+          output[2*globalThid+1].x = temp0[bank_conflict_free_idx(2*thid+1)]; 
 
-        output[2*globalThid].z = temp2[bank_conflict_free_idx(2*thid)]; 
-        output[2*globalThid+1].z = temp2[bank_conflict_free_idx(2*thid+1)]; 
+          output[2*globalThid].y = temp1[bank_conflict_free_idx(2*thid)]; 
+          output[2*globalThid+1].y = temp1[bank_conflict_free_idx(2*thid+1)]; 
 
-        output[2*globalThid].w = temp3[bank_conflict_free_idx(2*thid)]; 
-        output[2*globalThid+1].w = temp3[bank_conflict_free_idx(2*thid+1)]; 
-    }
-}</code></pre><p>the above code is a modification of the prefix sum we have seen in the previous chapter. here I'll focus on explaining the modified part. First, the input and output:</p><pre><code class="language-javascript code-block">@binding(0) @group(0) var&lt;storage, read&gt; input :array&lt;u32&gt;;
+          output[2*globalThid].z = temp2[bank_conflict_free_idx(2*thid)]; 
+          output[2*globalThid+1].z = temp2[bank_conflict_free_idx(2*thid+1)]; 
+
+          output[2*globalThid].w = temp3[bank_conflict_free_idx(2*thid)]; 
+          output[2*globalThid+1].w = temp3[bank_conflict_free_idx(2*thid+1)]; 
+      }
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=19:170#4_01_radix_sorting">4_01_radix_sorting/index.html:20-171 Modified Prefix Sum</a></div></div><p>The code above is a modification of the prefix sum algorithm we discussed in the previous chapter. Here, I'll focus on explaining the modifications. Let's start with the input and output:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=20>@binding(0) @group(0) var&lt;storage, read&gt; input :array&lt;u32&gt;;
 @binding(1) @group(0) var&lt;storage, read_write&gt; output :array&lt;vec4&lt;u32&gt;&gt;;
-@binding(2) @group(0) var&lt;storage, read_write&gt; sums: array&lt;u32&gt;;</code></pre><p>The input array is the same, the output now saves vec4 vectors. Because we are using the Quaternary numeral system, we utilize the vector to save the sums for 0s,1s,2s,3s. And finally, we have a sums array to keep the total counts of all digits within each chunk.</p><pre><code class="language-javascript code-block">@binding(0) @group(1) var&lt;uniform&gt; radixMaskId:u32;</code></pre><p>We then have a maskId or the digitId. This defines the current digit we should focus. because our key is of the format uint32, and for the Quaternary numeral system, we have 16 digits. hence the value of radixMaskId is in the range [0,16]. given a maskId, we can calculate the mask using this formula:</p><pre><code class="language-javascript code-block">var mask:u32 = u32(3) &lt;&lt; (radixMaskId &lt;&lt; 1);</code></pre><p>Then we have a set of temporary arrays for calculation:</p><pre><code class="language-javascript code-block">const bank_size:u32 = 32;
-const n:u32 = 512;
+@binding(2) @group(0) var&lt;storage, read_write&gt; sums: array&lt;u32&gt;;
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=19:21#4_01_radix_sorting">4_01_radix_sorting/index.html:20-22 Input Buffers</a></div></div><p>The input array remains the same, but the output now stores vec4 vectors. Since we are using the quaternary numeral system, the vector stores the sums for digits 0, 1, 2, and 3. Additionally, we have a sums array to keep track of the total counts of all digits within each chunk.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=23>@binding(0) @group(1) var&lt;uniform&gt; radixMaskId:u32;
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=22:22#4_01_radix_sorting">4_01_radix_sorting/index.html:23-23 The radixMaskId Defines the Current Focus Digit</a></div></div><p>Next, we define the radixMaskId, which indicates the current digit we should focus on. Given that our key is in the format uint32 and we are using the quaternary numeral system, we have 16 possible digits. Therefore, the value of radixMaskId ranges from 0 to 15. Using radixMaskId, we can calculate the mask with the following formula:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=41>var mask:u32 = u32(3) &lt;&lt; (radixMaskId &lt;&lt; 1);
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=40:40#4_01_radix_sorting">4_01_radix_sorting/index.html:41-41 The Calculation From the radixMaskId the the Actual Mask for the Current Digit</a></div></div><p>Next, we define a set of temporary arrays for calculations:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=25>const n:u32 = 512;
 var&lt;workgroup&gt; temp0: array&lt;u32,532&gt;;
 var&lt;workgroup&gt; temp1: array&lt;u32,532&gt;;
 var&lt;workgroup&gt; temp2: array&lt;u32,532&gt;;
-var&lt;workgroup&gt; temp3: array&lt;u32,532&gt;;</code></pre><p>The next step is loading the values into the temp arrays. We extract the current digit under interest, then based on the digit's value we set 1 to the corresponding temp array location, meaning one occurrence.</p><pre><code class="language-javascript code-block">var thid:u32 = LocalInvocationID.x;
+var&lt;workgroup&gt; temp3: array&lt;u32,532&gt;;
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=24:28#4_01_radix_sorting">4_01_radix_sorting/index.html:25-29 Temp Arrays</a></div></div><p>The following step is to load the values into the temporary arrays. We extract the current digit of interest, and based on the digit's value, we set the corresponding location in the temporary array to 1, indicating one occurrence.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=39>var thid:u32 = LocalInvocationID.x;
 var globalThid:u32 = GlobalInvocationID.x;
 var mask:u32 = u32(3) &lt;&lt; (radixMaskId &lt;&lt; 1);
-
 if (thid &lt; (n&gt;&gt;1)){
+
     var val:u32 = (input[2*globalThid] &amp; mask) &gt;&gt; (radixMaskId &lt;&lt; 1);
+
     if (val == 0) {
         temp0[bank_conflict_free_idx(2*thid)] = 1;
-    } else if (val == 1) {
+    }
+    else if (val == 1) {
         temp1[bank_conflict_free_idx(2*thid)] = 1;
-    } else if (val == 2) {
+    }
+    else if (val == 2) {
         temp2[bank_conflict_free_idx(2*thid)] = 1;
-    } else if (val == 3) {
+    }
+    else if (val == 3) {
         temp3[bank_conflict_free_idx(2*thid)] = 1;
     }
 
@@ -313,15 +329,19 @@ if (thid &lt; (n&gt;&gt;1)){
 
     if (val == 0) {
         temp0[bank_conflict_free_idx(2*thid+1)] = 1;
-    } else if (val == 1) {
+    }
+    else if (val == 1) {
         temp1[bank_conflict_free_idx(2*thid+1)] = 1;
-    } else if (val == 2) {
+    }
+    else if (val == 2) {
         temp2[bank_conflict_free_idx(2*thid+1)] = 1;
-    } else if (val == 3) {
+    }
+    else if (val == 3) {
         temp3[bank_conflict_free_idx(2*thid+1)] = 1;
     }
 }
-workgroupBarrier();</code></pre><p>the following logic is the same as the prefix sum program. the difference is that we perform it on the four temporary arrays. once the prefix sums are calculated, we now need to get the overall counts of the digits in this chunk. since our prefix sum doesn't include the last value, what we need to do is getting the last element of the prefix sum array, then also count the last input element and save the result into the sums array. notice that we only ask the first thread of this workgroup to do the saving work, since each workgroup only produces one set of these values.</p><pre><code class="language-javascript code-block">if (thid == 0) {
+workgroupBarrier();
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=38:73#4_01_radix_sorting">4_01_radix_sorting/index.html:39-74 Temp Array Loading</a></div></div><p>The following logic is similar to the prefix sum program, with the key difference being that we perform it on the four temporary arrays. Once the prefix sums are calculated, we need to get the overall counts of the digits in this chunk. Since our prefix sum doesn't include the last value, we need to retrieve the last element of the prefix sum array, count the last input element, and save the result into the sums array. Note that we only ask the first thread of this workgroup to perform the saving operation since each workgroup only produces one set of these values.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=129>if (thid == 0) {
     var count0:u32 = temp0[bank_conflict_free_idx(2*255)];
     var count1:u32 = temp1[bank_conflict_free_idx(2*255)];
     var count2:u32 = temp2[bank_conflict_free_idx(2*255)];
@@ -349,7 +369,8 @@ workgroupBarrier();</code></pre><p>the following logic is the same as the prefix
     sums[WorkgroupID.x * 4+1] = count1;
     sums[WorkgroupID.x * 4+2] = count2;
     sums[WorkgroupID.x * 4+3] = count3;
-}</code></pre><p>The second pass is another prefix sum, we take the sums array generated in the previous pass and calculate the prefix sum of it. The second pass is very standard, I will skip the detailed explanation. note that for simplicity reason, we assume that the number of chunks is less than 512, so that we can perform the second pass with one workgroup. this will essentially limit the maximum array size we can process to 512x512.</p><p>the third pass is the shuffling pass. during this pass, we calculate each element's location in the sorted array and assign the corresponding digit value to the result array.</p><pre><code class="language-javascript code-block">@binding(0) @group(0) var&lt;storage, read&gt; input :array&lt;u32&gt;;
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=128:156#4_01_radix_sorting">4_01_radix_sorting/index.html:129-157 Write Back Prefix Sum Result</a></div></div><p>The second pass involves another prefix sum, where we take the sums array generated in the previous pass and calculate its prefix sum. This pass follows a standard approach, so I will skip the detailed explanation. For simplicity, we assume that the number of chunks is less than 512, allowing us to perform the second pass with a single workgroup. This essentially limits the maximum array size we can process to 512x512.</p><p>The third pass is the shuffling pass. During this pass, we calculate each element's location in the sorted array and assign the corresponding digit value to the result array.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=260>@binding(0) @group(0) var&lt;storage, read&gt; input :array&lt;u32&gt;;
 @binding(1) @group(0) var&lt;storage, read&gt; inputId :array&lt;u32&gt;;
 @binding(2) @group(0) var&lt;storage, read&gt; temp :array&lt;vec4&lt;u32&gt;&gt;;
 @binding(3) @group(0) var&lt;storage, read&gt; sums: array&lt;u32&gt;;
@@ -362,22 +383,22 @@ const n:u32 = 512;
 
 @compute @workgroup_size(256)
 fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3&lt;u32&gt;,
-        @builtin(local_invocation_id) LocalInvocationID: vec3&lt;u32&gt;,
-        @builtin(workgroup_id) WorkgroupID: vec3&lt;u32&gt;) {
+  @builtin(local_invocation_id) LocalInvocationID: vec3&lt;u32&gt;,
+  @builtin(workgroup_id) WorkgroupID: vec3&lt;u32&gt;) {
     var thid:u32 = LocalInvocationID.x;
     var globalThid:u32 = GlobalInvocationID.x;
     var mask:u32 = u32(3) &lt;&lt; (radixMaskId &lt;&lt; 1);
-        
+    
     var count0beforeCurrentWorkgroup:u32 = 0;
     var count1beforeCurrentWorkgroup:u32 = 0;
     var count2beforeCurrentWorkgroup:u32 = 0;
     var count3beforeCurrentWorkgroup:u32 = 0;
 
     if (WorkgroupID.x &gt; 0) {
-         count0beforeCurrentWorkgroup = sums[(WorkgroupID.x-1) * 4];
-         count1beforeCurrentWorkgroup = sums[(WorkgroupID.x-1) * 4+1];
-         count2beforeCurrentWorkgroup = sums[(WorkgroupID.x-1) * 4+2];
-         count3beforeCurrentWorkgroup =  sums[(WorkgroupID.x-1) * 4+3];
+     count0beforeCurrentWorkgroup = sums[(WorkgroupID.x-1) * 4];
+     count1beforeCurrentWorkgroup = sums[(WorkgroupID.x-1) * 4+1];
+     count2beforeCurrentWorkgroup = sums[(WorkgroupID.x-1) * 4+2];
+     count3beforeCurrentWorkgroup =  sums[(WorkgroupID.x-1) * 4+3];
     }
 
     var count0overall:u32 = sums[(sumSize-1)*4];
@@ -385,20 +406,24 @@ fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3&lt;u32&gt;,
     var count2overall:u32 = sums[(sumSize-1)*4+2];
     var count3overall:u32 = sums[(sumSize-1)*4+3];
 
-    if (thid &lt; (n&gt;&gt;1)) {
+    if (thid &lt; (n&gt;&gt;1)){
         var val:u32 = (input[2*globalThid] &amp; mask) &gt;&gt; (radixMaskId &lt;&lt; 1);
+
         var id:u32 = 0;
 
         if (val == 0) {
             id += temp[2*globalThid].x + count0beforeCurrentWorkgroup;
-        } else if (val == 1) {
+        }
+        else if (val == 1) {
             id +=count0overall;
             id += temp[2*globalThid].y + count1beforeCurrentWorkgroup;
-        } else if (val == 2) {
+        }
+        else if (val == 2) {
             id += count0overall;
             id += count1overall;
             id += temp[2*globalThid].z +  count2beforeCurrentWorkgroup;
-        } else if (val == 3) {
+        }
+        else if (val == 3) {
             id +=count0overall;
             id +=count1overall;
             id +=count2overall;
@@ -407,6 +432,7 @@ fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3&lt;u32&gt;,
 
         output[id] = input[2*globalThid]; 
         outputId[id] = inputId[2*globalThid];
+        //output[2*globalThid] = id;
 
         id = 0;
 
@@ -414,14 +440,17 @@ fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3&lt;u32&gt;,
 
         if (val == 0) {
             id += temp[2*globalThid+1].x +  count0beforeCurrentWorkgroup;
-        } else if (val == 1) {
+        }
+        else if (val == 1) {
             id +=count0overall;
             id += temp[2*globalThid+1].y + count1beforeCurrentWorkgroup;
-        } else if (val == 2) {
+        }
+        else if (val == 2) {
             id += count0overall;
             id += count1overall;
             id += temp[2*globalThid+1].z +  count2beforeCurrentWorkgroup;
-        } else if (val == 3) {
+        }
+        else if (val == 3) {
             id +=count0overall;
             id +=count1overall;
             id +=count2overall;
@@ -430,73 +459,81 @@ fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3&lt;u32&gt;,
 
         output[id] = input[2*globalThid+1];
         outputId[id] = inputId[2*globalThid+1];
+
+        //output[2*globalThid+1] = id;
     }
-}</code></pre><p>now let's look at the javascript side and see how we setup the input data and trigger the compute shader.</p><pre><code class="language-javascript code-block">        let testArray = [];
-        let testIdArray = [];
-        {
-            //load data
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=259:351#4_01_radix_sorting">4_01_radix_sorting/index.html:260-352 The Shuffling Phase</a></div></div><p>Now let's look at the JavaScript side and see how we set up the input data and trigger the compute shader.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=522>let testArray = [];
+let testIdArray = [];
+{
+    //load data
+    const objResponse = await fetch('../data/dummy.json');
+    testArray = await objResponse.json();
+}
 
-            const objResponse = await fetch('../data/dummy.json');
-            testArray = await objResponse.json();
+const actualArraySize = testArray.length; // 81946;//512*2+10;
+const paddedArraySize = Math.ceil(actualArraySize / 512) * 512;
+const chunkCount = Math.ceil(paddedArraySize / 512);
 
-        }
+let sumSize = roundUpToNearestPowOf2(chunkCount);
 
-        const actualArraySize = testArray.length; // 81946;//512*2+10;
-        const paddedArraySize = Math.ceil(actualArraySize / 512) * 512;
-        const chunkCount = Math.ceil(paddedArraySize / 512);
+console.log("pos", Number.POSITIVE_INFINITY)
+for (let i = 0; i &lt; paddedArraySize; ++i) {
+    if (i &lt; actualArraySize) {
+        // testArray.push(Math.floor(random() * 0xFFFFFFFE));
+    } else {
+        testArray.push(0xFFFFFFFF);
+    }
+    testIdArray.push(i);
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=521:543#4_01_radix_sorting">4_01_radix_sorting/index.html:522-544 Prepare Inputs</a></div></div><p>The testArray is our input array. Instead of generating a random array, the input data is read from a file created during debugging the previous chapter's sample. You can think of it as a random array. We have two array sizes: actualArraySize, which is the true size of the input array, and paddedArraySize, which is the array size rounded up to the nearest multiple of 512. This is because a single workgroup can sort an array of 512 elements.</p><p>We also have a chunkCount variable representing the number of workgroups or chunks. As previously mentioned, the digit counts in each chunk will be accumulated in the second prefix sum pass. The sumSize is rounded to the nearest power of two, necessary for calculating the parallel prefix sum using a binary tree structure.</p><p>For the padded values, we assign them a large number 0xFFFFFFFF to ensure they appear at the end of the sorted array. The next step involves setting up a series of GPU buffers to hold the input and output arrays, which I will skip as they are straightforward.</p><p>We also need to set up the radix mask:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=561>let radixIdUniformBuffers = [];
 
-        let sumSize = roundUpToNearestPowOf2(chunkCount);
+for (let i = 0; i &lt; 16; ++i) {
+    let radixIdUniformBuffer = createGPUBuffer(device, new Uint32Array([i]), GPUBufferUsage.UNIFORM);
 
-        for (let i = 0; i &lt; paddedArraySize; ++i) {
-            if (i &lt; actualArraySize) {
-                // testArray.push(Math.floor(random() * 0xFFFFFFFE));
-            } else {
-                testArray.push(0xFFFFFFFF);
-            }
-            testIdArray.push(i);
-        }</code></pre><p>The <code>testArray</code> is our input array. I'm not generating a random array, instead, the input data is read from a file. This file is created while debugging the last chapter sample. You can think of it as a random array. We have two array sizes, the <code>actualArraySize</code> is the true size of the input array. <code>paddedArraySize</code> is the array size rounded up to the smallest multiple of 512. This is because a single workgroup can sort an array of 512 elements.</p><p>we also have a <code>chunkCount</code> variable for the number of workgroups or chunks. as previously mentioned, the digit counts in each chunk will be accumulated in the second prefix sum pass. We have <code>sumSize</code> rounded to the nearest power of two. we need this rounding because when calculating the parallel prefix sum, we do it in a binary tree.</p><p>for the padded values, we assign them to a large number <code>0xFFFFFFFF</code>, because we want them to be at the end of the sorted array. The next step is setting up a series of gpu buffers to hold the input and output arrays. I will skip those, as they are nothing special.</p><p>We also need to set up the radix mask:</p><pre><code class="language-javascript code-block">        let radixIdUniformBuffers = [];
+    radixIdUniformBuffers.push(radixIdUniformBuffer);
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=560:566#4_01_radix_sorting">4_01_radix_sorting/index.html:561-567 Radix Mask Setup</a></div></div><p>Since we are using the quaternary numeral system, each time we look at two binary digits. Our mask is 0b11, which is shifted left according to the position of the radix. Instead of directly encoding the masks, we encode the positions of the masks. For an unsigned 32-bit integer, there are 16 digit positions. Therefore, we set the radixId to range from 0 to 15. We encode these positions into separate GPU buffers so that during calculation, we can specify the radixId easily by loading the corresponding uniform buffer.</p><p>Finally, let's look at how the three passes are triggered:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=794>const commandEncoder = device.createCommandEncoder();
+if (hasTimestampQuery) {
+    commandEncoder.writeTimestamp(querySet, 0);// Initial timestamp
+}
 
-        for (let i = 0; i &lt; 16; ++i) {
-            let radixIdUniformBuffer = createGPUBuffer(device, new Uint32Array([i]), GPUBufferUsage.UNIFORM);
+for (let i = 0; i &lt; 16; ++i) {
+    const passEncoder = commandEncoder.beginComputePass(
+        computePassDescriptor
+    );
 
-            radixIdUniformBuffers.push(radixIdUniformBuffer);
-        }</code></pre><p>because we are using the  Quaternary numeral system, each time, we look at two binary digits. Hence our mask is a 0b11 and shifted to the left according to the position of the radix. Instead of directly encode the masks, we encode the positions of the masks. for a unsigned 32 bit integer, there are 16 digit positions. We hence let the <code>radixId</code> be from 0 to 15. We encode them into separate gpu buffers, so that during calculation, we can specify the <code>radixId</code> easily by loading the corresponding uniform buffer.</p><p>finally, let's look at how the three passes are triggered:</p><pre><code class="language-javascript code-block">        const commandEncoder = device.createCommandEncoder();
-
-        for (let i = 0; i &lt; 16; ++i) {
-            const passEncoder = commandEncoder.beginComputePass(
-                computePassDescriptor
-            );
-
-            passEncoder.setPipeline(pass1ComputePipeline);
-            if (i % 2 == 0) {
-                passEncoder.setBindGroup(0, pass1UniformBindGroupInputOutput0);
-            }
-            else {
-                passEncoder.setBindGroup(0, pass1UniformBindGroupInputOutput1);
-            }
-            passEncoder.setBindGroup(1, pass13UniformBindGroupRadixIds[i]);
-            passEncoder.dispatchWorkgroups(chunkCount);
-            passEncoder.end();
-
-
-            const pass2Encoder = commandEncoder.beginComputePass(computePassDescriptor);
-            pass2Encoder.setPipeline(pass2ComputePipeline);
-            pass2Encoder.setBindGroup(0, pass2UniformBindGroup);
-            pass2Encoder.dispatchWorkgroups(1);
-            pass2Encoder.end();
+    passEncoder.setPipeline(pass1ComputePipeline);
+    if (i % 2 == 0) {
+        passEncoder.setBindGroup(0, pass1UniformBindGroupInputOutput0);
+    }
+    else {
+        passEncoder.setBindGroup(0, pass1UniformBindGroupInputOutput1);
+    }
+    passEncoder.setBindGroup(1, pass13UniformBindGroupRadixIds[i]);
+    passEncoder.dispatchWorkgroups(chunkCount);
+    passEncoder.end();
 
 
-            const pass3Encoder = commandEncoder.beginComputePass(computePassDescriptor);
-            pass3Encoder.setPipeline(pass3ComputePipeline);
-            if (i % 2 == 0) {
-                pass3Encoder.setBindGroup(0, pass3UniformBindGroup0);
-            } else {
-                pass3Encoder.setBindGroup(0, pass3UniformBindGroup1);
-            }
-            pass3Encoder.setBindGroup(1, pass13UniformBindGroupRadixIds[i]);
-            pass3Encoder.dispatchWorkgroups(chunkCount);
-            pass3Encoder.end();
-        }</code></pre><p>we loop for 16 times, because we have 16 radix. Each time, we accomplish three passes. For the first and the third passes, we alternate the role of the input and output arrays, this is more efficient and avoid uncessary data copying. and finally, we read back the sorted array, I will skip the details.</p>
+    const pass2Encoder = commandEncoder.beginComputePass(computePassDescriptor);
+    pass2Encoder.setPipeline(pass2ComputePipeline);
+    pass2Encoder.setBindGroup(0, pass2UniformBindGroup);
+    pass2Encoder.dispatchWorkgroups(1);
+    pass2Encoder.end();
+
+
+    const pass3Encoder = commandEncoder.beginComputePass(computePassDescriptor);
+    pass3Encoder.setPipeline(pass3ComputePipeline);
+    if (i % 2 == 0) {
+        pass3Encoder.setBindGroup(0, pass3UniformBindGroup0);
+    } else {
+        pass3Encoder.setBindGroup(0, pass3UniformBindGroup1);
+    }
+    pass3Encoder.setBindGroup(1, pass13UniformBindGroupRadixIds[i]);
+    pass3Encoder.dispatchWorkgroups(chunkCount);
+    pass3Encoder.end();
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=793:832#4_01_radix_sorting">4_01_radix_sorting/index.html:794-833 Command Submission</a></div></div><p>We loop 16 times because we have 16 radix positions. Each iteration accomplishes three passes. For the first and third passes, we alternate the roles of the input and output arrays to improve efficiency and avoid unnecessary data copying. Finally, we read back the sorted array, but I will skip the details.</p>
         </article>
 
         <div class="older_newer_link_section">

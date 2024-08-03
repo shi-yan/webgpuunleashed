@@ -17,20 +17,16 @@
     //https://xol.io/blah/the-trouble-with-spirv/
 </script>
 <script id="shader" type="wgsl">
-
       @binding(0) @group(0) var<storage, read> input :array<u32>;
       @binding(1) @group(0) var<storage, read_write> output :array<vec4<u32>>;
       @binding(2) @group(0) var<storage, read_write> sums: array<u32>;
-
       @binding(0) @group(1) var<uniform> radixMaskId:u32;
-
       const bank_size:u32 = 32;
       const n:u32 = 512;
       var<workgroup> temp0: array<u32,532>;
       var<workgroup> temp1: array<u32,532>;
       var<workgroup> temp2: array<u32,532>;
       var<workgroup> temp3: array<u32,532>;
-
       fn bank_conflict_free_idx( idx:u32) -> u32 {
         var chunk_id:u32 = idx / bank_size;
         return idx + chunk_id;
@@ -43,7 +39,6 @@
             var thid:u32 = LocalInvocationID.x;
             var globalThid:u32 = GlobalInvocationID.x;
             var mask:u32 = u32(3) << (radixMaskId << 1);
-
             if (thid < (n>>1)){
 
                 var val:u32 = (input[2*globalThid] & mask) >> (radixMaskId << 1);
@@ -77,7 +72,6 @@
                 }
             }
             workgroupBarrier();
-
             var offset:u32 = 1;
 
             for (var d:u32 = n>>1; d > 0; d >>= 1)
@@ -132,7 +126,6 @@
                 } 
                 workgroupBarrier();      
             }
-
             if (thid == 0) {
                 var count0:u32 = temp0[bank_conflict_free_idx(2*255)];
                 var count1:u32 = temp1[bank_conflict_free_idx(2*255)];
@@ -162,7 +155,6 @@
                 sums[WorkgroupID.x * 4+2] = count2;
                 sums[WorkgroupID.x * 4+3] = count3;
             }
-
             if (thid < (n>>1)){
                 output[2*globalThid].x = temp0[bank_conflict_free_idx(2*thid)]; 
                 output[2*globalThid+1].x = temp0[bank_conflict_free_idx(2*thid+1)]; 
@@ -527,15 +519,12 @@
             ]
         });
 
-
         let testArray = [];
         let testIdArray = [];
         {
             //load data
-
             const objResponse = await fetch('../data/dummy.json');
             testArray = await objResponse.json();
-
         }
 
         const actualArraySize = testArray.length; // 81946;//512*2+10;
@@ -553,7 +542,6 @@
             }
             testIdArray.push(i);
         }
-
         console.log(testArray, testIdArray);
 
         let inputArrayBuffer = createGPUBuffer(device, new Uint32Array(testArray), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
@@ -577,7 +565,6 @@
 
             radixIdUniformBuffers.push(radixIdUniformBuffer);
         }
-
         let pass1UniformBindGroupInputOutput0 = device.createBindGroup({
             layout: pass1UniformBindGroupLayoutInputOutput,
             entries: [
@@ -804,7 +791,6 @@
 
 
         const computePassDescriptor = {};
-
         const commandEncoder = device.createCommandEncoder();
         if (hasTimestampQuery) {
             commandEncoder.writeTimestamp(querySet, 0);// Initial timestamp
@@ -845,7 +831,6 @@
             pass3Encoder.dispatchWorkgroups(chunkCount);
             pass3Encoder.end();
         }
-
         if (hasTimestampQuery) {
             commandEncoder.writeTimestamp(querySet, 1);// Initial timestamp
             commandEncoder.resolveQuerySet(
