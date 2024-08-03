@@ -131,7 +131,6 @@
                         <li><a href="/WebGPUUnleashed/Advanced/mega_texture.html">Mega Texture</a></li>
                         <li><a href="/WebGPUUnleashed/Advanced/transparency_with_depth_peeling.html">Transparency with Depth Peeling</a></li>
                         <li><a href="/WebGPUUnleashed/Advanced/skeleton_animation.html">Skeleton Animation</a></li>
-                        <li><a href="/WebGPUUnleashed/Advanced/normal_mapping_and_bump_mapping.html">Normal Mapping and Bump Mapping</a></li>
                         <li><a href="/WebGPUUnleashed/Advanced/gaussian_splatting.html">Gaussian Splatting</a></li>
                     </ul>
                 </li>
@@ -143,65 +142,31 @@
 
     <div id="article-container">
         <article>
-            <h2 >5.0 Stencil Buffer</h2><p>stencil buffer is highly related to depth buffer. when stencil testing is enable, the rendering pipeline will perform a visibility test based on the content in the stencil buffer. the exact formula used for the visibility testing can be confirmed. usually, there are two passes involved in the process. the first pass is populating the stencil buffer, the second step is the actual rendering. but only the portion that passes the visibility test is visible.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Image to Illustrate the Mirror Rendering" sources='[]' /><div class="img-title">Image to Illustrate the Mirror Rendering</div></div></p><p>stencil buffer is useful for implementing certain effects in games, such as mirrors or portals. for example, we can first render the shape of the mirror into the stencil buffer, then we render the scene in the mirror viewing angle with the stencil testing enabled. There are many interesting illusion games, such as this <a class="link" href="https://www.youtube.com/watch?v=kEB11PQ9Eo8" target="_blank">Non-Euclidean Worlds Engine</a>, that is built using smart stencil buffer techniques.</p><p>as previously mentioned, to use stencil buffer, there are usually two passes involved. the first pass is responsible for populating the stencil buffer. this might be a little bit counter intuitive, we can't directly write to the stencil buffer in fragment shader. the data in stencil buffer is a byproduct of rendering, similar to the depth buffer. the actual value we write to it is preconfigured.</p><p>in this tutorial, we will create a simple portal similar to the non-euclidean worlds engine project. the idea is simple, we have a virtual gateway, which is a simple plane. we first render this virtual gateway in order to write to the stencil buffer. then we render the scene with the stencil visibility test enabled. Finally we render the frame of the gateway.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Image of the Gateway Model" sources='[]' /><div class="img-title">Image of the Gateway Model</div></div></p><p>let's first look at the shader code for populating the stencil buffer, as you can see, this is the simplest shader possible. it simply calculates the clip coordinates and render the object as transparent pixels. The point is not actually rendering anything, but to generate the stencil values. similar to the depth value, as long as stencil buffer write is enabled, whenever we generate a fragment, we will also generate a stencil value cached into the stencil buffer.</p><pre><code class="language-javascript code-block">    // Vertex shader
-    
-    @group(0) @binding(0)
-    var&lt;uniform&gt; modelView: mat4x4&lt;f32&gt;;
-    @group(0) @binding(1)
-    var&lt;uniform&gt; projection: mat4x4&lt;f32&gt;;
-    
-    struct VertexOutput {
-        @builtin(position) clip_position: vec4&lt;f32&gt;,
-    };
-    
-    @vertex
-    fn vs_main(
-        @location(0) inPos: vec3&lt;f32&gt;
-    ) -&gt; VertexOutput {
-        var out: VertexOutput;
-        var wldLoc:vec4&lt;f32&gt; = modelView * vec4&lt;f32&gt;(inPos, 1.0);
-        out.clip_position = projection * wldLoc;
-        return out;
-    }
+            <h2 >5.0 Stencil Buffer</h2><p>The stencil buffer is closely related to the depth buffer. When stencil testing is enabled, the rendering pipeline performs a visibility test based on the contents of the stencil buffer. The exact formula for visibility testing can be confirmed through configuration. Typically, this process involves two passes: the first pass populates the stencil buffer, while the second pass handles the actual rendering. Only the portions of the scene that pass the visibility test will be rendered.</p><a href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html#2_01_orthogonal_cameras" target="_blank" class="comment"><svg style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
+                    width="32" fill="#dadadb" viewBox="0 -960 960 960"><path d="M189-160q-60 0-102.5-43T42-307q0-9 1-18t3-18l84-336q14-54 57-87.5t98-33.5h390q55 0 98 33.5t57 87.5l84 336q2 9 3.5 18.5T919-306q0 61-43.5 103.5T771-160q-42 0-78-22t-54-60l-28-58q-5-10-15-15t-21-5H385q-11 0-21 5t-15 15l-28 58q-18 38-54 60t-78 22Zm3-80q19 0 34.5-10t23.5-27l28-57q15-31 44-48.5t63-17.5h190q34 0 63 18t45 48l28 57q8 17 23.5 27t34.5 10q28 0 48-18.5t21-46.5q0 1-2-19l-84-335q-7-27-28-44t-49-17H285q-28 0-49.5 17T208-659l-84 335q-2 6-2 18 0 28 20.5 47t49.5 19Zm348-280q17 0 28.5-11.5T580-560q0-17-11.5-28.5T540-600q-17 0-28.5 11.5T500-560q0 17 11.5 28.5T540-520Zm80-80q17 0 28.5-11.5T660-640q0-17-11.5-28.5T620-680q-17 0-28.5 11.5T580-640q0 17 11.5 28.5T620-600Zm0 160q17 0 28.5-11.5T660-480q0-17-11.5-28.5T620-520q-17 0-28.5 11.5T580-480q0 17 11.5 28.5T620-440Zm80-80q17 0 28.5-11.5T740-560q0-17-11.5-28.5T700-600q-17 0-28.5 11.5T660-560q0 17 11.5 28.5T700-520Zm-360 60q13 0 21.5-8.5T370-490v-40h40q13 0 21.5-8.5T440-560q0-13-8.5-21.5T410-590h-40v-40q0-13-8.5-21.5T340-660q-13 0-21.5 8.5T310-630v40h-40q-13 0-21.5 8.5T240-560q0 13 8.5 21.5T270-530h40v40q0 13 8.5 21.5T340-460Zm140-20Z"/></svg>Launch Playground - 2_01_orthogonal_cameras</a><p>The stencil buffer is particularly useful for creating certain effects in games, such as mirrors or portals. For example, to render a mirror effect, you first draw the mirror's shape into the stencil buffer. Then, with stencil testing enabled, you render the scene from the perspective of the mirror. Many intriguing illusion games, such as the <a class="link" href="https://www.youtube.com/watch?v=kEB11PQ9Eo8" target="_blank">Non-Euclidean Worlds Engine</a>, leverage advanced stencil buffer techniques.</p><p>As mentioned earlier, using the stencil buffer typically involves two passes. The first pass populates the stencil buffer, which may seem counterintuitive because you cannot directly write to the stencil buffer in the fragment shader. Instead, the stencil buffer is populated as a byproduct of rendering, similar to the depth buffer. The values written to the stencil buffer are preconfigured.</p><p>In this tutorial, we will create a simple portal effect akin to the Non-Euclidean Worlds Engine project. The concept is straightforward: we first render a virtual gateway, which is a simple plane, to populate the stencil buffer. Next, we render the scene with stencil visibility testing enabled. Finally, we render the frame of the gateway.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="thumb_frame.png" original_src="frame.png" alt="Gateway 3D Model" sources='[]' /><div class="img-title">Gateway 3D Model</div></div></p><p>Let's first examine the shader code used to populate the stencil buffer. This shader is designed to be as simple as possible. It calculates the clip coordinates and renders the object as transparent pixels. The goal here is not to render anything visible but to generate stencil values. Similar to the depth buffer, stencil buffer writing is enabled so that whenever a fragment is produced, a stencil value is also cached into the stencil buffer.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=122>@group(0) @binding(0)
+var&lt;uniform&gt; modelView: mat4x4&lt;f32&gt;;
+@group(0) @binding(1)
+var&lt;uniform&gt; projection: mat4x4&lt;f32&gt;;
 
-    @fragment
-    fn fs_main(in: VertexOutput) -&gt; @location(0) vec4&lt;f32&gt; {
-        return vec4&lt;f32&gt;( 0.0,0.0,0.0,0.0);
-    }</code></pre><p>now let's look at how stencil write is enabled when creating the pipeline:</p><pre><code class="language-javascript code-block">const pipelineDesc = {
-    layout,
-    vertex: {
-        module: shaderModule,
-        entryPoint: 'vs_main',
-        buffers: [positionBufferLayoutDesc]
-    },
-    fragment: {
-        module: shaderModule,
-        entryPoint: 'fs_main',
-        targets: [colorState]
-    },
-    primitive: {
-        topology: 'triangle-list',
-        frontFace: 'ccw',
-        cullMode: 'none'
-    },
-    depthStencil: {
-        depthWriteEnabled: true,
-        depthCompare: 'less',
-        format: 'depth24plus-stencil8',
-        stencilFront: {
-            compare: "always",
-            passOp: "replace",
-        },
-        stencilBack: {
-            compare: "always",
-            passOp: "replace",
-        }
-    }
-};</code></pre><p>notice that for the format, we are using <code>depth24plus-stencil8</code>, this means we have 24 bits for depth per pixel and 8 bits for stencil. here the <code>stencilFront</code> and the <code>stencilBack</code> are the new fields we previously didn't config. here <code>stencilFront</code> defines how to perform the visibility test for front facing fragments. respectfully, <code>stencilBack</code> is the how to perform the visibility test for the back facing fragments. for each of the fields, we need to define two things, a compare method for visibility test, and the operations we do to update the stencil buffer. here we config compare to <code>always</code>, meaning the visibility test will pass no matter what. There are three types of operations we can define. <code>passOp</code> is the operation to perform when the stencil test has passed. <code>failOp</code> is the operation when the stencil test fails and <code>depthFailOp</code> is the operation when depth test fails. all of them have the default operation <code>keep</code>, meaning they will keep the value that has been on the stencil buffer. in the above example, we are using the <code>replace</code> operation, meaning we want to replace the existing value with another value we specify. the exact value is not specified here, we will see it later.</p><p>You might find it strange why do we have <code>depthFailOp</code>. what does stencil test have anything to do with depth test? The thing is that there is an order when the rendering perform these tests. stencil test comes before the depth test. there could be a situation where a fragment passes the stencil test, but doesn't pass the depth test. this operation allows you to configure what to do in this situation.</p><p>what the above pipeline is doing is essentially render the portal geometry into the stencil buffer, such that all pixels that cover the portal is assigned with our specified value.</p><p>here is how do we set the stencil reference value:</p><pre><code class="language-javascript code-block">const passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
-passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
-passEncoder.setStencilReference(0xFF);
-stencil.encode(passEncoder);
-passEncoder.end();</code></pre><p>here we are using the <code>setStencilReference</code> function call to set the stencil reference value to 0xFF, because we only have 8 bits for each pixel. the uncovered pixels are set to 0.</p><p>in the second rendering pass, we will draw the actual scene, a teapot and a ground plane. but we want the scene be visible only through the portal, i.e. we will perform a visibility test utilizing the stencil buffer we built during the first pass.</p><pre><code class="language-javascript code-block">const pipelineDesc = {
+struct VertexOutput {
+    @builtin(position) clip_position: vec4&lt;f32&gt;,
+};
+
+@vertex
+fn vs_main(
+    @location(0) inPos: vec3&lt;f32&gt;
+) -&gt; VertexOutput {
+    var out: VertexOutput;
+    var wldLoc:vec4&lt;f32&gt; = modelView * vec4&lt;f32&gt;(inPos, 1.0);
+    out.clip_position = projection * wldLoc;
+    return out;
+}
+
+@fragment
+fn fs_main(in: VertexOutput) -&gt; @location(0) vec4&lt;f32&gt; {
+    return vec4&lt;f32&gt;( 0.0,0.0,0.0,0.0);
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=121:143#5_00_stencil">5_00_stencil/index.html:122-144 Shader to Render to the Stencil Buffer</a></div></div><p>Next, let's explore how stencil writing is enabled when creating the pipeline:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=336>const pipelineDesc = {
     layout,
     vertex: {
         module: shaderModule,
@@ -231,12 +196,81 @@ passEncoder.end();</code></pre><p>here we are using the <code>setStencilReferenc
             passOp: "keep",
         }
     }
-};</code></pre><p>this time, we are setting the compare to <code>less</code>, meaning when our stencil reference is less than the value stored in the stencil buffer, will consider it passes the test. and for <code>passOp</code> , we set it to <code>keep</code>. because we want to keep the stencil buffer unaffected by this rendering pass.</p><pre><code class="language-javascript code-block">const passEncoder2 = commandEncoder.beginRenderPass(renderPassDesc2);
+};
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=335:365#5_00_stencil">5_00_stencil/index.html:336-366 Configuring Stencil Buffer</a></div></div><p>Notice that the format depth24plus-stencil8 specifies 24 bits for depth and 8 bits for the stencil per pixel. The stencilFront and stencilBack fields, which we hadn't configured before, define how visibility tests are performed for front-facing and back-facing fragments, respectively. Each field requires a comparison method for the visibility test and operations to update the stencil buffer. In this example, the comparison method is set to always, meaning the visibility test will always pass.</p><p>There are three types of operations to define: passOp, failOp, and depthFailOp. These determine how to update the stencil buffer when the stencil test passes, fails, or when the depth test fails, respectively. The default operation is keep, which retains the existing stencil buffer value. In this example, we use the replace operation, which replaces the existing value with a new value that we will specify later.</p><p>You might wonder why we have depthFailOp in the stencil test configuration. What does the stencil test have to do with the depth test? The reason is that the stencil test occurs before the depth test during rendering. In some cases, a fragment might pass the stencil test but fail the depth test. The depthFailOp operation allows you to specify how to handle such situations.</p><p>In essence, the pipeline configuration we discussed renders the portal geometry into the stencil buffer. This means that all pixels covered by the portal are assigned the specified stencil value.</p><p>Here's how we set the stencil reference value:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=1155>const passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
+passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+passEncoder.setStencilReference(0xFF);
+stencil.encode(passEncoder);
+passEncoder.end();
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=1154:1158#5_00_stencil">5_00_stencil/index.html:1155-1159 Setting Stencil Reference</a></div></div><p>In this code snippet, the setStencilReference function is used to set the stencil reference value to 0xFF. Given that we only have 8 bits for each pixel in the stencil buffer, this reference value will ensure that only pixels matching 0xFF will pass the stencil test. Pixels not covered by the portal are set to 0.</p><p>In the second rendering pass, we will draw the actual scene, which includes a teapot and a ground plane. However, we want the scene to be visible only through the portal. To achieve this, we perform a visibility test using the stencil buffer populated during the first pass.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=772>const pipelineDesc = {
+    layout,
+    vertex: {
+        module: shaderModule,
+        entryPoint: 'vs_main',
+        buffers: [positionBufferLayoutDesc, normalBufferLayoutDesc]
+    },
+    fragment: {
+        module: shaderModule,
+        entryPoint: 'fs_main',
+        targets: [colorState]
+    },
+    primitive: {
+        topology: 'triangle-list',
+        frontFace: 'ccw',
+        cullMode: 'none'
+    },
+    depthStencil: {
+        depthWriteEnabled: true,
+        depthCompare: 'less',
+        format: 'depth24plus-stencil8',
+        stencilFront: {
+            compare: "less",
+            passOp: "keep",
+        },
+        stencilBack: {
+            compare: "less",
+            passOp: "keep",
+        }
+    }
+};
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=771:801#5_00_stencil">5_00_stencil/index.html:772-802 Setting the Second Stencil Pipeline</a></div></div><p>In this updated pipeline description, the compare function is set to less, meaning that the stencil test will pass if the stencil reference value is less than the value currently stored in the stencil buffer. The passOp is set to keep, which means that the stencil buffer will remain unchanged by this rendering pass. This configuration ensures that the stencil buffer’s values are preserved while we perform the rendering operation.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=885>const pipelineDesc = {
+    layout,
+    vertex: {
+        module: shaderModule,
+        entryPoint: 'vs_main',
+        buffers: [positionBufferLayoutDesc]
+    },
+    fragment: {
+        module: shaderModule,
+        entryPoint: 'fs_main',
+        targets: [colorState]
+    },
+    primitive: {
+        topology: 'triangle-list',
+        frontFace: 'ccw',
+        cullMode: 'none'
+    },
+    depthStencil: {
+        depthWriteEnabled: true,
+        depthCompare: 'less',
+        format: 'depth24plus-stencil8',
+        stencilFront: {
+            compare: "always",
+            passOp: "replace",
+        },
+        stencilBack: {
+            compare: "always",
+            passOp: "replace",
+        }
+    }
+};
+</pre></code><div class="code-fragments-separator">• • •</div><pre><code class="language-javascript code-block" startNumber=1160>const passEncoder2 = commandEncoder.beginRenderPass(renderPassDesc2);
 passEncoder2.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
 passEncoder2.setStencilReference(0x0);
 plane.encode(passEncoder2);
 teapot.encode(passEncoder2);
-passEncoder2.end();</code></pre><p>again, when generate the command buffer, we need to set the stencil reference value. We set the value to zero this time. Because zero is less than 0xFF, hence whereever the value is 0xFF on the stencil buffer, we can pass the stencil test. and for the rest area, since our stencil reference value zero is equal to the zero on the stencil buffer, we will fail the stencil test.</p><p>and finally, in the last rendering pass, we want to render the portal's frame. For the frame, we don't want stencil test at all, hence we set compare to <code>always</code>. meanwhile, we don't want the third pass to alter the stencil buffer either, hence we use the <code>keep</code> operation.</p><pre><code class="language-javascript code-block">const pipelineDesc = {
+passEncoder2.end();
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=884:914,1159:1164#5_00_stencil">5_00_stencil/index.html:885-1165 Setting Stencil Reference for the Second Pass</a></div></div><p>Again, when generating the command buffer, we need to set the stencil reference value. This time, we set it to zero. Since zero is less than 0xFF, the stencil test will pass wherever the value in the stencil buffer is 0xFF. For areas where the stencil buffer value is zero (equal to our reference value), the stencil test will fail.</p><p>Finally, in the last rendering pass, we want to render the portal's frame. In this case, we do not want any stencil testing, so we set the comparison function to always. Additionally, we want to ensure that this pass does not alter the stencil buffer, so we use the keep operation to maintain the existing stencil values.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=553>const pipelineDesc = {
     layout,
     vertex: {
         module: shaderModule,
@@ -266,7 +300,8 @@ passEncoder2.end();</code></pre><p>again, when generate the command buffer, we n
             passOp: "keep",
         }
     }
-};</code></pre><p>it doesn't matter what we set for the stencil reference this time, as we don't do stencil test and won't alter the stencil buffer.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Screenshot of the Demo" sources='[]' /><div class="img-title">Screenshot of the Demo</div></div></p>
+};
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=552:582#5_00_stencil">5_00_stencil/index.html:553-583 Setting the Third Stencil Pipeline</a></div></div><p>In this final rendering pass, the stencil reference value is irrelevant because we are not performing a stencil test and will not modify the stencil buffer.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="thumb_frameexample.png" original_src="frameexample.png" alt="Screenshot of the Demo" sources='[]' /><div class="img-title">Screenshot of the Demo</div></div></p>
         </article>
 
         <div class="older_newer_link_section">

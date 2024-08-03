@@ -33,7 +33,7 @@
 <script src="../utils/helper.js"></script>
 <script id="object_shader" type="wgsl">
     // Vertex shader
-    
+
     @group(0) @binding(0)
     var<uniform> modelView: mat4x4<f32>;
     @group(0) @binding(1)
@@ -119,7 +119,6 @@
 
 <script id="stencil_shader" type="wgsl">
     // Vertex shader
-    
     @group(0) @binding(0)
     var<uniform> modelView: mat4x4<f32>;
     @group(0) @binding(1)
@@ -334,7 +333,6 @@
             const colorState = {
                 format: 'bgra8unorm'
             };
-
             const pipelineDesc = {
                 layout,
                 vertex: {
@@ -366,7 +364,6 @@
                     }
                 }
             };
-
             this.pipeline = device.createRenderPipeline(pipelineDesc);
         }
 
@@ -553,7 +550,6 @@
             const colorState = {
                 format: 'bgra8unorm'
             };
-
             const pipelineDesc = {
                 layout,
                 vertex: {
@@ -585,7 +581,6 @@
                     }
                 }
             };
-
             this.pipeline = device.createRenderPipeline(pipelineDesc);
         }
 
@@ -774,7 +769,6 @@
             const colorState = {
                 format: 'bgra8unorm'
             };
-
             const pipelineDesc = {
                 layout,
                 vertex: {
@@ -806,7 +800,6 @@
                     }
                 }
             };
-
             this.pipeline = device.createRenderPipeline(pipelineDesc);
         }
 
@@ -889,7 +882,6 @@
             const colorState = {
                 format: 'bgra8unorm'
             };
-
             const pipelineDesc = {
                 layout,
                 vertex: {
@@ -921,7 +913,6 @@
                     }
                 }
             };
-
             this.pipeline = device.createRenderPipeline(pipelineDesc);
         }
 
@@ -1161,21 +1152,17 @@
                 viewDirectionUniformBuffer, 0, viewDir.byteLength);
             commandEncoder.copyBufferToBuffer(lightDirectionUniformBufferUpdate, 0,
                 lightDirectionUniformBuffer, 0, lightDir.byteLength);
-
             const passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
             passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
             passEncoder.setStencilReference(0xFF);
             stencil.encode(passEncoder);
-            //plane.encode(passEncoder);
             passEncoder.end();
-
             const passEncoder2 = commandEncoder.beginRenderPass(renderPassDesc2);
             passEncoder2.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
             passEncoder2.setStencilReference(0x0);
             plane.encode(passEncoder2);
             teapot.encode(passEncoder2);
             passEncoder2.end();
-
             const passEncoder3 = commandEncoder.beginRenderPass(renderPassDesc2);
             passEncoder3.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
             passEncoder3.setStencilReference(0x0);
