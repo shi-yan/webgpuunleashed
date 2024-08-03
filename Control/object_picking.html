@@ -143,235 +143,285 @@
 
     <div id="article-container">
         <article>
-            <h2 >3.2 Object Picking</h2><p>Another important way of interaction is picking or selection, for example, in an RTS game, we use mouse to select the units we want to control.</p><h3 >Ray casting</h3><p>There are two common ways of implementing picking. We will be look at both in this tutorial. The first method is called raycasting and it's principle is simple. recall that by applying a projection matrix, we can project a 3D point onto the screen plane. Raycasting simply reverses the process: given a 2D position on the screen plane (our mouse cursor position), we obtain a ray by looking at the projection matrix, such that the ray will overlap the 2D point if projected. Then we use that ray to test against objects that can potentially intersect with it. If intersection happens, we select interested object.</p><p>precise ray object intersection can be difficult to compute if the object is in a complex shape, such as a teapot. usually, we use an overlapping proxy geometry for the calculation. For example, a bounding box or a bounding sphere. usually the ray intersection can be checked against the proxy geometry using a simple formula and efficiently. in this tutorial for example, we will be using proxy spheres.</p><p>in this demo, we will be rendering 16 teapots that form a ring using the instancing technique we covered before. each teapot is enclosed by a proxy sphere. We render the proxy sphere for visualization purpose. Ray casting is primarily calculated by the cpu code in javascript, hence I will omit most explanation regarding rendering, please refer to the sample code for details. Here I want to mainly discuss the scene setup:</p><p>The first part is constructing 3 rings to represent the proxy sphere, similar to what we have created in the previous chapter. The 3 rings are perpendicular to each other because we want to use them to represent the silluate of the proxy sphere:</p><pre><code class="language-javascript code-block">            const teapotCenter = glMatrix.vec4.fromValues(center[0], center[1], center[2], 1.0);
+            <h2 >3.2 Object Picking</h2><p>Another important form of interaction in 3D graphics is object picking or selection. For example, in an RTS game, we use the mouse to select the units we want to control.</p><h3 >Ray casting</h3><a href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html#3_02_1_picking_ray_casting" target="_blank" class="comment"><svg style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
+                    width="32" fill="#dadadb" viewBox="0 -960 960 960"><path d="M189-160q-60 0-102.5-43T42-307q0-9 1-18t3-18l84-336q14-54 57-87.5t98-33.5h390q55 0 98 33.5t57 87.5l84 336q2 9 3.5 18.5T919-306q0 61-43.5 103.5T771-160q-42 0-78-22t-54-60l-28-58q-5-10-15-15t-21-5H385q-11 0-21 5t-15 15l-28 58q-18 38-54 60t-78 22Zm3-80q19 0 34.5-10t23.5-27l28-57q15-31 44-48.5t63-17.5h190q34 0 63 18t45 48l28 57q8 17 23.5 27t34.5 10q28 0 48-18.5t21-46.5q0 1-2-19l-84-335q-7-27-28-44t-49-17H285q-28 0-49.5 17T208-659l-84 335q-2 6-2 18 0 28 20.5 47t49.5 19Zm348-280q17 0 28.5-11.5T580-560q0-17-11.5-28.5T540-600q-17 0-28.5 11.5T500-560q0 17 11.5 28.5T540-520Zm80-80q17 0 28.5-11.5T660-640q0-17-11.5-28.5T620-680q-17 0-28.5 11.5T580-640q0 17 11.5 28.5T620-600Zm0 160q17 0 28.5-11.5T660-480q0-17-11.5-28.5T620-520q-17 0-28.5 11.5T580-480q0 17 11.5 28.5T620-440Zm80-80q17 0 28.5-11.5T740-560q0-17-11.5-28.5T700-600q-17 0-28.5 11.5T660-560q0 17 11.5 28.5T700-520Zm-360 60q13 0 21.5-8.5T370-490v-40h40q13 0 21.5-8.5T440-560q0-13-8.5-21.5T410-590h-40v-40q0-13-8.5-21.5T340-660q-13 0-21.5 8.5T310-630v40h-40q-13 0-21.5 8.5T240-560q0 13 8.5 21.5T270-530h40v40q0 13 8.5 21.5T340-460Zm140-20Z"/></svg>Launch Playground - 3_02_1_picking_ray_casting</a><p>There are two common ways to implement picking. We will look at both in this tutorial. The first method is called ray casting, and its principle is straightforward. Recall that by applying a projection matrix, we can project a 3D point onto the screen plane. Ray casting simply reverses this process: given a 2D position on the screen plane (our mouse cursor position), we obtain a ray by using the projection matrix. This ray will overlap the 2D point if projected. We then use that ray to test against objects that might intersect with it. If an intersection occurs, we select the object of interest.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="thumb_raycasting.png" original_src="raycasting.png" alt="Object Picking by Raycasting" sources='[]' /><div class="img-title">Object Picking by Raycasting</div></div></p><p>Precise ray-object intersection can be challenging to compute if the object has a complex shape, such as a teapot. Usually, we use an overlapping proxy geometry for the calculation. For example, a bounding box or a bounding sphere. Typically, the ray intersection can be efficiently checked against the proxy geometry using a simple formula. In this tutorial, we will be using proxy spheres.</p><p>In this demo, we will render 16 teapots forming a ring using the instancing technique. Each teapot is enclosed by a proxy sphere. We render the proxy sphere for visualization purposes. Ray casting is primarily calculated by the CPU code in JavaScript, so I will omit most of the explanation regarding rendering. Please refer to the sample code for details. Here, I want to focus on the scene setup.</p><p>The choice of spheres as the proxy geometry is mainly due to the ease of calculating sphere-ray intersections compared to other proxy geometries. However, using spheres is not the most accurate option.</p><p>The first part involves constructing three rings to represent the proxy sphere, similar to what we created in the previous chapter. The three rings are perpendicular to each other because we want to use them to represent the silhouette of the proxy sphere.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=177>const teapotCenter = glMatrix.vec4.fromValues(center[0], center[1], center[2], 1.0);
 
-            this.ringPositionBuffer = [];
+console.log("teapot center", teapotCenter);
 
-            for (let i = 0; i &lt; 16; ++i) {
-                const angle = 2.0 * Math.PI * i / 16.0;
-                const x = Math.cos(angle) * radius;
-                const y = Math.sin(angle) * radius;
+this.ringPositionBuffer = [];
 
-                this.ringPositionBuffer.push(x + center[0]);
-                this.ringPositionBuffer.push(y + center[1]);
-                this.ringPositionBuffer.push(0.0 + center[2]);
-            }
+for (let i = 0; i &lt; 16; ++i) {
+    const angle = 2.0 * Math.PI * i / 16.0;
+    const x = Math.cos(angle) * radius;
+    const y = Math.sin(angle) * radius;
 
-            this.ringPositionBuffer = createGPUBuffer(device, new Float32Array(this.ringPositionBuffer), GPUBufferUsage.VERTEX);
+    this.ringPositionBuffer.push(x + center[0]);
+    this.ringPositionBuffer.push(y + center[1]);
+    this.ringPositionBuffer.push(0.0 + center[2]);
+}
 
-            this.ringPositionBuffer2 = [];
-            for (let i = 0; i &lt; 16; ++i) {
-                const angle = 2.0 * Math.PI * i / 16.0;
-                const x = Math.cos(angle) * radius;
-                const z = Math.sin(angle) * radius;
+this.ringPositionBuffer = createGPUBuffer(device, new Float32Array(this.ringPositionBuffer), GPUBufferUsage.VERTEX);
 
-                this.ringPositionBuffer2.push(x + center[0]);
-                this.ringPositionBuffer2.push(0.0 + center[1]);
-                this.ringPositionBuffer2.push(z + center[2]);
-            }
+this.ringPositionBuffer2 = [];
+for (let i = 0; i &lt; 16; ++i) {
+    const angle = 2.0 * Math.PI * i / 16.0;
+    const x = Math.cos(angle) * radius;
+    const z = Math.sin(angle) * radius;
 
-            this.ringPositionBuffer2 = createGPUBuffer(device, new Float32Array(this.ringPositionBuffer2), GPUBufferUsage.VERTEX);
+    this.ringPositionBuffer2.push(x + center[0]);
+    this.ringPositionBuffer2.push(0.0 + center[1]);
+    this.ringPositionBuffer2.push(z + center[2]);
+}
+
+this.ringPositionBuffer2 = createGPUBuffer(device, new Float32Array(this.ringPositionBuffer2), GPUBufferUsage.VERTEX);
 
 
-            this.ringPositionBuffer3 = [];
-            for (let i = 0; i &lt; 16; ++i) {
-                const angle = 2.0 * Math.PI * i / 16.0;
-                const y = Math.cos(angle) * radius;
-                const z = Math.sin(angle) * radius;
+this.ringPositionBuffer3 = [];
+for (let i = 0; i &lt; 16; ++i) {
+    const angle = 2.0 * Math.PI * i / 16.0;
+    const y = Math.cos(angle) * radius;
+    const z = Math.sin(angle) * radius;
 
-                this.ringPositionBuffer3.push(0.0 + center[0]);
-                this.ringPositionBuffer3.push(y + center[1]);
-                this.ringPositionBuffer3.push(z + center[2]);
-            }
-            this.ringPositionBuffer3 = createGPUBuffer(device, new Float32Array(this.ringPositionBuffer3), GPUBufferUsage.VERTEX);</code></pre><p>here we create 3 position buffers, each contains the verticies of a ring. A ring is centered at the teapot's center. next, we will setup individual rotation and translation for each teapot instance:</p><pre><code class="language-javascript code-block">            for (let i = 0; i &lt; this.instanceCount; ++i) {
+    this.ringPositionBuffer3.push(0.0 + center[0]);
+    this.ringPositionBuffer3.push(y + center[1]);
+    this.ringPositionBuffer3.push(z + center[2]);
+}
+this.ringPositionBuffer3 = createGPUBuffer(device, new Float32Array(this.ringPositionBuffer3), GPUBufferUsage.VERTEX);
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=176:218#3_02_1_picking_ray_casting">3_02_1_picking_ray_casting/index.html:177-219 Create 3 Perpendicular Rings Around the Teapot to Visualize the Proxy Sphere</a></div></div><p>Here, we create three position buffers, each containing the vertices of a ring centered at the teapot's center. Next, we will set up individual rotation and translation for each teapot instance:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=220>for (let i = 0; i &lt; this.instanceCount; ++i) {
 
-                const angle = 2.0 * Math.PI * i / this.instanceCount;
+    const angle = 2.0 * Math.PI * i / this.instanceCount;
 
-                let translation = glMatrix.mat4.fromTranslation(glMatrix.mat4.create(),
-                    glMatrix.vec3.fromValues(Math.cos(angle) * circleRadius,
-                        Math.sin(angle) * circleRadius, 0));
-                let rotation = glMatrix.mat4.fromRotation(glMatrix.mat4.create(), Math.PI * 0.5 + angle, glMatrix.vec3.fromValues(0.0, 0.0, 1.0));
+    let translation = glMatrix.mat4.fromTranslation(glMatrix.mat4.create(),
+        glMatrix.vec3.fromValues(Math.cos(angle) * circleRadius,
+            Math.sin(angle) * circleRadius, 0));
+    let rotation = glMatrix.mat4.fromRotation(glMatrix.mat4.create(), Math.PI * 0.5 + angle, glMatrix.vec3.fromValues(0.0, 0.0, 1.0));
 
-                const modelViewMatrix = glMatrix.mat4.multiply(glMatrix.mat4.create(), translation, rotation);
+    const modelViewMatrix = glMatrix.mat4.multiply(glMatrix.mat4.create(), translation, rotation);
 
-                transformationMats.set(modelViewMatrix, i * 16);
+    transformationMats.set(modelViewMatrix, i * 16);
 
-                let modelViewMatrixInverse = glMatrix.mat4.invert(glMatrix.mat4.create(), modelViewMatrix);
+    let modelViewMatrixInverse = glMatrix.mat4.invert(glMatrix.mat4.create(), modelViewMatrix);
 
-                let normalMatrix = glMatrix.mat4.transpose(glMatrix.mat4.create(), modelViewMatrixInverse);
+    let normalMatrix = glMatrix.mat4.transpose(glMatrix.mat4.create(), modelViewMatrixInverse);
 
-                normalMats.set(normalMatrix, i * 16);
+    normalMats.set(normalMatrix, i * 16);
 
-                let center = glMatrix.vec4.transformMat4(glMatrix.vec3.create(), teapotCenter, modelViewMatrix);
-                this.instanceCenters.push(glMatrix.vec3.fromValues(center[0], center[1], center[2]));
+    let center = glMatrix.vec4.transformMat4(glMatrix.vec3.create(), teapotCenter, modelViewMatrix);
+    this.instanceCenters.push(glMatrix.vec3.fromValues(center[0], center[1], center[2]));
 
-            }</code></pre><p>for each teapot, we first apply a rotation to it and then move it to a position such that all instances form a ring. The modelViewMatrix is kept in a matrix array and similarly the normal matrices are also kept in an array. These arrays are passed into the shader program as:</p><pre><code class="language-javascript code-block">    @group(0) @binding(3)
-    var&lt;uniform&gt; teapotTransformationMat : array&lt;mat4x4&lt;f32&gt;, 16&gt;;
-    @group(0) @binding(4)
-    var&lt;uniform&gt; teapotNormalMat : array&lt;mat4x4&lt;f32&gt;, 16&gt;;</code></pre><p>notice that we also save the transformed teapot centers into an array, they are important for ray sphere intersection test.</p><p>Now let's look at the picking part implemented in the mouse event handling functions. Because this demo also wants to support navigation via arcball, most of the implementation, for example the onmousedown function, is the same as the previous chapter. here I will focus on the difference, the picking part in the mousemove event handler:</p><pre><code class="language-javascript code-block">        canvas.onmousemove = (event) =&gt; {
-            ...
+    console.log('center ', center)
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=219:242#3_02_1_picking_ray_casting">3_02_1_picking_ray_casting/index.html:220-243 Create Transformation Matrices for All Teapot Instances</a></div></div><p>For each teapot, we first apply a rotation and then move it to a position such that all instances form a ring. The <code>modelViewMatrix</code> is stored in an array, and similarly, the normal matrices are kept in another array. These arrays are passed into the shader program as:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=69>@group(0) @binding(3)
+var&lt;uniform&gt; teapotTransformationMat : array&lt;mat4x4&lt;f32&gt;, 16&gt;;
+@group(0) @binding(4)
+var&lt;uniform&gt; teapotNormalMat : array&lt;mat4x4&lt;f32&gt;, 16&gt;;
+</pre></code><div class="code-fragments-separator">• • •</div><pre><code class="language-javascript code-block" startNumber=107>@vertex
+fn vs_main(
+    @builtin(instance_index) instanceIdx : u32,
+    @location(0) inPos: vec3&lt;f32&gt;,
+    @location(1) inNormal: vec3&lt;f32&gt;
+    //,@location(2) transformation: mat4x4&lt;f32&gt;
+) -&gt; VertexOutput {
+    var out: VertexOutput;
+    out.viewDir = normalize((normalMatrix * vec4&lt;f32&gt;(-viewDirection, 0.0)).xyz);
+    out.lightDir = normalize((normalMatrix * vec4&lt;f32&gt;(-lightDirection, 0.0)).xyz);
+    out.normal = normalize(normalMatrix * teapotNormalMat[instanceIdx] * vec4&lt;f32&gt;(inNormal, 0.0)).xyz;  
+    
+    out.clip_position = projection * modelView * teapotTransformationMat[instanceIdx] * vec4&lt;f32&gt;(inPos, 1.0);
 
-            if (isDragging != 0) {
-                ...
-            }
-            else {
-                //selection mode
-                const currX = (x - originX) * 2.0 / width;
-                const currY = (originY - y) * 2.0 / height;
-
-                let projectionMatrixInverse = glMatrix.mat4.invert(glMatrix.mat4.create(), projectionMatrix);
-
-                let clipSpacePosition = glMatrix.vec4.fromValues(currX, currY, 0, 1.0);
-
-                clipSpacePosition = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), clipSpacePosition, projectionMatrixInverse);
-
-                clipSpacePosition[3] = 0;
-
-                let dir = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), clipSpacePosition, modelViewMatrixInverse);
-
-                dir = glMatrix.vec3.normalize(glMatrix.vec3.create(), dir);
-
-                let found = false;
-                console.log("select", currX, currY, teapot.instanceCount);
-
-                for (let i = 0; i &lt; teapot.instanceCount; ++i) {
-                    let center = teapot.instanceCenters[i];
-                    center = glMatrix.vec3.fromValues(center[0] - arcball.forwardVector[0],
-                        center[1] - arcball.forwardVector[1],
-                        center[2] - arcball.forwardVector[2]);
-
-                    const dot = glMatrix.vec3.dot(center, dir);
-                    const dis = glMatrix.vec3.length(glMatrix.vec3.subtract(glMatrix.vec3.create(), glMatrix.vec3.scale(glMatrix.vec3.create(), dir, dot), center));
-                    console.log("dis ", dis);
-                    if (dis &lt; teapot.teapotRadius) {
-                        console.log('found teapot ', i, dis, teapot.teapotRadius);
-                        const selectionUniformBufferUpdate = createGPUBuffer(device, new Uint32Array([i]), GPUBufferUsage.COPY_SRC);
-                        commandEncoder = device.createCommandEncoder();
-                        commandEncoder.copyBufferToBuffer(selectionUniformBufferUpdate, 0,
-                            teapot.selectionUniformBuffer, 0, 4);
-                        device.queue.submit([commandEncoder.finish()]);
-                        requestAnimationFrame(render);
-                        console.log("update selection")
-                        found = true;
-                        break;
-                    }
-                }
-
-                if (!found) {
-                    const selectionUniformBufferUpdate = createGPUBuffer(device, new Uint32Array([17]), GPUBufferUsage.COPY_SRC);
-                    commandEncoder = device.createCommandEncoder();
-                    commandEncoder.copyBufferToBuffer(selectionUniformBufferUpdate, 0,
-                        teapot.selectionUniformBuffer, 0, 4);
-                    device.queue.submit([commandEncoder.finish()]);
-                    requestAnimationFrame(render);
-                }
-            }
-        }</code></pre><p>this function contains a if condition checking if we are currently dragging the mouse. If we are, then we treat it as a arcball navigation gesture and update the arcball. If not, i.e. we are not pressing any mouse button, just moving the mouse, then we consider it as a picking scenario.</p><pre><code>                const currX = (x - originX) * 2.0 / width;
-                const currY = (originY - y) * 2.0 / height;
-
-                let projectionMatrixInverse = glMatrix.mat4.invert(glMatrix.mat4.create(), projectionMatrix);
-
-                let clipSpacePosition = glMatrix.vec4.fromValues(currX, currY, 0, 1.0);
-
-                let cameraSpacePosition = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), clipSpacePosition, projectionMatrixInverse);
-
-                let cameraSpacePosition[3] = 0;
-
-                let dir = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), clipSpacePosition, modelViewMatrixInverse);
-
-                dir = glMatrix.vec3.normalize(glMatrix.vec3.create(), dir);</code></pre><p>the purpose of the above part is to turn the current mouse position on the canvas to a ray direction in the world space. To understand it, we need to be familiar with the coordinate transformation of the graphics pipeline. Recall that after applying the projection matrix, we will turn a 3d point from the camera coordinates to the clip space position. And the clip space position has the range that -1.0 < x < 1.0 and -1.0 < y < 1.0 and 0 < z < 1.0. hence, we apply the following calculations to make sure the x and y are in the range</p><pre><code class="language-javascript code-block">                const currX = (x - originX) * 2.0 / width;
-                const currY = (originY - y) * 2.0 / height;</code></pre><p>for the z axis, since the screen position is 2D, we need to come up with a z for the clipSpacePosition. here we use zero, because we want to point to be on the near plane of the clip volume. then for the w, recall that in homogeneous coordinates, if the last component is 1.0, it represents a position, otherwise a direction. For now, let's treat it as a position. We then apply the inversed projection matrix to turn the clip space point into a point in the camera coordinate system. recall that in the camera coordinates, the origin is at the camera. Hence, the ray we shoot from the camera, through the mouse position into the scene, should be the point's position - the origin. here we force the camera coordinates's w component to be zero, because from now on, it is a direction, not a point. Then we apply the inversed model view matrix to this direction to get the direction in the world space and normalize it.</p><pre><code class="language-javascript code-block">                for (let i = 0; i &lt; teapot.instanceCount; ++i) {
-                    let center = teapot.instanceCenters[i];
-                    center = glMatrix.vec3.fromValues(center[0] - arcball.forwardVector[0],
-                        center[1] - arcball.forwardVector[1],
-                        center[2] - arcball.forwardVector[2]);
-
-                    const dot = glMatrix.vec3.dot(center, dir);
-                    const dis = glMatrix.vec3.length(glMatrix.vec3.subtract(glMatrix.vec3.create(), glMatrix.vec3.scale(glMatrix.vec3.create(), dir, dot), center));
-                    console.log("dis ", dis);
-                    if (dis &lt; teapot.teapotRadius) {
-                        console.log('found teapot ', i, dis, teapot.teapotRadius);
-                        const selectionUniformBufferUpdate = createGPUBuffer(device, new Uint32Array([i]), GPUBufferUsage.COPY_SRC);
-                        commandEncoder = device.createCommandEncoder();
-                        commandEncoder.copyBufferToBuffer(selectionUniformBufferUpdate, 0,
-                            teapot.selectionUniformBuffer, 0, 4);
-                        device.queue.submit([commandEncoder.finish()]);
-                        requestAnimationFrame(render);
-                        console.log("update selection")
-                        found = true;
-                        break;
-                    }
-                }</code></pre><p>then we loop through all teapots, for each, we calculate the direction from its center to the camera position. we project this vector to the ray vector. and then we scale the ray vector by the projected length. finally, we subtract teapot's center vector to the scaled ray vector, because this resulting vector is perpendicular to the ray vector, its length is the shortest distance from the teapot center to the ray. if this ray is smaller than the teapot's proxy sphere, then we think the ray passes through the teapot. in this situation, we update the current selected teapot index encoded in a uniform buffer. in the shader code, if an instance id matches the current selection, we draw the teapot in a different color.</p><p>and last, if no selection is currently detected, we need to reset the previous selection by updating the current selection id to 17, because we only have 16 teapots, no id will match 17 in the shader, hence all of them will be rendered normally.</p><pre><code class="language-javascript code-block">         if (!found) {
-                    const selectionUniformBufferUpdate = createGPUBuffer(device, new Uint32Array([17]), GPUBufferUsage.COPY_SRC);
-                    commandEncoder = device.createCommandEncoder();
-                    commandEncoder.copyBufferToBuffer(selectionUniformBufferUpdate, 0,
-                        teapot.selectionUniformBuffer, 0, 4);
-                    device.queue.submit([commandEncoder.finish()]);
-                    requestAnimationFrame(render);
-                }</code></pre><h3 >Color coding</h3><p>Ray casting is not difficult to implement, but it won't fit every scenario. For example, the proxy geometry is not as fine as the actual object. Sometimes, we want precise picking. second, ray casting we implemented doesn't consider occlusion. a further away and occluded object can still be picked if it happens to be visited first when we iterate through all objects. Sometimes, certain objects have a single side. for example, consider a plane that has only one front side. When this plane is facing away from us, it should not be visible if we cull its back face. we shouldn't pick it when it is not visible, but ray picking will picking it still. Third, when there are a lot of objects, ray casting might be slow, especially when most objects are not visible due to occlusion or outside the view. Of course, this situation can be improved by adopting a better scene datastructure, such as the kd tree, which allows us to only test ray hit against geometry objects that have the potential to intersect the ray.</p><p>In this second section, we will discuss an alternative picking solution called color coding that can solve some of the issues mentioned. The principle behind color coding is also not difficult. we encode each object's id as a unique color. For RGB color, we can encode 2^24 objects, which should be enough for most of the use cases. We then render the scene using these false color and read back what we have rendered. For this step, we need to be careful by not enabling any process that can potentially alter the color values, such as blending and anti-aliasing. Once the rendering is read back, we recover objects' id from the colors and see what color is currently under the mouse cursor. we don't have to read the whole image, but just a small patch under the mouse should be enough and also we can render the scene not necessary in the full resolution, but a smaller resolution to improve performance, as picking is often not required to be pixel level accurate.</p><p>The benefit of color coding is obvious. By rendering the scene, only the front most and front facing object is checked for selection. There is also no coarse proxy object, so we can do precise picking using the actual geometry. but unlike the ray casting approach, the color coding implementation requires a shader code and the javascript code to work jointly.</p><p>Now let's look at the code:</p><pre><code>    @vertex
-    fn vs_main(
-        @builtin(instance_index) instanceIdx : u32,
-        @location(0) inPos: vec3&lt;f32&gt;,
-        @location(1) color: vec4&lt;u32&gt;
-    ) -&gt; VertexOutput {
-        var out: VertexOutput;
-        out.clip_position = projection * modelView * teapotTransformationMat[instanceIdx] * vec4&lt;f32&gt;(inPos, 1.0);
-        out.color = color.xyz;
-        return out;
+    if (selected == instanceIdx) {
+        out.normal = vec3&lt;f32&gt;(0.0, 0.0, 0.0);
     }
-    
-    // Fragment shader
-    
-    @fragment
-    fn fs_main(in: VertexOutput) -&gt; @location(0) vec4&lt;u32&gt; {
-        return vec4&lt;u32&gt;( in.color.xyz ,255);
-    }</code></pre><p>There are two shaders involved here. The first shader is the normal rendering shader, which we will skip. The second shader is for color coded rendering. the color coded rendering is actually even simpler. the color codes are passed in via vertex attribute and passed to the fragment shader. The fragment shader simply renders this color. the transparency channel is set as fully opaque. The output format is u32 because we don't want to scale the color to float point numbers to avoid altering the color codes.</p><pre><code class="language-javascript code-block">        async function pick(x, y) {
-            if (inRendering) {
-                return 17;
-            }
-            inRendering = true;
-           
-           ...
-                passEncoder = commandEncoder.beginRenderPass(renderPassDescColorCode);
+    return out;
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=68:71,106:124#3_02_1_picking_ray_casting">3_02_1_picking_ray_casting/index.html:69-125 In the Vertex Shader, We Apply Different Transformation for Each Teapot Based on Instance Id</a></div></div><p>The vertex shader’s main function includes an input <code>@builtin(instance_index) instanceIdx : u32</code>. Similar to the <code>vertex_index</code> we have seen before, this builtin provides the instance ID. We use this index to retrieve the corresponding transformation and normal matrices for each instance.</p><p>Notice that we also save the transformed teapot centers into an array; they are important for the ray-sphere intersection test.</p><p>Now let’s examine the picking functionality implemented in the mouse event handling functions. Since this demo also supports navigation via arcball, much of the implementation, such as the <code>onmousedown</code> function, is similar to what we covered in the previous chapter. Here, I’ll focus on the differences, particularly the picking logic in the <code>mousemove</code> event handler:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=787>//selection mode
+const currX = (x - originX) * 2.0 / width;
+const currY = (originY - y) * 2.0 / height;
+//https://gamedev.stackexchange.com/questions/17987/what-does-the-graphics-card-do-with-the-fourth-element-of-a-vector-as-the-final
+//https://antongerdelan.net/opengl/raycasting.html
+//https://gamedev.stackexchange.com/questions/153078/what-can-i-do-with-the-4th-component-of-gl-position
+let projectionMatrixInverse = glMatrix.mat4.invert(glMatrix.mat4.create(), projectionMatrix);
 
-                passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
-                teapot.encodeForColorCoding(passEncoder);
+let clipSpacePosition = glMatrix.vec4.fromValues(currX, currY, 0.0, 1.0);
 
-                passEncoder.end();
-                commandEncoder.copyTextureToBuffer({ texture: colorCodeTexture, origin: { x, y } }, { buffer: copiedBuffer, bytesPerRow: bufferWidth }, { width: 2, height: 2 });
-                device.queue.submit([commandEncoder.finish()]);
+let camSpacePosition = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), clipSpacePosition, projectionMatrixInverse);
 
-                await device.queue.onSubmittedWorkDone();
-            ...
+//clipSpacePosition[2] = -1;
+camSpacePosition[3] = 0;
 
-                await copiedBuffer.mapAsync(GPUMapMode.READ, 0, bufferWidth * 2);
+let dir = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), camSpacePosition, modelViewMatrixInverse);
 
-                const d = new Uint8ClampedArray(copiedBuffer.getMappedRange());
-                const picked = d[0];
-                console.log('pick ', picked);
+dir = glMatrix.vec3.normalize(glMatrix.vec3.create(), dir);
+let found = false;
+console.log("select", currX, currY, teapot.instanceCount);
+for (let i = 0; i &lt; teapot.instanceCount; ++i) {
+    let center = teapot.instanceCenters[i];
+    center = glMatrix.vec3.fromValues(center[0] - arcball.forwardVector[0],
+        center[1] - arcball.forwardVector[1],
+        center[2] - arcball.forwardVector[2]);
 
-                copiedBuffer.unmap();
-                inRendering = false;
+    const dot = glMatrix.vec3.dot(center, dir);
+    const dis = glMatrix.vec3.length(glMatrix.vec3.subtract(glMatrix.vec3.create(), glMatrix.vec3.scale(glMatrix.vec3.create(), dir, dot), center));
+    console.log("dis ", dis);
+    if (dis &lt; teapot.teapotRadius) {
+        console.log('found teapot ', i, dis, teapot.teapotRadius);
+        const selectionUniformBufferUpdate = createGPUBuffer(device, new Uint32Array([i]), GPUBufferUsage.COPY_SRC);
+        commandEncoder = device.createCommandEncoder();
+        commandEncoder.copyBufferToBuffer(selectionUniformBufferUpdate, 0,
+            teapot.selectionUniformBuffer, 0, 4);
+        device.queue.submit([commandEncoder.finish()]);
+        requestAnimationFrame(render);
+        console.log("update selection")
+        found = true;
+        break;
+    }
+}
+if (!found) {
+    const selectionUniformBufferUpdate = createGPUBuffer(device, new Uint32Array([17]), GPUBufferUsage.COPY_SRC);
+    commandEncoder = device.createCommandEncoder();
+    commandEncoder.copyBufferToBuffer(selectionUniformBufferUpdate, 0,
+        teapot.selectionUniformBuffer, 0, 4);
+    device.queue.submit([commandEncoder.finish()]);
+    requestAnimationFrame(render);
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=786:835#3_02_1_picking_ray_casting">3_02_1_picking_ray_casting/index.html:787-836 Mousemove Handling for Picking</a></div></div><p>This function includes a condition to check if the mouse is being dragged. If it is, we treat the input as an arcball navigation gesture and update the arcball accordingly. If the mouse is moving without any buttons pressed, we consider it a picking scenario.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=788>const currX = (x - originX) * 2.0 / width;
+const currY = (originY - y) * 2.0 / height;
+//https://gamedev.stackexchange.com/questions/17987/what-does-the-graphics-card-do-with-the-fourth-element-of-a-vector-as-the-final
+//https://antongerdelan.net/opengl/raycasting.html
+//https://gamedev.stackexchange.com/questions/153078/what-can-i-do-with-the-4th-component-of-gl-position
+let projectionMatrixInverse = glMatrix.mat4.invert(glMatrix.mat4.create(), projectionMatrix);
 
-                return picked;
-        }</code></pre><p>first of all, we don't want the pick function be called before a previous call has finished, because in the pick function, we need to write to some temporary buffer. calling this function more than once at the same time will cause issues, such as being written when mapped. To avoid it, we simply use a flag to check if a previous execution is unfinished.</p><p>after rendering, we copy the framebuffer to a temporary copiedBuffer. the copiedBuffer is smaller than the framebuffer, we only copy a 2x2 window underneath the current mouse cursor. However, notice the parameter called bytesPerRow, according to the spec, it must be a multiple of 256. so we have to allocate more than required to fulfill this requirement.</p><p>And once the command queue is done, we map the copied buffer for read access. A more surfascated implementation might check for the most dominant color to get the most likely object, here I just check the first pixel's red channel. The object index should be recovered from the color, but since in the demo, we only have 16 objects, the red channel alone should be enough to save all indices. So I just be lazy here.</p><p>Now let's look at the pipeline setup code, the first part is how do we encode object indices into colors when setting up teapot instances, we basically encode the object index in RGB in using little endianess.</p><pre><code class="language-javascript code-block">for (let i = 0; i &lt; this.instanceCount; ++i) {
+let clipSpacePosition = glMatrix.vec4.fromValues(currX, currY, 0.0, 1.0);
 
-...
-                colorCodes.set([i &amp; 0b11111111,
-                (i &gt;&gt; 8) &amp; 0b11111111, (i &gt;&gt; 16) &amp; 0b11111111, (i &gt;&gt; 24) &amp; 0b11111111], i * 4 + 0);
-            }</code></pre><p>the last piece of the puzzle is creating the target texture to render the color coded scene:</p><pre><code class="language-javascript code-block">
-            const colorCodeTextureDesc = {
-                size: [canvas.width, canvas.height, 1],
-                dimension: '2d',
-                format: 'rgba8uint',
-                usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC
-            };
+let camSpacePosition = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), clipSpacePosition, projectionMatrixInverse);
 
-            ...
+//clipSpacePosition[2] = -1;
+camSpacePosition[3] = 0;
 
-            bufferWidth = Math.ceil(2 * 4 / 256.0) * 256;
-            copiedBuffer = createGPUBuffer(device, new Uint8Array(bufferWidth * 2), GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
-</code></pre><p>we use the rgba8uint format for the texture to match the output format of the shader. For the readback buffer, notice how do we obtain the bufferWidth. since we want read a 2x2 window, a single row should be 4*2 bytes, but we need to round it up to the closest multiple of 256, as this is required for GPUImageCopyBuffer.</p><p>the above concludes the picking part. We also have the normal rendering part, which we will skip.</p>
+let dir = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), camSpacePosition, modelViewMatrixInverse);
+
+dir = glMatrix.vec3.normalize(glMatrix.vec3.create(), dir);
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=787:803#3_02_1_picking_ray_casting">3_02_1_picking_ray_casting/index.html:788-804 Convert Canvas Location to Ray</a></div></div><p>The purpose of the above code is to convert the current mouse position on the canvas into a ray direction in world space. To understand this, it's important to be familiar with the coordinate transformations in the graphics pipeline. After applying the projection matrix, a 3D point is transformed from camera coordinates into clip space. The clip space position ranges from -1.0 to 1.0 for x, y, and z coordinates. Therefore, the calculations ensure that x and y are within this normalized range.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=788>const currX = (x - originX) * 2.0 / width;
+const currY = (originY - y) * 2.0 / height;
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=787:788#3_02_1_picking_ray_casting">3_02_1_picking_ray_casting/index.html:788-789 Mouse Position to Clip Coordinates</a></div></div><p>For the z-axis, since the screen position is 2D, we need to assign a z value to <code>clipSpacePosition</code>. Here, we use zero. For the w component, recall that in homogeneous coordinates, if the last component is 1.0, it represents a position; otherwise, it represents a direction. For now, let's treat it as a position. We then apply the inverse projection matrix to transform the clip space point into the camera coordinate system. In camera coordinates, the origin is at the camera. Therefore, the ray we cast from the camera through the mouse position into the scene is represented by the point's position minus the origin. We set the camera coordinates' w component to zero because it represents a direction rather than a position. Finally, we apply the inverse model-view matrix to this direction to get the direction in world space and normalize it.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=807>for (let i = 0; i &lt; teapot.instanceCount; ++i) {
+    let center = teapot.instanceCenters[i];
+    center = glMatrix.vec3.fromValues(center[0] - arcball.forwardVector[0],
+        center[1] - arcball.forwardVector[1],
+        center[2] - arcball.forwardVector[2]);
+
+    const dot = glMatrix.vec3.dot(center, dir);
+    const dis = glMatrix.vec3.length(glMatrix.vec3.subtract(glMatrix.vec3.create(), glMatrix.vec3.scale(glMatrix.vec3.create(), dir, dot), center));
+    console.log("dis ", dis);
+    if (dis &lt; teapot.teapotRadius) {
+        console.log('found teapot ', i, dis, teapot.teapotRadius);
+        const selectionUniformBufferUpdate = createGPUBuffer(device, new Uint32Array([i]), GPUBufferUsage.COPY_SRC);
+        commandEncoder = device.createCommandEncoder();
+        commandEncoder.copyBufferToBuffer(selectionUniformBufferUpdate, 0,
+            teapot.selectionUniformBuffer, 0, 4);
+        device.queue.submit([commandEncoder.finish()]);
+        requestAnimationFrame(render);
+        console.log("update selection")
+        found = true;
+        break;
+    }
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=806:827#3_02_1_picking_ray_casting">3_02_1_picking_ray_casting/index.html:807-828 Detect Intersection Against All Proxy Spheres</a></div></div><p>Next, we loop through all teapots. For each teapot, we calculate the direction from its center to the camera position. We project this vector onto the ray vector and then scale the ray vector by the projected length. Finally, we subtract the teapot’s center vector from the scaled ray vector. The resulting vector, which is perpendicular to the ray vector, represents the shortest distance from the teapot’s center to the ray. If this distance is smaller than the radius of the teapot’s proxy sphere, we consider that the ray intersects the teapot.</p><p>In this case, we update the current selected teapot index in the uniform buffer. In the shader code, if an instance ID matches the current selection, the teapot is rendered in a different color.</p><p>If no selection is detected, we reset the previous selection by setting the current selection ID to 17. Since we only have 16 teapots, no ID will match 17 in the shader, causing all teapots to be rendered normally.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=829>if (!found) {
+    const selectionUniformBufferUpdate = createGPUBuffer(device, new Uint32Array([17]), GPUBufferUsage.COPY_SRC);
+    commandEncoder = device.createCommandEncoder();
+    commandEncoder.copyBufferToBuffer(selectionUniformBufferUpdate, 0,
+        teapot.selectionUniformBuffer, 0, 4);
+    device.queue.submit([commandEncoder.finish()]);
+    requestAnimationFrame(render);
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=828:835#3_02_1_picking_ray_casting">3_02_1_picking_ray_casting/index.html:829-836 Mark the Selected Teapot in a Uniform Buffer</a></div></div><p>Lastly, let's look at how to encode a draw command for instanced rendering. The advantage of instanced rendering is that it allows us to efficiently duplicate the same geometry, which is ideal for rendering foliage in games or particles. In this example, rendering instanced objects is straightforward. We simply need to specify the total number of instances to render when encoding the draw command. As previously discussed, each instance has its own transformation matrices, which are retrieved from a uniform buffer based on the <code>instanceIdx</code>.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=476>encode(encoder) {
+    encoder.setPipeline(this.pipeline);
+    encoder.setBindGroup(0, this.uniformBindGroup);
+    encoder.setVertexBuffer(0, this.positionBuffer);
+    encoder.setVertexBuffer(1, this.normalBuffer);
+    encoder.setIndexBuffer(this.indexBuffer, 'uint16');
+    encoder.drawIndexed(this.indexSize, this.instanceCount);
+    encoder.setPipeline(this.ringPipeline);
+    encoder.setBindGroup(0, this.ringUniformBindGroup);
+    encoder.setVertexBuffer(0, this.ringPositionBuffer);
+    encoder.draw(16, this.instanceCount);
+    encoder.setVertexBuffer(0, this.ringPositionBuffer2);
+    encoder.draw(16, this.instanceCount);
+    encoder.setVertexBuffer(0, this.ringPositionBuffer3);
+    encoder.draw(16, this.instanceCount);
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=475:490#3_02_1_picking_ray_casting">3_02_1_picking_ray_casting/index.html:476-491 Instanced Rendering</a></div></div><p><div class="img-container"><img class="img" onclick="openImage(this)" src="thumb_picking_ray.png" original_src="picking_ray.png" alt="Raycasting Object Picking. Picked Object Is in Black." sources='[]' /><div class="img-title">Raycasting Object Picking. Picked Object Is in Black.</div></div></p><h3 >Color coding</h3><a href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html#3_02_2_picking_color_coding" target="_blank" class="comment"><svg style="margin-right:10px;vertical-align: middle;" xmlns="http://www.w3.org/2000/svg" height="32"
+                    width="32" fill="#dadadb" viewBox="0 -960 960 960"><path d="M189-160q-60 0-102.5-43T42-307q0-9 1-18t3-18l84-336q14-54 57-87.5t98-33.5h390q55 0 98 33.5t57 87.5l84 336q2 9 3.5 18.5T919-306q0 61-43.5 103.5T771-160q-42 0-78-22t-54-60l-28-58q-5-10-15-15t-21-5H385q-11 0-21 5t-15 15l-28 58q-18 38-54 60t-78 22Zm3-80q19 0 34.5-10t23.5-27l28-57q15-31 44-48.5t63-17.5h190q34 0 63 18t45 48l28 57q8 17 23.5 27t34.5 10q28 0 48-18.5t21-46.5q0 1-2-19l-84-335q-7-27-28-44t-49-17H285q-28 0-49.5 17T208-659l-84 335q-2 6-2 18 0 28 20.5 47t49.5 19Zm348-280q17 0 28.5-11.5T580-560q0-17-11.5-28.5T540-600q-17 0-28.5 11.5T500-560q0 17 11.5 28.5T540-520Zm80-80q17 0 28.5-11.5T660-640q0-17-11.5-28.5T620-680q-17 0-28.5 11.5T580-640q0 17 11.5 28.5T620-600Zm0 160q17 0 28.5-11.5T660-480q0-17-11.5-28.5T620-520q-17 0-28.5 11.5T580-480q0 17 11.5 28.5T620-440Zm80-80q17 0 28.5-11.5T740-560q0-17-11.5-28.5T700-600q-17 0-28.5 11.5T660-560q0 17 11.5 28.5T700-520Zm-360 60q13 0 21.5-8.5T370-490v-40h40q13 0 21.5-8.5T440-560q0-13-8.5-21.5T410-590h-40v-40q0-13-8.5-21.5T340-660q-13 0-21.5 8.5T310-630v40h-40q-13 0-21.5 8.5T240-560q0 13 8.5 21.5T270-530h40v40q0 13 8.5 21.5T340-460Zm140-20Z"/></svg>Launch Playground - 3_02_2_picking_color_coding</a><p>Ray casting is relatively simple to implement but has limitations in some scenarios. For example, proxy geometries often lack the detail of the actual objects, which can affect precision in picking. Additionally, the ray casting method we implemented does not account for occlusion; a distant and occluded object might still be picked if it is encountered first during intersection detection. Furthermore, in cases where objects have a single side, such as a plane with only a front face, the object should not be visible when facing away from the viewer if we cull its back face. However, ray picking would still select it. Lastly, with many objects, ray casting can become slow, especially when many objects are obscured or outside the view. This issue can be mitigated by using more efficient scene data structures like a kd-tree, which limits ray intersection tests to objects that are likely to intersect with the ray.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="thumb_colorpicking.png" original_src="colorpicking.png" alt="An Illustration of a Color Coded 3D Scene" sources='[]' /><div class="img-title">An Illustration of a Color Coded 3D Scene</div></div></p><p>In this section, we will explore an alternative picking method called color coding, which addresses some of these issues. The principle of color coding is straightforward: we encode each object's ID as a unique color. With RGB colors, we can represent up to 2^24 objects, which is sufficient for most use cases. We render the scene using these unique colors and then read back the rendered image. During this step, it is important to avoid processes that could alter color values, such as blending or anti-aliasing. After rendering, we can retrieve object IDs from the colors by checking the color under the mouse cursor. Instead of reading the entire image, it is sufficient to sample a small area around the cursor. Additionally, rendering at a reduced resolution can enhance performance, as picking does not typically require pixel-level accuracy.</p><p>The benefits of color coding are clear: by rendering the scene with unique colors, only the frontmost and visible object is considered for selection. This method also avoids the need for proxy geometries, allowing for precise picking with the actual geometry. However, unlike ray casting, color coding requires coordination between shader code and JavaScript code.</p><p>Now, let’s look at the code:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=42>@vertex
+fn vs_main(
+    @builtin(instance_index) instanceIdx : u32,
+    @location(0) inPos: vec3&lt;f32&gt;,
+    @location(1) color: vec4&lt;u32&gt;
+) -&gt; VertexOutput {
+    var out: VertexOutput;
+    out.clip_position = projection * modelView * teapotTransformationMat[instanceIdx] * vec4&lt;f32&gt;(inPos, 1.0);
+    out.color = color.xyz;
+    return out;
+}
+
+// Fragment shader
+
+@fragment
+fn fs_main(in: VertexOutput) -&gt; @location(0) vec4&lt;u32&gt; {
+    return vec4&lt;u32&gt;( in.color.xyz ,255);
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=41:58#3_02_2_picking_color_coding">3_02_2_picking_color_coding/index.html:42-59 Shader to Render Color Coded Objects</a></div></div><p>There are two shaders involved in this process. The first shader is the normal rendering shader, which we will skip. The second shader is used for color-coded rendering, which is actually simpler. Color codes are passed in via vertex attributes and then to the fragment shader, which renders these colors. The transparency channel is set to fully opaque, and the output format is u32 to avoid scaling color values to floating-point numbers, which could alter the color codes.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=666>bufferWidth = (Math.floor(2 * 4 / 256.0) + 1) * 256;
+copiedBuffer = createGPUBuffer(device, new Uint8Array(bufferWidth * 2), GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
+</pre></code><div class="code-fragments-separator">• • •</div><pre><code class="language-javascript code-block" startNumber=669>async function pick(x, y) {
+    if (inRendering) {
+        return 17;
+    }
+    inRendering = true;
+</pre></code><div class="code-fragments-separator">• • •</div><pre><code class="language-javascript code-block" startNumber=701>passEncoder = commandEncoder.beginRenderPass(renderPassDescColorCode);
+
+passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
+teapot.encodeForColorCoding(passEncoder);
+
+passEncoder.end();
+commandEncoder.copyTextureToBuffer({ texture: colorCodeTexture, origin: { x, y } }, { buffer: copiedBuffer, bytesPerRow: bufferWidth }, { width: 2, height: 2 });
+device.queue.submit([commandEncoder.finish()]);
+
+await device.queue.onSubmittedWorkDone();
+</pre></code><div class="code-fragments-separator">• • •</div><pre><code class="language-javascript code-block" startNumber=719>        await copiedBuffer.mapAsync(GPUMapMode.READ, 0, bufferWidth * 2);
+        //const imageData = new ImageData(new Uint8ClampedArray(copiedBuffer.getMappedRange()), bufferWidth / 4, 2);
+
+        const d = new Uint8ClampedArray(copiedBuffer.getMappedRange());
+        const picked = d[0];
+        console.log('pick ', picked);
+
+        copiedBuffer.unmap();
+        inRendering = false;
+
+        return picked;
+    }
+
+    return 17;
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=665:666,668:672,700:709,718:732#3_02_2_picking_color_coding">3_02_2_picking_color_coding/index.html:666-733 The Picking Routine</a></div></div><p>Firstly, to prevent the pick function from being called while a previous call is still processing, we use a flag <code>inRendering</code>. This ensures that temporary buffers are not written to while being mapped, avoiding potential issues.</p><p>After rendering, we copy the framebuffer to a temporary <code>copiedBuffer</code>. This buffer is smaller than the framebuffer, and we only copy a 2x2 window around the current mouse cursor. Note that the <code>bytesPerRow</code> parameter must be a multiple of 256, according to the specification, so we allocate more space than necessary to comply with this requirement.</p><p>Once the command queue is completed, we map the copied buffer for read access. While a more sophisticated implementation might analyze the most dominant color to determine the most likely object, this example simply checks the red channel of the first pixel. Given that there are only 16 objects in the demo, the red channel alone suffices to identify the object index, so this approach is used for simplicity.</p><p>Let's now examine the pipeline setup code, specifically how we encode object indices into colors when setting up teapot instances. We encode the object index into RGB values using little-endian format.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=188>for (let i = 0; i &lt; this.instanceCount; ++i) {
+</pre></code><div class="code-fragments-separator">• • •</div><pre><code class="language-javascript code-block" startNumber=209>    colorCodes.set([i &amp; 0b11111111,
+    (i &gt;&gt; 8) &amp; 0b11111111, (i &gt;&gt; 16) &amp; 0b11111111, (i &gt;&gt; 24) &amp; 0b11111111], i * 4 + 0);
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=187:187,208:210#3_02_2_picking_color_coding">3_02_2_picking_color_coding/index.html:188-211 Setting Color Codes</a></div></div><p>The final step is creating the target texture for rendering the color-coded scene:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=649>const colorCodeTextureDesc = {
+    size: [canvas.width, canvas.height, 1],
+    dimension: '2d',
+    format: 'rgba8uint',
+    usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC
+};
+
+colorCodeTexture = device.createTexture(colorCodeTextureDesc);
+
+let colorCodeTextureView = colorCodeTexture.createView();
+
+colorCodeAttachment = {
+    view: colorCodeTextureView,
+    clearValue: { r: 1, g: 0, b: 0, a: 1 },
+    loadOp: 'clear',
+    storeOp: 'store'
+};
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=648:664#3_02_2_picking_color_coding">3_02_2_picking_color_coding/index.html:649-665 Configuring the Temporary Render Target</a></div></div><p>We use the <code>rgba8unorm</code> format for the texture to match the shader's output format. For the read-back buffer, note how we determine bufferWidth. Although a single row of a 2x2 window requires only 4 * 2 bytes, it must be rounded up to the nearest multiple of 256. This is a requirement for <code>GPUImageCopyBuffer</code>.</p><p>This concludes the picking setup. The normal rendering part, which we have chosen to omit, complements this process.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="thumb_picking_color_coding.png" original_src="picking_color_coding.png" alt="Object Picking Based on Color Coding Doesn't Need Proxy Geometries" sources='[]' /><div class="img-title">Object Picking Based on Color Coding Doesn't Need Proxy Geometries</div></div></p>
         </article>
 
         <div class="older_newer_link_section">

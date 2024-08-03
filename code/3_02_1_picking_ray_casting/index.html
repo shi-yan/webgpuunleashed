@@ -104,7 +104,6 @@
         @location(1) normal: vec3<f32>,
         @location(2) lightDir: vec3<f32>
     };
-    
     @vertex
     fn vs_main(
         @builtin(instance_index) instanceIdx : u32,
@@ -124,7 +123,6 @@
         }
         return out;
     }
-    
     // Fragment shader
     
     @fragment
@@ -176,7 +174,6 @@
             let normalMats = new Float32Array(16 * this.instanceCount);
 
             const circleRadius = 12;
-
             const teapotCenter = glMatrix.vec4.fromValues(center[0], center[1], center[2], 1.0);
 
             console.log("teapot center", teapotCenter);
@@ -220,8 +217,6 @@
                 this.ringPositionBuffer3.push(z + center[2]);
             }
             this.ringPositionBuffer3 = createGPUBuffer(device, new Float32Array(this.ringPositionBuffer3), GPUBufferUsage.VERTEX);
-
-
             for (let i = 0; i < this.instanceCount; ++i) {
 
                 const angle = 2.0 * Math.PI * i / this.instanceCount;
@@ -235,9 +230,6 @@
 
                 transformationMats.set(modelViewMatrix, i * 16);
 
-
-
-
                 let modelViewMatrixInverse = glMatrix.mat4.invert(glMatrix.mat4.create(), modelViewMatrix);
 
                 let normalMatrix = glMatrix.mat4.transpose(glMatrix.mat4.create(), modelViewMatrixInverse);
@@ -249,7 +241,6 @@
 
                 console.log('center ', center)
             }
-
             let transformationMatUniformBuffer = createGPUBuffer(device, transformationMats, GPUBufferUsage.UNIFORM);
             let normalMatUniformBuffer = createGPUBuffer(device, normalMats, GPUBufferUsage.UNIFORM);
             this.selectionUniformBuffer = createGPUBuffer(device, new Uint32Array([17]), GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
@@ -274,8 +265,6 @@
 
                 ]
             });
-
-
 
             let uniformBindGroupLayout = device.createBindGroupLayout({
                 entries: [
@@ -322,7 +311,6 @@
                 ]
             });
 
-
             this.ringUniformBindGroup = device.createBindGroup({
                 layout: ringUniformBindGroupLayout,
                 entries: [
@@ -346,7 +334,6 @@
                     }
                 ]
             });
-
 
             this.uniformBindGroup = device.createBindGroup({
                 layout: uniformBindGroupLayout,
@@ -486,7 +473,6 @@
             this.pipeline = device.createRenderPipeline(pipelineDesc);
             this.ringPipeline = device.createRenderPipeline(ringPipelineDesc);
         }
-
         encode(encoder) {
             encoder.setPipeline(this.pipeline);
             encoder.setBindGroup(0, this.uniformBindGroup);
@@ -801,7 +787,6 @@
                 //selection mode
                 const currX = (x - originX) * 2.0 / width;
                 const currY = (originY - y) * 2.0 / height;
-
                 //https://gamedev.stackexchange.com/questions/17987/what-does-the-graphics-card-do-with-the-fourth-element-of-a-vector-as-the-final
                 //https://antongerdelan.net/opengl/raycasting.html
                 //https://gamedev.stackexchange.com/questions/153078/what-can-i-do-with-the-4th-component-of-gl-position
@@ -817,10 +802,8 @@
                 let dir = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), camSpacePosition, modelViewMatrixInverse);
 
                 dir = glMatrix.vec3.normalize(glMatrix.vec3.create(), dir);
-
                 let found = false;
                 console.log("select", currX, currY, teapot.instanceCount);
-
                 for (let i = 0; i < teapot.instanceCount; ++i) {
                     let center = teapot.instanceCenters[i];
                     center = glMatrix.vec3.fromValues(center[0] - arcball.forwardVector[0],
@@ -843,7 +826,6 @@
                         break;
                     }
                 }
-
                 if (!found) {
                     const selectionUniformBufferUpdate = createGPUBuffer(device, new Uint32Array([17]), GPUBufferUsage.COPY_SRC);
                     commandEncoder = device.createCommandEncoder();

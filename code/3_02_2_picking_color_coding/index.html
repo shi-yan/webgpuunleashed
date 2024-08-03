@@ -39,7 +39,6 @@
         @builtin(position) clip_position: vec4<f32>,
         @location(0) @interpolate(flat) color: vec3<u32>
     };
-    
     @vertex
     fn vs_main(
         @builtin(instance_index) instanceIdx : u32,
@@ -186,9 +185,7 @@
             const teapotCenter = glMatrix.vec4.fromValues(center[0], center[1], center[2], 1.0);
 
             let colorCodes = new Uint8Array(this.instanceCount * 4);
-
             for (let i = 0; i < this.instanceCount; ++i) {
-
                 const angle = 2.0 * Math.PI * i / this.instanceCount;
 
                 let translation = glMatrix.mat4.fromTranslation(glMatrix.mat4.create(),
@@ -209,7 +206,6 @@
 
                 let center = glMatrix.vec4.transformMat4(glMatrix.vec3.create(), teapotCenter, modelViewMatrix);
                 this.instanceCenters.push(glMatrix.vec3.fromValues(center[0], center[1], center[2]));
-
                 colorCodes.set([i & 0b11111111,
                 (i >> 8) & 0b11111111, (i >> 16) & 0b11111111, (i >> 24) & 0b11111111], i * 4 + 0);
             }
@@ -650,7 +646,6 @@
                 1.4, canvas.width / canvas.height, 0.1, 1000.0);
 
             projectionMatrixUniformBufferUpdate = createGPUBuffer(device, projectionMatrix, GPUBufferUsage.COPY_SRC);
-
             const colorCodeTextureDesc = {
                 size: [canvas.width, canvas.height, 1],
                 dimension: '2d',
@@ -671,7 +666,6 @@
             bufferWidth = (Math.floor(2 * 4 / 256.0) + 1) * 256;
             copiedBuffer = createGPUBuffer(device, new Uint8Array(bufferWidth * 2), GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
         }
-
         async function pick(x, y) {
             if (inRendering) {
                 return 17;
@@ -704,7 +698,6 @@
                     modelViewMatrixUniformBuffer, 0, modelViewMatrix.byteLength);
                 commandEncoder.copyBufferToBuffer(normalMatrixUniformBufferUpdate, 0,
                     normalMatrixUniformBuffer, 0, normalMatrix.byteLength);
-
                 passEncoder = commandEncoder.beginRenderPass(renderPassDescColorCode);
 
                 passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
@@ -723,8 +716,6 @@
                 modelViewMatrixUniformBufferUpdate.destroy();
                 normalMatrixUniformBufferUpdate.destroy();
 
-
-
                 await copiedBuffer.mapAsync(GPUMapMode.READ, 0, bufferWidth * 2);
                 //const imageData = new ImageData(new Uint8ClampedArray(copiedBuffer.getMappedRange()), bufferWidth / 4, 2);
 
@@ -740,7 +731,6 @@
 
             return 17;
         }
-
 
         async function render() {
             if (inRendering) {
