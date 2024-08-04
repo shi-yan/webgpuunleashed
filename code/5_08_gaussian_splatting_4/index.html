@@ -160,14 +160,13 @@
         var out: VertexOutput;
 
         var pos:vec4<f32> = vec4<f32>(10.0,10.0,10.0,1.0);
-
         var clipCenter:vec4<f32> = projection * modelView * pos;
 
         var ndcCenter:vec3<f32> = clipCenter.xyz / clipCenter.w;
 
         var ndcOffset:vec2<f32> = vec2(inPos.x * basisVector1 + inPos.y * basisVector2) * basisViewport;
 
-        out.clip_position = vec4<f32>(ndcCenter.xy + ndcOffset, ndcCenter.z, 1.0)  ;    
+        out.clip_position = vec4<f32>(ndcCenter.xy + ndcOffset, ndcCenter.z, 1.0);
         out.coord = inPos;    
         return out;
     }
@@ -353,18 +352,15 @@
             this.normalBuffer = normalBuffer;
             this.indexBuffer = indexBuffer;
             this.indexSize = indexSize;
-
             const rot = glMatrix.quat.fromValues(0.601, 0.576, 0.554, 0.01);
             let scale = glMatrix.mat4.fromScaling(glMatrix.mat4.create(), glMatrix.vec4.fromValues(2.0, 0.3, 0.5));
             scale = glMatrix.mat3.fromMat4(glMatrix.mat3.create(), scale);
             const rotation = glMatrix.mat3.fromQuat(glMatrix.mat3.create(), rot);
-
             const T = glMatrix.mat3.multiply(glMatrix.mat3.create(), rotation, scale);
 
             const T_transpose = glMatrix.mat3.transpose(glMatrix.mat3.create(), T);
 
             this.covariance = glMatrix.mat3.multiply(glMatrix.mat3.create(), T, T_transpose);
-
             console.log("covariance:", this.covariance);
 
             const scale4x4 = glMatrix.mat4.fromScaling(glMatrix.mat4.create(), glMatrix.vec4.fromValues(2.0, 0.3, 0.5));
@@ -673,7 +669,6 @@
 
             const devicePixelRatio = window.devicePixelRatio || 1;
             const renderDimension = { x: canvas.clientWidth, y: canvas.clientHeight };
-
             const focal = {
                 x: projectionMatrix[0] * devicePixelRatio * renderDimension.x * 0.5,
                 y: projectionMatrix[5] * devicePixelRatio * renderDimension.y * 0.5
@@ -688,18 +683,12 @@
                 0., -focal.y / viewCenter[2], (focal.y * viewCenter[1]) * s,
                 0., 0., 0.
             );
-
             const W = glMatrix.mat3.transpose(glMatrix.mat3.create(), glMatrix.mat3.fromMat4(glMatrix.mat3.create(), arcballModelViewMatrix));
             const T = glMatrix.mat3.multiply(glMatrix.mat3.create(), W, J);
 
-
-
             let new_c = glMatrix.mat3.multiply(glMatrix.mat3.create(), glMatrix.mat3.transpose(glMatrix.mat3.create(), T), glMatrix.mat3.multiply(glMatrix.mat3.create(), this.covariance, T));
-
      
-
             const cov2Dv = glMatrix.vec3.fromValues(new_c[0], new_c[1], new_c[4]);
-
 
             let a = cov2Dv[0];
             let b = cov2Dv[1];
@@ -709,10 +698,8 @@
             let trace = a + d;
             let traceOver2 = 0.5 * trace;
             let term2 = Math.sqrt(trace * trace / 4.0 - D);
-            //console.log(b, d)
             let eigenValue1 = traceOver2 + term2;
             let eigenValue2 = Math.max(traceOver2 - term2, 0.00); // prevent negative eigen value
-
 
             const maxSplatSize = 1024.0;
             let eigenVector1 = glMatrix.vec2.normalize(glMatrix.vec2.create(), glMatrix.vec2.fromValues(b, eigenValue1 - a));

@@ -1,3 +1,4 @@
+#cs_start: sample_from_gaussian
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -20,7 +21,7 @@ json.dump(X.tolist(), codecs.open('points.json', 'w', encoding='utf-8'),
           separators=(',', ':'), 
           sort_keys=True, 
           indent=4)
-
+#cs_end: sample_from_gaussian
 # Create the 3D plot
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')

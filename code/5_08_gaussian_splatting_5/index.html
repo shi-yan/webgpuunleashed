@@ -116,14 +116,13 @@
     @binding(1) @group(1) var<uniform> projection: mat4x4<f32>;
     @binding(2) @group(1) var<uniform> screen: vec2<f32>;
     
-
     @compute @workgroup_size(256)
     fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>,
       @builtin(local_invocation_id) LocalInvocationID: vec3<u32>,
       @builtin(workgroup_id) WorkgroupID: vec3<u32>) {
-          var gid = GlobalInvocationID.x;
+        var gid = GlobalInvocationID.x;
 
-          if (gid < splatCount) {
+        if (gid < splatCount) {
             var covarianceFirst = covariance[gid*2];
             var covarianceSecond = covariance[gid*2+1];
 
@@ -156,45 +155,41 @@
                 0.0, 0.0, 0.0
             );
 
-
             var T:mat3x3<f32> =  modelView3x3 * J ;
 
             var T_t:mat3x3<f32> = transpose(T);
-
         
             var new_c:mat3x3<f32> =  T_t * covarianceMatrix * T;
             
-                var cov2Dv:vec3<f32> = vec3<f32>(new_c[0][0] , new_c[0][1], new_c[1][1]);
+            var cov2Dv:vec3<f32> = vec3<f32>(new_c[0][0] , new_c[0][1], new_c[1][1]);
               
-                var a:f32 = cov2Dv.x;
-                var b:f32 = cov2Dv.y;
-                var d:f32 = cov2Dv.z;
+            var a:f32 = cov2Dv.x;
+            var b:f32 = cov2Dv.y;
+            var d:f32 = cov2Dv.z;
     
-                var D:f32 = a * d - b * b;
-                var trace:f32 = a + d;
-                var traceOver2:f32 = 0.5 * trace;
-                var term2:f32 = sqrt(trace * trace / 4.0 - D);
+            var D:f32 = a * d - b * b;
+            var trace:f32 = a + d;
+            var traceOver2:f32 = 0.5 * trace;
+            var term2:f32 = sqrt(trace * trace / 4.0 - D);
                 
-                var eigenValue1:f32 = traceOver2 + term2;
-                var eigenValue2:f32 = max(traceOver2 - term2, 0.0);
+            var eigenValue1:f32 = traceOver2 + term2;
+            var eigenValue2:f32 = max(traceOver2 - term2, 0.0);
     
-                const maxSplatSize:f32 = 1024.0;
-                var eigenVector1:vec2<f32> = normalize(vec2<f32>(b, eigenValue1 - a));
-                var eigenVector2:vec2<f32> = vec2<f32>(eigenVector1.y, -eigenVector1.x);
+            const maxSplatSize:f32 = 1024.0;
+            var eigenVector1:vec2<f32> = normalize(vec2<f32>(b, eigenValue1 - a));
+            var eigenVector2:vec2<f32> = vec2<f32>(eigenVector1.y, -eigenVector1.x);
       
-                var basisVector1:vec2<f32> = eigenVector1 * min(sqrt(eigenValue1)*4, maxSplatSize);
-                var basisVector2:vec2<f32> = eigenVector2 * min(sqrt(eigenValue2)*4, maxSplatSize);
-                readback[gid] = vec4<f32>(basisVector1,basisVector2);
-                var dis:vec4<f32> = projection * modelView * center;
-                distance[gid] = u32(dis.z / dis.w * f32(0xFFFFFFFF >> 8));     
-                basis[gid] = vec4<f32>(basisVector1, basisVector2);
-          }
-          else {
+            var basisVector1:vec2<f32> = eigenVector1 * min(sqrt(eigenValue1)*4, maxSplatSize);
+            var basisVector2:vec2<f32> = eigenVector2 * min(sqrt(eigenValue2)*4, maxSplatSize);
+            readback[gid] = vec4<f32>(basisVector1,basisVector2);
+            var dis:vec4<f32> = projection * modelView * center;
+            distance[gid] = u32(dis.z / dis.w * f32(0xFFFFFFFF >> 8));     
+            basis[gid] = vec4<f32>(basisVector1, basisVector2);
+        } else {
             distance[gid] = 0xFFFFFFFF;
-          }
-          id[gid] = gid;
+        }
+        id[gid] = gid;
     }
-
 </script>
 
 <script id="scan_shader" type="wgsl">
@@ -1448,7 +1443,7 @@
                     },
                     color: {
                         operation: "add",
-                        srcFactor: 'src-alpha',
+                        srcFactor: 'one',
                         dstFactor: 'one-minus-src-alpha',
                     }
                 }
@@ -1613,7 +1608,6 @@
   
               this.distanceBufferCopy.unmap();*/
         }
-
         encode(encoder) {
             encoder.setPipeline(this.splatPipeline);
             encoder.setBindGroup(0, this.splatUniformBindGroup0);

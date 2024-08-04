@@ -205,81 +205,50 @@ for (int i = 0; i &lt; opacity.size(); ++i)
     }
 }
 outputFile &lt;&lt; "]";
-</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=8:43#5_08_gaussian_splatting_1/preprocess">5_08_gaussian_splatting_1/preprocess/main.cpp:9-44 PLY Preprocessor</a></div></div><pre><code class="language-cpp code-block">happly::PLYData plyIn("../../../data/food.ply");
-    std::vector&lt;float&gt; opacity = plyIn.getElement("vertex").getProperty&lt;float&gt;("opacity");
-    std::vector&lt;float&gt; scale0 = plyIn.getElement("vertex").getProperty&lt;float&gt;("scale_0");
-    std::vector&lt;float&gt; scale1 = plyIn.getElement("vertex").getProperty&lt;float&gt;("scale_1");
-    std::vector&lt;float&gt; scale2 = plyIn.getElement("vertex").getProperty&lt;float&gt;("scale_2");
-    std::vector&lt;float&gt; rot0 = plyIn.getElement("vertex").getProperty&lt;float&gt;("rot_0");
-    std::vector&lt;float&gt; rot1 = plyIn.getElement("vertex").getProperty&lt;float&gt;("rot_1");
-    std::vector&lt;float&gt; rot2 = plyIn.getElement("vertex").getProperty&lt;float&gt;("rot_2");
-    std::vector&lt;float&gt; rot3 = plyIn.getElement("vertex").getProperty&lt;float&gt;("rot_3");
-    std::vector&lt;float&gt; x = plyIn.getElement("vertex").getProperty&lt;float&gt;("x");
-    std::vector&lt;float&gt; y = plyIn.getElement("vertex").getProperty&lt;float&gt;("y");
-    std::vector&lt;float&gt; z = plyIn.getElement("vertex").getProperty&lt;float&gt;("z");
-    std::vector&lt;float&gt; f_dc_0 = plyIn.getElement("vertex").getProperty&lt;float&gt;("f_dc_0");
-    std::vector&lt;float&gt; f_dc_1 = plyIn.getElement("vertex").getProperty&lt;float&gt;("f_dc_1");
-    std::vector&lt;float&gt; f_dc_2 = plyIn.getElement("vertex").getProperty&lt;float&gt;("f_dc_2");
-    std::ofstream outputFile;
-    outputFile.open("food.json");
-    outputFile &lt;&lt; "[";
-    for (int i = 0; i &lt; opacity.size(); ++i)
-    {
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=8:43#5_08_gaussian_splatting_1/preprocess">5_08_gaussian_splatting_1/preprocess/main.cpp:9-44 PLY Preprocessor</a></div></div><p><code>happly</code> is a very easy-to-use library. All you need to do is supply a field name, and it will return a list of values for that field. Note that we need to perform some data conversions for scale and opacity. I couldn't find official documentation on these fields, so the formula comes from a reference source code.</p><p>However, I want to explain the conversion for colors. The equation might seem strange, especially the constant applied to each color channel. In many computer graphics problems, we need to model a complex function on a sphere. For example, for a 3D location in space, light can come from all directions with different intensities. We need to find a function that, given a 3D direction, returns a light intensity. This is a typical function defined on a sphere. Since the function can be complex, we probably won't find a simple form to represent it. One solution is to break it down into a summation of a series of simpler functions. This technique is called spherical harmonics. It is similar to the Fourier transform, but each component is a spherical function.</p><p>Spherical harmonics are important for Gaussian splatting to model highly reflective surfaces. For surfaces such as mirrors or chrome metal, their appearance can change based on the viewing angles.</p><p>A <a class="link" href="https://patapom.com/blog/SHPortal/" target="_blank">detailed explanation</a> of spherical harmonics is beyond the scope of this book. The key takeaway is that the constant <code class="language-math math-inline">SH_{C0}</code> is the first coefficient of the spherical harmonics formula. Despite deriving the color with spherical harmonics, we don't seem to relate the color to viewing directions, as the colors are also constant. This is correct; in our example, we assume a constant color for each Gaussian, meaning we can't model reflective surfaces well.</p><p>We want to be conservative and finish our rendering step by step. The first step is simply rendering the data as a point cloud. This should be straightforward for us now. Here is the shader code:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=35>@group(0) @binding(0)
+var&lt;uniform&gt; modelView: mat4x4&lt;f32&gt;;
+@group(0) @binding(1)
+var&lt;uniform&gt; projection: mat4x4&lt;f32&gt;;
 
-        const double SH_C0 = 0.28209479177387814;
+struct VertexOutput {
+    @builtin(position) clip_position: vec4&lt;f32&gt;,
+    @location(0) color: vec4&lt;f32&gt;,
+};
 
-        outputFile &lt;&lt; "{\"p\":[" &lt;&lt; x[i] &lt;&lt; ", " &lt;&lt; y[i] &lt;&lt; ", " &lt;&lt; z[i] &lt;&lt; "]," &lt;&lt; std::endl;
-        outputFile &lt;&lt; "\"r\":[" &lt;&lt; rot0[i] &lt;&lt; ", " &lt;&lt; rot1[i] &lt;&lt; ", " &lt;&lt; rot2[i] &lt;&lt; "," &lt;&lt; rot3[i] &lt;&lt; "]," &lt;&lt; std::endl;
-        outputFile &lt;&lt; "\"c\":[" &lt;&lt; (0.5 + SH_C0 * f_dc_0[i]) &lt;&lt; ", " &lt;&lt; (0.5 + SH_C0 * f_dc_1[i]) &lt;&lt; ", " &lt;&lt; (0.5 + SH_C0 * f_dc_2[i]) &lt;&lt; "]," &lt;&lt; std::endl;
+@vertex
+fn vs_main(
+    @location(0) inPos: vec3&lt;f32&gt;,
+    @location(1) color: vec3&lt;f32&gt;,
+    @location(2) opacity: f32
+) -&gt; VertexOutput {
+    var out: VertexOutput;
+    out.color = vec4&lt;f32&gt;(color, opacity);
+    out.clip_position = projection * modelView * vec4&lt;f32&gt;(inPos, 1.0);
+    return out;
+}
 
-        outputFile &lt;&lt; "\"s\":[" &lt;&lt; exp(scale0[i]) &lt;&lt; ", " &lt;&lt; exp(scale1[i]) &lt;&lt; ", " &lt;&lt; exp(scale2[i]) &lt;&lt; "]," &lt;&lt; std::endl;
-        outputFile &lt;&lt; "\"o\":" &lt;&lt; (1.0 / (1.0 + exp(-opacity[i]))) &lt;&lt; "}";
-
-        if (i != opacity.size() - 1)
-        {
-            outputFile &lt;&lt; "," &lt;&lt; std::endl;
-        }
-    }
-    outputFile &lt;&lt; "]";</code></pre><p><code>happly</code> is a very easy-to-use library. All you need to do is supply a field name, and it will return a list of values for that field. Note that we need to perform some data conversions for scale and opacity. I couldn't find official documentation on these fields, so the formula comes from a reference source code.</p><p>However, I want to explain the conversion for colors. The equation might seem strange, especially the constant applied to each color channel. In many computer graphics problems, we need to model a complex function on a sphere. For example, for a 3D location in space, light can come from all directions with different intensities. We need to find a function that, given a 3D direction, returns a light intensity. This is a typical function defined on a sphere. Since the function can be complex, we probably won't find a simple form to represent it. One solution is to break it down into a summation of a series of simpler functions. This technique is called spherical harmonics. It is similar to the Fourier transform, but each component is a spherical function.</p><p>Spherical harmonics are important for Gaussian splatting to model highly reflective surfaces. For surfaces such as mirrors or chrome metal, their appearance can change based on the viewing angles.</p><p>A <a class="link" href="https://patapom.com/blog/SHPortal/" target="_blank">detailed explanation</a> of spherical harmonics is beyond the scope of this book. The key takeaway is that the constant <code class="language-math math-inline">SH_{C0}</code> is the first coefficient of the spherical harmonics formula. Despite deriving the color with spherical harmonics, we don't seem to relate the color to viewing directions, as the colors are also constant. This is correct; in our example, we assume a constant color for each Gaussian, meaning we can't model reflective surfaces well.</p><p>We want to be conservative and finish our rendering step by step. The first step is simply rendering the data as a point cloud. This should be straightforward for us now. Here is the shader code:</p><pre><code class="language-javascript code-block">    @group(0) @binding(0)
-    var&lt;uniform&gt; modelView: mat4x4&lt;f32&gt;;
-    @group(0) @binding(1)
-    var&lt;uniform&gt; projection: mat4x4&lt;f32&gt;;
-
-    struct VertexOutput {
-        @builtin(position) clip_position: vec4&lt;f32&gt;,
-        @location(0) color: vec4&lt;f32&gt;,
-    };
-    
-    @vertex
-    fn vs_main(
-        @location(0) inPos: vec3&lt;f32&gt;,
-        @location(1) color: vec3&lt;f32&gt;,
-        @location(2) opacity: f32
-    ) -&gt; VertexOutput {
-        var out: VertexOutput;
-        out.color = vec4&lt;f32&gt;(color, opacity);
-        out.clip_position = projection * modelView * vec4&lt;f32&gt;(inPos, 1.0);
-        return out;
-    }
-    
-    // Fragment shader
-    
-    @fragment
-    fn fs_main(in: VertexOutput) -&gt; @location(0) vec4&lt;f32&gt; {
-        return in.color;
-    }</code></pre><p>And here is the rendering result:</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="thumb_pointcloud.png" original_src="pointcloud.png" alt="Visualizing the Point Cloud" sources='[]' /><div class="img-title">Visualizing the Point Cloud</div></div></p><p>To understand how to render a Gaussian splat, we need to be familiar with the geometric interpretation of a 3D Gaussian function. For that, I recommend this <a class="link" href="https://users.cs.utah.edu/~tch/CS4640F2019/resources/A%20geometric%20interpretation%20of%20the%20covariance%20matrix.pdf" target="_blank">document</a>. I will skip the details and summarize what's useful for our implementation.</p><p>A 3D Gaussian is defined by two parameters: a centroid and a 3x3 covariance matrix. Intuitively, the centroid is the position of a Gaussian, and the covariance matrix defines the shape of the Gaussian (an ellipsoid).</p><p class="katex-display-counter"><code class="language-math math-block">  \mathcal{N}(\mu, \sigma^2)</code></p><p>If we consider 1D Gaussians, they are defined by a mean <code class="language-math math-inline">\mu</code> and a variance <code class="language-math math-inline">\sigma^2</code>. In this context, the mean <code class="language-math math-inline">\mu</code> dictates the center of the Gaussian on the x-axis, while <code class="language-math math-inline">\sigma^2</code> determines its spread or shape.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="1D Gaussians of Different Means and Variances" sources='["https://en.wikipedia.org/wiki/Normal_distribution"]' /><div class="img-title">1D Gaussians of Different Means and Variances<a class="img-source" target="_blank" href="https://en.wikipedia.org/wiki/Normal_distribution">[SOURCE]</a></div></div></p><p>The same principle extends to 2D and 3D Gaussians, where they are defined by a mean <code class="language-math math-inline">\mu</code> (or centroid) and a covariance matrix <code class="language-math math-inline">\Sigma</code>. In 2D, the covariance <code class="language-math math-inline">\Sigma</code> is a 2x2 matrix, and in 3D, it is a 3x3 matrix. The covariance matrix holds geometric significance, defining the ellipsoidal shape of the Gaussian.</p><p class="katex-display-counter"><code class="language-math math-block">  \mathcal{N}(\mu, \Sigma)</code></p><p>Below is an illustration showing various 2D Gaussian shapes and their corresponding covariances.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="2D Gaussian Shapes and Their Covariances" sources='["https://users.cs.utah.edu/~tch/CS4640F2019/resources/A%20geometric%20interpretation%20of%20the%20covariance%20matrix.pdf"]' /><div class="img-title">2D Gaussian Shapes and Their Covariances<a class="img-source" target="_blank" href="https://users.cs.utah.edu/~tch/CS4640F2019/resources/A%20geometric%20interpretation%20of%20the%20covariance%20matrix.pdf">[SOURCE]</a></div></div></p><p>We can shift the centroid to adjust a Gaussian's position, and we can also rotate and scale the covariance matrix to modify its shape. This process is akin to applying a model-view matrix to vertices during rendering, although the mathematical operations involved are not identical.</p><p>The fundamental insight from the geometric interpretation outlined in the <a class="link" href="https://users.cs.utah.edu/~tch/CS4640F2019/resources/A%20geometric%20interpretation%20of%20the%20covariance%20matrix.pdf" target="_blank">document</a> is that the covariance matrix <code class="language-math math-inline">\Sigma</code> specifies a rotation and scaling transformation that morphs a standard Gaussian with the identity matrix <code class="language-math math-inline">\mathbf I</code> as its covariance into an ellipsoidal shape. Let this transformation be represented by a 3x3 matrix <code class="language-math math-inline">\textit{T}</code>; it can be factored into a product of a 3x3 rotation matrix <code class="language-math math-inline">\textit{R}</code> and a scaling matrix <code class="language-math math-inline">\textit{S}</code>. Thus:</p><p class="katex-display-counter"><code class="language-math math-block">  \begin{aligned}
+@fragment
+fn fs_main(in: VertexOutput) -&gt; @location(0) vec4&lt;f32&gt; {
+    return in.color;
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=34:59#5_08_gaussian_splatting_1">5_08_gaussian_splatting_1/index.html:35-60 Visualizing the Point Cloud</a></div></div><p>And here is the rendering result:</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="thumb_pointcloud.png" original_src="pointcloud.png" alt="Visualizing the Point Cloud" sources='[]' /><div class="img-title">Visualizing the Point Cloud</div></div></p><p>To understand how to render a Gaussian splat, we need to be familiar with the geometric interpretation of a 3D Gaussian function. For that, I recommend this <a class="link" href="https://users.cs.utah.edu/~tch/CS4640F2019/resources/A%20geometric%20interpretation%20of%20the%20covariance%20matrix.pdf" target="_blank">document</a>. I will skip the details and summarize what's useful for our implementation.</p><p>A 3D Gaussian is defined by two parameters: a centroid and a 3x3 covariance matrix. Intuitively, the centroid is the position of a Gaussian, and the covariance matrix defines the shape of the Gaussian (an ellipsoid).</p><p class="katex-display-counter"><code class="language-math math-block">  \mathcal{N}(\mu, \sigma^2)</code></p><p>If we consider 1D Gaussians, they are defined by a mean <code class="language-math math-inline">\mu</code> and a variance <code class="language-math math-inline">\sigma^2</code>. In this context, the mean <code class="language-math math-inline">\mu</code> dictates the center of the Gaussian on the x-axis, while <code class="language-math math-inline">\sigma^2</code> determines its spread or shape.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="1D Gaussians of Different Means and Variances" sources='["https://en.wikipedia.org/wiki/Normal_distribution"]' /><div class="img-title">1D Gaussians of Different Means and Variances<a class="img-source" target="_blank" href="https://en.wikipedia.org/wiki/Normal_distribution">[SOURCE]</a></div></div></p><p>The same principle extends to 2D and 3D Gaussians, where they are defined by a mean <code class="language-math math-inline">\mu</code> (or centroid) and a covariance matrix <code class="language-math math-inline">\Sigma</code>. In 2D, the covariance <code class="language-math math-inline">\Sigma</code> is a 2x2 matrix, and in 3D, it is a 3x3 matrix. The covariance matrix holds geometric significance, defining the ellipsoidal shape of the Gaussian.</p><p class="katex-display-counter"><code class="language-math math-block">  \mathcal{N}(\mu, \Sigma)</code></p><p>Below is an illustration showing various 2D Gaussian shapes and their corresponding covariances.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="2D Gaussian Shapes and Their Covariances" sources='["https://users.cs.utah.edu/~tch/CS4640F2019/resources/A%20geometric%20interpretation%20of%20the%20covariance%20matrix.pdf"]' /><div class="img-title">2D Gaussian Shapes and Their Covariances<a class="img-source" target="_blank" href="https://users.cs.utah.edu/~tch/CS4640F2019/resources/A%20geometric%20interpretation%20of%20the%20covariance%20matrix.pdf">[SOURCE]</a></div></div></p><p>We can shift the centroid to adjust a Gaussian's position, and we can also rotate and scale the covariance matrix to modify its shape. This process is akin to applying a model-view matrix to vertices during rendering, although the mathematical operations involved are not identical.</p><p>The fundamental insight from the geometric interpretation outlined in the <a class="link" href="https://users.cs.utah.edu/~tch/CS4640F2019/resources/A%20geometric%20interpretation%20of%20the%20covariance%20matrix.pdf" target="_blank">document</a> is that the covariance matrix <code class="language-math math-inline">\Sigma</code> specifies a rotation and scaling transformation that morphs a standard Gaussian with the identity matrix <code class="language-math math-inline">\mathbf I</code> as its covariance into an ellipsoidal shape. Let this transformation be represented by a 3x3 matrix <code class="language-math math-inline">\textit{T}</code>; it can be factored into a product of a 3x3 rotation matrix <code class="language-math math-inline">\textit{R}</code> and a scaling matrix <code class="language-math math-inline">\textit{S}</code>. Thus:</p><p class="katex-display-counter"><code class="language-math math-block">  \begin{aligned}
   \Sigma &= \textit{T} \textit{I} \textit{T}^\top \\
   \Sigma &= \textit{R} \textit{S} (\textit{R} \textit{S})^\top \\
   \Sigma &= \textit{R} \textit{S} \textit{S}^\top \textit{R}^\top \\
-  \end{aligned}</code></p><p>Additionally, if we wish to apply an additional transformation <code class="language-math math-inline">\textit{V}</code> to the covariance matrix, we can do so using the formula <code class="language-math math-inline">\Sigma^\prime = \textit{V} \Sigma \textit{V}^\top</code>. This is crucial for tasks such as <a class="link" href="https://stats.stackexchange.com/questions/484094/projecting-a-covariance-matrix-to-a-lower-dimensional-space" target="_blank">implementing projection</a> of the 3D covariance into 2D space.</p><p>Before delving into rendering Gaussian splats, it's crucial to establish a ground truth. Debugging graphics programs can be challenging, so visualizing the rendering result against this ground truth is essential to ensure the implementation's correctness. There are two primary methods to create the ground truth:</p><ol><li><p>Generate a point cloud from a Gaussian distribution, where the Gaussian value serves as the sample density.</p></li><li><p>Deform a sphere into an ellipsoid based on the same transformation defined by the Gaussian's covariance matrix.</p></li></ol><p>Once the Gaussian splat has been rendered, we anticipate seeing it overlap with the ground truth, providing a visual confirmation of the accuracy of the implementation.</p><p>In this post, I'll use the first method. Python offers excellent support for point sampling, so I'll begin by implementing a helper program in Python to sample points from a Gaussian distribution and save the result to a file. Then, I'll render these points using WebGPU.</p><pre><code class="language-python code-block">import numpy as np
+  \end{aligned}</code></p><p>Additionally, if we wish to apply an additional transformation <code class="language-math math-inline">\textit{V}</code> to the covariance matrix, we can do so using the formula <code class="language-math math-inline">\Sigma^\prime = \textit{V} \Sigma \textit{V}^\top</code>. This is crucial for tasks such as <a class="link" href="https://stats.stackexchange.com/questions/484094/projecting-a-covariance-matrix-to-a-lower-dimensional-space" target="_blank">implementing projection</a> of the 3D covariance into 2D space.</p><p>Before delving into rendering Gaussian splats, it's crucial to establish a ground truth. Debugging graphics programs can be challenging, so visualizing the rendering result against this ground truth is essential to ensure the implementation's correctness. There are two primary methods to create the ground truth:</p><ol><li><p>Generate a point cloud from a Gaussian distribution, where the Gaussian value serves as the sample density.</p></li><li><p>Deform a sphere into an ellipsoid based on the same transformation defined by the Gaussian's covariance matrix.</p></li></ol><p>Once the Gaussian splat has been rendered, we anticipate seeing it overlap with the ground truth, providing a visual confirmation of the accuracy of the implementation.</p><p>In this post, I'll use the first method. Python offers excellent support for point sampling, so I'll begin by implementing a helper program in Python to sample points from a Gaussian distribution and save the result to a file. Then, I'll render these points using WebGPU.</p><div class="code-fragments"><pre><code class="language-python code-block" startNumber=1>import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 import codecs, json 
 
 # Define the parameters of the Gaussian function
 mu = [10, 10, 10]
+sigma = [[2, 2, 0], [0, 1, 0], [2, 0, 1]]
 
-cov = [[0.8084480166435242, -0.376901775598526, -0.947654664516449]
-, [-0.376901775598526, 2.381552219390869, 1.5799134969711304]
-, [-0.947654664516449, 1.5799134969711304, 1.899906873703003]]
+cov = [[0.46426650881767273, -0.6950497627258301, -0.7515625953674316],
+       [ -0.6950497627258301, 2.0874688625335693, 1.7611732482910156],
+       [ -0.7515625953674316, 1.7611732482910156, 1.7881864309310913]]
+
+
 
 # Generate the data
 X = np.random.multivariate_normal(mu, cov, 10000)
@@ -287,14 +256,18 @@ X = np.random.multivariate_normal(mu, cov, 10000)
 json.dump(X.tolist(), codecs.open('points.json', 'w', encoding='utf-8'), 
           separators=(',', ':'), 
           sort_keys=True, 
-          indent=4)</code></pre><p>The code is straightforward. The key line is <code>np.random.multivariate_normal(mu, cov, 10000)</code>, which samples 10,000 points from a multivariate normal distribution (the Gaussian). Then, we save their positions in a JSON file.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Point Samples Visualized as a Point Cloud" sources='[]' /><div class="img-title">Point Samples Visualized as a Point Cloud</div></div></p><p>The covariance matrix used in the program above may appear arbitrary. I will provide an explanation of how these values were determined later in this post.</p><p>Now, let's define the single Gaussian splat we intend to render. Since the specific Gaussian splat doesn't matter for our purposes, we will simply select one at random. In this example, I've chosen a rotation represented by a quaternion of <code class="language-math math-inline">(0.601, 0.576, 0.554, 0.01)</code> and a scaling vector of <code class="language-math math-inline">(2.0, 0.3, 0.5)</code>. Quaternions and scaling vectors are used because they are the information typically stored in a Gaussian splat file.</p><p>The first step involves deriving the rotation matrix and the scaling matrix to reconstruct the covariance matrix. For this task, we will utilize the <a class="link" href="https://glmatrix.net/" target="_blank">glMatrix library</a>.</p><pre><code class="language-javascript code-block">const rot = glMatrix.quat.fromValues(0.601, 0.576, 0.554, 0.01);
-const scale = glMatrix.mat3.fromScaling(glMatrix.mat3.create(), 
-    glMatrix.vec3.fromValues(2.0, 0.3, 0.5));
-const rotation = glMatrix.mat3.fromQuat(glMatrix.mat3.create(), rot);</code></pre><p>Then, according to equation 3, the covariance matrix can be derived as follows:</p><pre><code class="language-javascript code-block">const T = glMatrix.mat3.multiply(glMatrix.mat3.create(), rotation, scale);
+          indent=4)
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=0:21#5_08_gaussian_splatting_6">5_08_gaussian_splatting_6/debug.py:1-22 Sample Points From an Experimental Gaussian</a></div></div><p>The code is straightforward. The key line is <code>np.random.multivariate_normal(mu, cov, 10000)</code>, which samples 10,000 points from a multivariate normal distribution (the Gaussian). Then, we save their positions in a JSON file.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="thumb_samples.png" original_src="samples.png" alt="Point Samples Visualized as a Point Cloud" sources='[]' /><div class="img-title">Point Samples Visualized as a Point Cloud</div></div></p><p>The covariance matrix used in the program above may appear arbitrary. I will provide an explanation of how these values were determined later in this post.</p><p>Now, let's define the single Gaussian splat we intend to render. Since the specific Gaussian splat doesn't matter for our purposes, we will simply select one at random. In this example, I've chosen a rotation represented by a quaternion of <code class="language-math math-inline">(0.601, 0.576, 0.554, 0.01)</code> and a scaling vector of <code class="language-math math-inline">(2.0, 0.3, 0.5)</code>. Quaternions and scaling vectors are used because they are the information typically stored in a Gaussian splat file.</p><p>The first step involves deriving the rotation matrix and the scaling matrix to reconstruct the covariance matrix. For this task, we will utilize the <a class="link" href="https://glmatrix.net/" target="_blank">glMatrix library</a>.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=355>const rot = glMatrix.quat.fromValues(0.601, 0.576, 0.554, 0.01);
+let scale = glMatrix.mat4.fromScaling(glMatrix.mat4.create(), glMatrix.vec4.fromValues(2.0, 0.3, 0.5));
+scale = glMatrix.mat3.fromMat4(glMatrix.mat3.create(), scale);
+const rotation = glMatrix.mat3.fromQuat(glMatrix.mat3.create(), rot);
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=354:357#5_08_gaussian_splatting_4">5_08_gaussian_splatting_4/index.html:355-358 Rotation and Scaling Matrix</a></div></div><p>Then, according to equation 3, the covariance matrix can be derived as follows:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=359>const T = glMatrix.mat3.multiply(glMatrix.mat3.create(), rotation, scale);
+
 const T_transpose = glMatrix.mat3.transpose(glMatrix.mat3.create(), T);
-this.covariance = glMatrix.mat3.multiply(glMatrix.mat3.create(), T, T_transpose);</code></pre><p>The covariance matrix hardcoded in the Python sampling function is identical to the one calculated here.</p><p>During rendering, we update the model-view matrix based on the camera. Using this model-view matrix and the projection matrix, our goal is to accurately project the covariance matrix onto the screen plane, converting the 3D Gaussian into a 2D Gaussian.</p><p>The first step is to obtain the model-view matrix from the camera and convert it into a 3x3 matrix (the upper-left 3x3 corner). In vertex transformation with homogeneous coordinates, a 4x4 matrix is constructed for translation, with the offset values assigned to the last column of the matrix. However, when dealing with the 3x3 covariance matrix, we cannot perform translation, only rotation and scaling. Therefore, to obtain a 3x3 model-view matrix, we simply use the upper-left 3x3 corner. This is in contrast to billboarding, where the 3x3 upper-left corner is assigned the 3x3 identity matrix to remove rotation and scaling.</p><pre><code class="language-javascript code-block">const W = glMatrix.mat3.transpose(glMatrix.mat3.create(), 
-  glMatrix.mat3.fromMat4(glMatrix.mat3.create(), 
-  arcballModelViewMatrix));</code></pre><p>The second step involves performing perspective projection, which is akin to applying the projection matrix. In computer graphics, applying perspective projection transforms coordinates from either camera space or eye space into clip space. Prior to this transformation, the visible space is enclosed within a view frustum, which is a 3D trapezoidal volume. After the transformation, the visible space is represented as a cubic volume.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Projection Turns the View Frustum Into a Cubical Space" sources='["https://www.scratchapixel.com/lessons/3d-basic-rendering/perspective-and-orthographic-projection-matrix/projection-matrices-what-you-need-to-know-first.html"]' /><div class="img-title">Projection Turns the View Frustum Into a Cubical Space<a class="img-source" target="_blank" href="https://www.scratchapixel.com/lessons/3d-basic-rendering/perspective-and-orthographic-projection-matrix/projection-matrices-what-you-need-to-know-first.html">[SOURCE]</a></div></div></p><p>However, it's important to note that perspective transformation is not affine, which means that the original ellipsoidal shape will be warped once projected.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Warping Caused by Perspective Projection" sources='["https://www.cs.umd.edu/~zwicker/publications/EWAVolumeSplatting-VIS01.pdf"]' /><div class="img-title">Warping Caused by Perspective Projection<a class="img-source" target="_blank" href="https://www.cs.umd.edu/~zwicker/publications/EWAVolumeSplatting-VIS01.pdf">[SOURCE]</a></div></div></p><p>Since non-affine transformations cannot be represented as a 3x3 matrix and applied directly to the covariance matrix, our objective is to find an approximation that can transform the Gaussian in a manner that simulates the projection.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Illustration of Approximated Projection. Lower Left: Approximated Projection Doesn't Warp the Shape. Lower Right: Original Projection Would Warp the Shape." sources='["https://www.cs.umd.edu/~zwicker/publications/EWAVolumeSplatting-VIS01.pdf"]' /><div class="img-title">Illustration of Approximated Projection. Lower Left: Approximated Projection Doesn't Warp the Shape. Lower Right: Original Projection Would Warp the Shape.<a class="img-source" target="_blank" href="https://www.cs.umd.edu/~zwicker/publications/EWAVolumeSplatting-VIS01.pdf">[SOURCE]</a></div></div></p><p>To approximate this transformation, we first consider how a point is projected onto the screen.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Perspective Projection of One Point to the Screen Plan" sources='["https://www.songho.ca/opengl/gl_projectionmatrix.html"]' /><div class="img-title">Perspective Projection of One Point to the Screen Plan<a class="img-source" target="_blank" href="https://www.songho.ca/opengl/gl_projectionmatrix.html">[SOURCE]</a></div></div></p><p>Given a point <code class="language-math math-inline">(x_e, y_e, z_e)</code> in camera space to be projected onto the near plane at <code class="language-math math-inline">z=n</code>, the projection can be calculated as follows:</p><p class="katex-display-counter"><code class="language-math math-block">  \begin{aligned}
+
+this.covariance = glMatrix.mat3.multiply(glMatrix.mat3.create(), T, T_transpose);
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=358:362#5_08_gaussian_splatting_4">5_08_gaussian_splatting_4/index.html:359-363 Calculating the Covariance Matrix</a></div></div><p>The covariance matrix hardcoded in the Python sampling function is identical to the one calculated here.</p><p>During rendering, we update the model-view matrix based on the camera. Using this model-view matrix and the projection matrix, our goal is to accurately project the covariance matrix onto the screen plane, converting the 3D Gaussian into a 2D Gaussian.</p><p>The first step is to obtain the model-view matrix from the camera and convert it into a 3x3 matrix (the upper-left 3x3 corner). In vertex transformation with homogeneous coordinates, a 4x4 matrix is constructed for translation, with the offset values assigned to the last column of the matrix. However, when dealing with the 3x3 covariance matrix, we cannot perform translation, only rotation and scaling. Therefore, to obtain a 3x3 model-view matrix, we simply use the upper-left 3x3 corner. This is in contrast to billboarding, where the 3x3 upper-left corner is assigned the 3x3 identity matrix to remove rotation and scaling.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=686>const W = glMatrix.mat3.transpose(glMatrix.mat3.create(), glMatrix.mat3.fromMat4(glMatrix.mat3.create(), arcballModelViewMatrix));
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=685:685#5_08_gaussian_splatting_4">5_08_gaussian_splatting_4/index.html:686-686 3x3 Transformation Matrix</a></div></div><p>The second step involves performing perspective projection, which is akin to applying the projection matrix. In computer graphics, applying perspective projection transforms coordinates from either camera space or eye space into clip space. Prior to this transformation, the visible space is enclosed within a view frustum, which is a 3D trapezoidal volume. After the transformation, the visible space is represented as a cubic volume.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="canonical1.png" alt="Projection Turns the View Frustum Into a Cubical Space" sources='["https://www.scratchapixel.com/lessons/3d-basic-rendering/perspective-and-orthographic-projection-matrix/projection-matrices-what-you-need-to-know-first.html"]' /><div class="img-title">Projection Turns the View Frustum Into a Cubical Space<a class="img-source" target="_blank" href="https://www.scratchapixel.com/lessons/3d-basic-rendering/perspective-and-orthographic-projection-matrix/projection-matrices-what-you-need-to-know-first.html">[SOURCE]</a></div></div></p><p>However, it's important to note that perspective transformation is not affine, which means that the original ellipsoidal shape will be warped once projected.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="thumb_warp.png" original_src="warp.png" alt="Warping Caused by Perspective Projection" sources='["https://www.cs.umd.edu/~zwicker/publications/EWAVolumeSplatting-VIS01.pdf"]' /><div class="img-title">Warping Caused by Perspective Projection<a class="img-source" target="_blank" href="https://www.cs.umd.edu/~zwicker/publications/EWAVolumeSplatting-VIS01.pdf">[SOURCE]</a></div></div></p><p>Since non-affine transformations cannot be represented as a 3x3 matrix and applied directly to the covariance matrix, our objective is to find an approximation that can transform the Gaussian in a manner that simulates the projection.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="thumb_warp2.png" original_src="warp2.png" alt="Illustration of Approximated Projection. Lower Left: Approximated Projection Doesn't Warp the Shape. Lower Right: Original Projection Would Warp the Shape." sources='["https://www.cs.umd.edu/~zwicker/publications/EWAVolumeSplatting-VIS01.pdf"]' /><div class="img-title">Illustration of Approximated Projection. Lower Left: Approximated Projection Doesn't Warp the Shape. Lower Right: Original Projection Would Warp the Shape.<a class="img-source" target="_blank" href="https://www.cs.umd.edu/~zwicker/publications/EWAVolumeSplatting-VIS01.pdf">[SOURCE]</a></div></div></p><p>To approximate this transformation, we first consider how a point is projected onto the screen.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="thumb_gl_projectionmatrix03.png" original_src="gl_projectionmatrix03.png" alt="Perspective Projection of One Point to the Screen Plan" sources='["https://www.songho.ca/opengl/gl_projectionmatrix.html"]' /><div class="img-title">Perspective Projection of One Point to the Screen Plan<a class="img-source" target="_blank" href="https://www.songho.ca/opengl/gl_projectionmatrix.html">[SOURCE]</a></div></div></p><p>Given a point <code class="language-math math-inline">(x_e, y_e, z_e)</code> in camera space to be projected onto the near plane at <code class="language-math math-inline">z=n</code>, the projection can be calculated as follows:</p><p class="katex-display-counter"><code class="language-math math-block">  \begin{aligned}
   x_p &= \frac{-n x_e}{z_e}\\
   y_p &= \frac{-n y_e}{z_e}\\
   z_p &= - || (x_e, y_e, z_e)^\top ||\\
@@ -306,23 +279,25 @@ this.covariance = glMatrix.mat3.multiply(glMatrix.mat3.create(), T, T_transpose)
 -\frac{n}{z_e} & 0 & 0\\
 0 & -\frac{n}{z_e} & 0\\
 \frac{x_e}{z_e^2} & \frac{y_e}{z_e^2} & 0\\
-\end{pmatrix}</code></p><p>The last column should not be all zeros, but in our <a class="link" href="https://github.com/mkkellogg/GaussianSplats3D" target="_blank">reference code</a>, the last column is indeed set to zeros. I believe the reason for this is that for the projection of Gaussians, we can effectively remove the depth information by assuming <code class="language-math math-inline">z_p</code> is a constant. This is because we do not need depth testing for Gaussians; instead, we will sort them from front to back and render them in that order.</p><p>Here is how the Jacobian matrix (in column-major order) is calculated in the code, based on the perspective projection matrix:</p><pre><code class="language-javascript code-block">const focal = {
+\end{pmatrix}</code></p><p>The last column should not be all zeros, but in our <a class="link" href="https://github.com/mkkellogg/GaussianSplats3D" target="_blank">reference code</a>, the last column is indeed set to zeros. I believe the reason for this is that for the projection of Gaussians, we can effectively remove the depth information by assuming <code class="language-math math-inline">z_p</code> is a constant. This is because we do not need depth testing for Gaussians; instead, we will sort them from front to back and render them in that order.</p><p>Here is how the Jacobian matrix (in column-major order) is calculated in the code, based on the perspective projection matrix:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=672>const focal = {
     x: projectionMatrix[0] * devicePixelRatio * renderDimension.x * 0.5,
     y: projectionMatrix[5] * devicePixelRatio * renderDimension.y * 0.5
 }
+
+const viewCenter = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), glMatrix.vec4.fromValues(10, 10, 10, 1.0), arcballModelViewMatrix);
+
 const s = 1.0 / (viewCenter[2] * viewCenter[2]);
+
 const J = glMatrix.mat3.fromValues(
     -focal.x / viewCenter[2], 0., (focal.x * viewCenter[0]) * s,
     0., -focal.y / viewCenter[2], (focal.y * viewCenter[1]) * s,
     0., 0., 0.
-);</code></pre><p>The focal vector can be calculated by extracting the first and sixth elements from the projection matrix. These elements represent the horizontal and vertical arctangents of the half field of view. By multiplying them with the half width and half height of the canvas, respectively, we obtain the distance from the camera to the near plane. In theory, both focal.x and focal.y should be equal.</p><p>With both the 3x3 model-view matrix W and the Jacobian matrix J, we can now update our covariance as follows:</p><pre><code class="language-javascript code-block">const W = glMatrix.mat3.transpose(glMatrix.mat3.create(), 
-  glMatrix.mat3.fromMat4(glMatrix.mat3.create(), arcballModelViewMatrix));
-
+);
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=671:684#5_08_gaussian_splatting_4">5_08_gaussian_splatting_4/index.html:672-685 Calculating Jacobian Matrix</a></div></div><p>The focal vector can be calculated by extracting the first and sixth elements from the projection matrix. These elements represent the horizontal and vertical arctangents of the half field of view. By multiplying them with the half width and half height of the canvas, respectively, we obtain the distance from the camera to the near plane. In theory, both focal.x and focal.y should be equal.</p><p>With both the 3x3 model-view matrix W and the Jacobian matrix J, we can now update our covariance as follows:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=686>const W = glMatrix.mat3.transpose(glMatrix.mat3.create(), glMatrix.mat3.fromMat4(glMatrix.mat3.create(), arcballModelViewMatrix));
 const T = glMatrix.mat3.multiply(glMatrix.mat3.create(), W, J);
 
-let new_c = glMatrix.mat3.multiply(glMatrix.mat3.create(), 
-  glMatrix.mat3.transpose(glMatrix.mat3.create(), T), 
-  glMatrix.mat3.multiply(glMatrix.mat3.create(), this.covariance, T));</code></pre><p>With the updated covariance, we extract its 2x2 upper left corner, which represents the covariance for the projected 2D Gaussian. Next, we need to recover two basis vectors from the 2D Gaussian, which correspond to the eigenvectors of the top two eigenvalues.</p><p>This is calculated using the following <a class="link" href="https://people.math.harvard.edu/~knill/teaching/math21b2004/exhibits/2dmatrices/index.html" target="_blank">formula</a>:</p><pre><code class="language-javascript code-block">const cov2Dv = glMatrix.vec3.fromValues(new_c[0], new_c[1], new_c[4]);
+let new_c = glMatrix.mat3.multiply(glMatrix.mat3.create(), glMatrix.mat3.transpose(glMatrix.mat3.create(), T), glMatrix.mat3.multiply(glMatrix.mat3.create(), this.covariance, T));
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=685:688#5_08_gaussian_splatting_4">5_08_gaussian_splatting_4/index.html:686-689 Updating Covariance</a></div></div><p>With the updated covariance, we extract its 2x2 upper left corner, which represents the covariance for the projected 2D Gaussian. Next, we need to recover two basis vectors from the 2D Gaussian, which correspond to the eigenvectors of the top two eigenvalues.</p><p>This is calculated using the following <a class="link" href="https://people.math.harvard.edu/~knill/teaching/math21b2004/exhibits/2dmatrices/index.html" target="_blank">formula</a>:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=691>const cov2Dv = glMatrix.vec3.fromValues(new_c[0], new_c[1], new_c[4]);
 
 let a = cov2Dv[0];
 let b = cov2Dv[1];
@@ -332,24 +307,122 @@ let D = a * d - b * b;
 let trace = a + d;
 let traceOver2 = 0.5 * trace;
 let term2 = Math.sqrt(trace * trace / 4.0 - D);
-
 let eigenValue1 = traceOver2 + term2;
 let eigenValue2 = Math.max(traceOver2 - term2, 0.00); // prevent negative eigen value
 
 const maxSplatSize = 1024.0;
-let eigenVector1 = glMatrix.vec2.normalize(glMatrix.vec2.create(), 
-  glMatrix.vec2.fromValues(b, eigenValue1 - a));
+let eigenVector1 = glMatrix.vec2.normalize(glMatrix.vec2.create(), glMatrix.vec2.fromValues(b, eigenValue1 - a));
 // since the eigen vectors are orthogonal, we derive the second one from the first
 let eigenVector2 = glMatrix.vec2.fromValues(eigenVector1[1], -eigenVector1[0]);
 
-let basisVector1 = glMatrix.vec2.scale(glMatrix.vec2.create(), 
-  eigenVector1, Math.min(Math.sqrt(eigenValue1) * 4, maxSplatSize));
-let basisVector2 = glMatrix.vec2.scale(glMatrix.vec2.create(), 
-  eigenVector2, Math.min(Math.sqrt(eigenValue2) * 4, maxSplatSize));        </code></pre><p>In the vertex shader code, we utilize the basis vectors to construct a screen-aligned quad. The long edge of the quad should be parallel to the first basis vector, while the short edge should be parallel to the second eigenvector.</p><pre><code class="language-javascript code-block">var clipCenter:vec4&lt;f32&gt; = projection * modelView * pos;
+let basisVector1 = glMatrix.vec2.scale(glMatrix.vec2.create(), eigenVector1, Math.min(Math.sqrt(eigenValue1) * 4, maxSplatSize));
+let basisVector2 = glMatrix.vec2.scale(glMatrix.vec2.create(), eigenVector2, Math.min(Math.sqrt(eigenValue2) * 4, maxSplatSize));
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=690:709#5_08_gaussian_splatting_4">5_08_gaussian_splatting_4/index.html:691-710 2D Covariance Projection</a></div></div><p>In the vertex shader code, we utilize the basis vectors to construct a screen-aligned quad. The long edge of the quad should be parallel to the first basis vector, while the short edge should be parallel to the second eigenvector.</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=163>var clipCenter:vec4&lt;f32&gt; = projection * modelView * pos;
+
 var ndcCenter:vec3&lt;f32&gt; = clipCenter.xyz / clipCenter.w;
-var ndcOffset:vec2&lt;f32&gt; = vec2(inPos.x * basisVector1 + inPos.y * basisVector2) 
-  * basisViewport;
-out.clip_position = vec4&lt;f32&gt;(ndcCenter.xy + ndcOffset, ndcCenter.z, 1.0);</code></pre><p>In the shader code, we manually calculate the position of the centroid in Normalized Device Coordinates (NDC). Since NDC has a range of [-1, 1] for both the x and y axes, we need to scale the ndcOffset. Because the Jacobian is calculated using pixels as the unit length, we need to scale it down by <code class="language-math math-inline">(\frac{w}{2},\frac{h}{2})</code>, where <code class="language-math math-inline">w</code> and <code class="language-math math-inline">h</code> are the width and height of the canvas, respectively.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="placeholder.jpg" alt="Gaussian Rendering Result Overlapping the Ground Truth Point Cloud" sources='[]' /><div class="img-title">Gaussian Rendering Result Overlapping the Ground Truth Point Cloud</div></div></p><p>The rendering result is shown above. As we can see, the Gaussian is correctly rendered, overlapping perfectly with the ground truth point cloud.</p>
+
+var ndcOffset:vec2&lt;f32&gt; = vec2(inPos.x * basisVector1 + inPos.y * basisVector2) * basisViewport;
+
+out.clip_position = vec4&lt;f32&gt;(ndcCenter.xy + ndcOffset, ndcCenter.z, 1.0);
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=162:168#5_08_gaussian_splatting_4">5_08_gaussian_splatting_4/index.html:163-169 Construct a Screen Aligned Quad</a></div></div><p>In the shader code, we manually calculate the position of the centroid in Normalized Device Coordinates (NDC). Since NDC has a range of [-1, 1] for both the x and y axes, we need to scale the ndcOffset. Because the Jacobian is calculated using pixels as the unit length, we need to scale it down by <code class="language-math math-inline">(\frac{w}{2},\frac{h}{2})</code>, where <code class="language-math math-inline">w</code> and <code class="language-math math-inline">h</code> are the width and height of the canvas, respectively.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="thumb_singlegaussianresult.png" original_src="singlegaussianresult.png" alt="Gaussian Rendering Result Overlapping the Ground Truth Point Cloud" sources='[]' /><div class="img-title">Gaussian Rendering Result Overlapping the Ground Truth Point Cloud</div></div></p><p>The rendering result is shown above. As we can see, the Gaussian is correctly rendered, overlapping perfectly with the ground truth point cloud.</p><p>Now that we have rendered a single Gaussian splat, we need to extend our program to render the entire point cloud. Because our Gaussian splats are semi-transparent, we need to enable blending and render them in front-to-back order.</p><p>This is where our previous radix sort algorithm comes into play. The process is as follows: first, we calculate the projected basis and the distance to the camera for each splat. This process is identical to what we explained earlier, but we will implement it in a compute shader and apply it to all splats at once. Then, we use GPU radix sorting to reorder the splats from front to back. Finally, we iterate through the ordered Gaussian splats and render them in sequence.</p><p>Now let's look at how to efficiently calculate the distances from the camera to the splats:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=105>// given centroids, covariance, modelView, projection;
+// compute 2d basis, distance
+@binding(0) @group(0) var&lt;storage, read&gt; centroid :array&lt;vec3&lt;f32&gt;&gt;;
+@binding(1) @group(0) var&lt;storage, read&gt; covariance: array&lt;vec3&lt;f32&gt;&gt;;
+@binding(2) @group(0) var&lt;storage, read_write&gt; basis: array&lt;vec4&lt;f32&gt;&gt;;
+@binding(3) @group(0) var&lt;storage, read_write&gt; distance: array&lt;u32&gt;;
+@binding(4) @group(0) var&lt;storage, read_write&gt; id: array&lt;u32&gt;;
+@binding(5) @group(0) var&lt;uniform&gt; splatCount: u32;
+@binding(6) @group(0) var&lt;storage, read_write&gt; readback: array&lt;vec4&lt;f32&gt;&gt;;
+
+@binding(0) @group(1) var&lt;uniform&gt; modelView: mat4x4&lt;f32&gt;;
+@binding(1) @group(1) var&lt;uniform&gt; projection: mat4x4&lt;f32&gt;;
+@binding(2) @group(1) var&lt;uniform&gt; screen: vec2&lt;f32&gt;;
+
+@compute @workgroup_size(256)
+fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3&lt;u32&gt;,
+  @builtin(local_invocation_id) LocalInvocationID: vec3&lt;u32&gt;,
+  @builtin(workgroup_id) WorkgroupID: vec3&lt;u32&gt;) {
+    var gid = GlobalInvocationID.x;
+
+    if (gid &lt; splatCount) {
+        var covarianceFirst = covariance[gid*2];
+        var covarianceSecond = covariance[gid*2+1];
+
+        var covarianceMatrix: mat3x3&lt;f32&gt; = mat3x3(
+            covarianceFirst.x,
+            covarianceFirst.y,
+            covarianceFirst.z,
+            covarianceFirst.y,
+            covarianceSecond.x,
+            covarianceSecond.y,
+            covarianceFirst.z,
+            covarianceSecond.y,
+            covarianceSecond.z);
+
+        var modelView3x3:mat3x3&lt;f32&gt; = transpose( mat3x3&lt;f32&gt;(modelView[0].xyz, modelView[1].xyz, modelView[2].xyz));
+
+        var cameraFocalLengthX:f32 = projection[0][0] *
+        screen.x * 0.5;
+        var cameraFocalLengthY:f32 = projection[1][1] *
+        screen.y * 0.5;
+
+        var center:vec4&lt;f32&gt; = vec4(centroid[gid], 1.0);
+
+        var viewCenter:vec4&lt;f32&gt; =   modelView * center;
+        var s:f32 = 1.0 / (viewCenter.z * viewCenter.z);
+
+        var J = mat3x3&lt;f32&gt;(
+            cameraFocalLengthX / viewCenter.z, 0.0, -(cameraFocalLengthX * viewCenter.x) * s,
+            0.0, cameraFocalLengthY / viewCenter.z, -(cameraFocalLengthY * viewCenter.y) * s,
+            0.0, 0.0, 0.0
+        );
+
+        var T:mat3x3&lt;f32&gt; =  modelView3x3 * J ;
+
+        var T_t:mat3x3&lt;f32&gt; = transpose(T);
+    
+        var new_c:mat3x3&lt;f32&gt; =  T_t * covarianceMatrix * T;
+        
+        var cov2Dv:vec3&lt;f32&gt; = vec3&lt;f32&gt;(new_c[0][0] , new_c[0][1], new_c[1][1]);
+          
+        var a:f32 = cov2Dv.x;
+        var b:f32 = cov2Dv.y;
+        var d:f32 = cov2Dv.z;
+
+        var D:f32 = a * d - b * b;
+        var trace:f32 = a + d;
+        var traceOver2:f32 = 0.5 * trace;
+        var term2:f32 = sqrt(trace * trace / 4.0 - D);
+            
+        var eigenValue1:f32 = traceOver2 + term2;
+        var eigenValue2:f32 = max(traceOver2 - term2, 0.0);
+
+        const maxSplatSize:f32 = 1024.0;
+        var eigenVector1:vec2&lt;f32&gt; = normalize(vec2&lt;f32&gt;(b, eigenValue1 - a));
+        var eigenVector2:vec2&lt;f32&gt; = vec2&lt;f32&gt;(eigenVector1.y, -eigenVector1.x);
+  
+        var basisVector1:vec2&lt;f32&gt; = eigenVector1 * min(sqrt(eigenValue1)*4, maxSplatSize);
+        var basisVector2:vec2&lt;f32&gt; = eigenVector2 * min(sqrt(eigenValue2)*4, maxSplatSize);
+        readback[gid] = vec4&lt;f32&gt;(basisVector1,basisVector2);
+        var dis:vec4&lt;f32&gt; = projection * modelView * center;
+        distance[gid] = u32(dis.z / dis.w * f32(0xFFFFFFFF &gt;&gt; 8));     
+        basis[gid] = vec4&lt;f32&gt;(basisVector1, basisVector2);
+    } else {
+        distance[gid] = 0xFFFFFFFF;
+    }
+    id[gid] = gid;
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=104:191#5_08_gaussian_splatting_5">5_08_gaussian_splatting_5/index.html:105-192 Calculating Gaussian Splat Basses and to Camera Distances</a></div></div><p>Most of the code has been explained before. The difference here is that we also incorporate the calculation of the distances from the camera to the splats. The calculation itself is the same as applying a projection matrix.</p><p>Here are some important details to pay attention to. First, we scale and convert the distance value to an integer: <code>distance[gid] = u32(dis.z / dis.w * f32(0xFFFFFFFF &gt;&gt; 8));</code>. The reason for this is that our radix sorting can only process integers. Second, for padding splats, we set their distance to the maximum possible value: <code>distance[gid] = 0xFFFFFFFF;</code>. We can't guarantee that the number of splats is always a multiple of 512. Hence, we usually need to pad the input array at the end. For these padded dummy splats, we simply give them the maximum possible distance so that after sorting, they will be located at the end of the array, allowing us to easily truncate them.</p><p>Next comes the sorting part. It is almost the same as what we have seen before. The difference lies in the shuffling part; because our array is more complex, we have to shift more data than a single integer. However, the principle remains the same.</p><p>Finally, with the splats sorted, we apply front-to-back rendering:</p><div class="code-fragments"><pre><code class="language-javascript code-block" startNumber=1611>encode(encoder) {
+    encoder.setPipeline(this.splatPipeline);
+    encoder.setBindGroup(0, this.splatUniformBindGroup0);
+    encoder.setBindGroup(1, this.splatUniformBindGroup1)
+    encoder.setVertexBuffer(0, this.splatPositionBuffer);
+    encoder.setVertexBuffer(1, this.idBuffer);
+    for (let i = this.actualSplatSize - 1; i &gt;= 0; --i) {
+        encoder.draw(4, 1, 0, i);
+    }
+}
+</pre></code><div class="code-fragments-caption"><a target="_blank" href="https://shi-yan.github.io/WebGPUUnleashed/code/code.html?highlight=1610:1619#5_08_gaussian_splatting_5">5_08_gaussian_splatting_5/index.html:1611-1620 Rendering Gaussian Splats Front to Back</a></div></div><p>You may ask why we can't use the instanced rendering technique here instead of a for loop. The reason is that we have to maintain the rendering order to ensure correct blending. With instanced rendering, there is no guarantee of the rendering order since the splats will be drawn in parallel.</p><p><div class="img-container"><img class="img" onclick="openImage(this)" src="thumb_gaussian_splat_result.png" original_src="gaussian_splat_result.png" alt="Rendered Gaussian Splatting Scene" sources='[]' /><div class="img-title">Rendered Gaussian Splatting Scene</div></div></p>
         </article>
 
         <div class="older_newer_link_section">
