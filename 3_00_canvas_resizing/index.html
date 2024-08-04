@@ -250,6 +250,7 @@
         await teapot.setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer);
         let depthTexture = null;
         async function render() {
+//cs_start: canvas_resizing_resize_buffers
             const devicePixelRatio = window.devicePixelRatio || 1;
             let currentCanvasWidth = canvas.clientWidth * devicePixelRatio;
             let currentCanvasHeight = canvas.clientHeight * devicePixelRatio;
@@ -288,7 +289,7 @@
                 projectionMatrixUniformBufferUpdate = createGPUBuffer(device, projectionMatrix, GPUBufferUsage.COPY_SRC);
 
             }
-
+//cs_end: canvas_resizing_resize_buffers
             let colorTexture = context.getCurrentTexture();
             let colorTextureView = colorTexture.createView();
 
@@ -322,7 +323,7 @@
                 projectionMatrixUniformBufferUpdate.destroy();
             }
         }
-
+//cs_start: canvas_resizing_resize_observer
         let timeId = null;
         const resizeObserver = new ResizeObserver((entries) => {
             if (timeId) {
@@ -334,6 +335,7 @@
         });
         requestAnimationFrame(render);
         resizeObserver.observe(canvas);
+//cs_end: canvas_resizing_resize_observer
     }
 
     webgpu();

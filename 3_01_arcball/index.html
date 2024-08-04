@@ -380,7 +380,7 @@
             encoder.drawIndexed(this.indexSize);
         }
     }
-
+//cs_start: arcball_class
     class Arcball {
         constructor() {
             this.radius = 5.0;
@@ -388,9 +388,9 @@
             this.upVector = glMatrix.vec4.fromValues(0.0, 0.0, 1.0, 0.0);
             this.currentRotation = glMatrix.mat4.create();
         }
-
+//cs_start: arcball_rotation_matrix
         yawPitch(originalX, originalY, currentX, currentY) {
-
+//cs_end: arcball_class
             let originalPoint = glMatrix.vec3.fromValues(1.0, originalX, originalY);
             let newPoint = glMatrix.vec3.fromValues(1.0, currentX, currentY);
 
@@ -411,10 +411,12 @@
                 this.forwardVector = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), this.forwardVector, rotationMatrix);
                 this.upVector = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), this.upVector, rotationMatrix);
             }
+//cs_start: arcball_class
         }
-
+//cs_end: arcball_rotation_matrix
+//cs_start: arcball_roll
         roll(originalX, originalY, currentX, currentY) {
-
+//cs_end: arcball_class
             const originalVec = glMatrix.vec3.fromValues(originalX, originalY, 0.0);
             const currentVec = glMatrix.vec3.fromValues(currentX, currentY, 0.0);
 
@@ -437,17 +439,22 @@
                 this.currentRotation = glMatrix.mat4.multiply(glMatrix.mat4.create(), rotationMatrix, this.currentRotation);
                 this.upVector = glMatrix.vec4.transformMat4(glMatrix.vec4.create(), this.upVector, rotationMatrix);
             }
+//cs_start: arcball_class
         }
-
+//cs_end: arcball_roll
+//cs_start: arcball_get_matrix
         getMatrices() {
+//cs_end: arcball_class
             let modelViewMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
                 glMatrix.vec3.fromValues(this.forwardVector[0], this.forwardVector[1], this.forwardVector[2]),
                 glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(this.upVector[0], this.upVector[1], this.upVector[2]));
 
             return modelViewMatrix;
+//cs_start: arcball_class
         }
+//cs_end: arcball_get_matrix
     }
-
+//cs_end: arcball_class
     async function webgpu() {
         if (!navigator.gpu) {
             showWarning("WebGPU support is not available. A WebGPU capable browser is required to run this sample.");
@@ -649,7 +656,7 @@
         });
         requestAnimationFrame(render);
         resizeObserver.observe(canvas);
-
+//cs_start: arcball_mouse_down
         let prevX = 0.0;
         let prevY = 0.0;
         let isDragging = false;
@@ -657,13 +664,15 @@
         const roll = 2;
 
         canvas.onmousedown = (event) => {
+//cs_start: arcball_cursor_pos
             var rect = canvas.getBoundingClientRect();
             const x = event.clientX - rect.left;
             const y = event.clientY - rect.top;
 
             const width = rect.right - rect.left;
             const height = rect.bottom - rect.top;
-
+//cs_end: arcball_cursor_pos
+//cs_start: arcball_minimum
             let radius = width;
 
             if (height < radius) {
@@ -671,24 +680,28 @@
             }
 
             radius *= 0.5;
-
+//cs_end: arcball_minimum
+//cs_start: arcball_coordinates_transformation
             const originX = width * 0.5;
             const originY = height * 0.5;
 
             prevX = (x - originX) / radius;
             prevY = (originY - y) / radius;
-
+//cs_end: arcball_coordinates_transformation
+//cs_start: arcball_determine_rotation_type
             if ((prevX * prevX + prevY * prevY) < 0.64) {
                 isDragging = yawPitch;
             }
             else {
                 isDragging = roll;
             }
-
+//cs_end: arcball_determine_rotation_type
         }
-
+//cs_end: arcball_mouse_down
+//cs_start: arcball_mouse_move
         canvas.onmousemove = (event) => {
             if (isDragging != 0) {
+//cs_end: arcball_mouse_move
                 var rect = canvas.getBoundingClientRect();
                 const x = event.clientX - rect.left;
                 const y = event.clientY - rect.top;
@@ -709,7 +722,7 @@
 
                 currX = (x - originX) / radius;
                 currY = (originY - y) / radius;
-
+//cs_start: arcball_mouse_move
                 if (isDragging == yawPitch) {
                     arcball.yawPitch(prevX, prevY, currX, currY);
                 }
@@ -725,8 +738,7 @@
         canvas.onmouseup = (event) => {
             isDragging = 0;
         }
-
-
+//cs_end: arcball_mouse_move
     }
 
     webgpu();

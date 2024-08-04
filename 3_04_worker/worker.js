@@ -2,7 +2,7 @@ importScripts("../utils/gl-matrix.js");
 importScripts("../utils/OBJFile.js");
 importScripts("../utils/utils.js");
 
-
+//cs_start: web_worker_worker_script
 self.addEventListener('message', (ev) => {
     switch (ev.data.type) {
         case 'run': {
@@ -18,7 +18,7 @@ self.addEventListener('message', (ev) => {
         }
     }
 });
-
+//cs_end: web_worker_worker_script
 class Teapot {
     constructor() {
         this.pipeline = null;
@@ -150,7 +150,7 @@ class Teapot {
         encoder.drawIndexed(this.indexSize);
     }
 }
-
+//cs_start: web_worker_worker_script
 async function run(canvas, code) {
     let angle = 0.0;
 
@@ -159,7 +159,7 @@ async function run(canvas, code) {
     let device = await adapter.requestDevice();
 
     let context = configContext(device, canvas);
-
+//cs_end: web_worker_worker_script
     let modelViewMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
         glMatrix.vec3.fromValues(Math.cos(angle) * 5.0, Math.sin(angle) * 5.0, 5), glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(0.0, 0.0, 1.0));
 
@@ -198,8 +198,9 @@ async function run(canvas, code) {
         stencilLoadOp: 'clear',
         stencilStoreOp: 'store'
     };
-
+//cs_start: web_worker_worker_script
     async function render() {
+//cs_end: web_worker_worker_script
         angle += 0.1;
         let modelViewMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
             glMatrix.vec3.fromValues(Math.cos(angle) * 5.0, Math.sin(angle) * 5.0, 5), glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(0.0, 0.0, 1.0));
@@ -242,9 +243,11 @@ async function run(canvas, code) {
 
         modelViewMatrixUniformBufferUpdate.destroy();
         normalMatrixUniformBufferUpdate.destroy();
-
+//cs_start: web_worker_worker_script
         requestAnimationFrame(render);
     }
 
     requestAnimationFrame(render);
+
 }
+//cs_end: web_worker_worker_script

@@ -96,7 +96,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             arrayStride: 4 * 2, // sizeof(float) * 3
             stepMode: 'vertex'
         };
-
+//cs_start: triangle_strip_vertex_data
         const positions = new Float32Array([
             100.0, -100.0, 0.0,
             100.0, 100.0, 0.0,
@@ -122,7 +122,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         ]);
 
         let texCoordsBuffer = createGPUBuffer(device, texCoords, GPUBufferUsage.VERTEX);
-
+//cs_end: triangle_strip_vertex_data
         let translateMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
             glMatrix.vec3.fromValues(100, 100, 100), glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(0.0, 0.0, 1.0));
 
@@ -204,11 +204,13 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 entryPoint: 'fs_main',
                 targets: [colorState]
             },
+//cs_start: triangle_strip_pipeline_desc
             primitive: {
                 topology: 'triangle-strip',
                 frontFace: 'ccw',
                 cullMode: 'none'
             }
+//cs_end: triangle_strip_pipeline_desc
         };
 
         pipeline = device.createRenderPipeline(pipelineDesc);
@@ -227,7 +229,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             colorAttachments: [colorAttachment]
         };
         commandEncoder = device.createCommandEncoder();
-
+//cs_start: triangle_strip_draw_command
         passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
         passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
         passEncoder.setPipeline(pipeline);
@@ -236,7 +238,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         passEncoder.setVertexBuffer(1, texCoordsBuffer);
         passEncoder.draw(4, 1);
         passEncoder.end();
-
+//cs_end: triangle_strip_draw_command
         device.queue.submit([commandEncoder.finish()]);
     }
 

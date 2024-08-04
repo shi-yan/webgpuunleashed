@@ -6,7 +6,7 @@
 <script src="../utils/utils.js"></script>
 <script src="../utils/gl-matrix.js"> </script>
 <script id="mipmap-shader" type="wgsl">
-
+//cs_start: mipmaps_mipmap_shader
     var<private> pos : array<vec2<f32>, 4> = array<vec2<f32>, 4>(
         vec2<f32>(-1.0, 1.0), vec2<f32>(1.0, 1.0),
         vec2<f32>(-1.0, -1.0), vec2<f32>(1.0, -1.0));
@@ -31,7 +31,7 @@
       fn fs_main(@location(0) texCoord : vec2<f32>) -> @location(0) vec4<f32> {
         return textureSample(img, imgSampler, texCoord);
       }
-
+//cs_end: mipmaps_mipmap_shader
 </script>
 <script id="shader" type="wgsl">
 // Vertex shader
@@ -58,7 +58,7 @@ fn vs_main(
 }
 
 // Fragment shader
-
+//cs_start: mipmaps_mipmap_fragment
 @group(0) @binding(2)
 var t_diffuse: texture_2d<f32>;
 @group(0) @binding(3)
@@ -68,7 +68,7 @@ var s_diffuse: sampler;
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     return textureSample(t_diffuse, s_diffuse, in.tex_coords) ;
 }
-
+//cs_end: mipmaps_mipmap_fragment
 </script>
 
 <script>
@@ -89,7 +89,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         const response = await fetch('../data/checkerboard.png');
         const blob = await response.blob();
         const imgBitmap = await createImageBitmap(blob);
-
+//cs_start: mipmaps_generate_texture
         const textureDescriptor = {
             size: { width: imgBitmap.width, height: imgBitmap.height },
             format: 'rgba8unorm',
@@ -98,7 +98,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         };
         const texture = device.createTexture(textureDescriptor);
         device.queue.copyExternalImageToTexture({ source: imgBitmap }, { texture }, textureDescriptor.size);
-
+//cs_end: mipmaps_generate_texture
         const sampler = device.createSampler({
             addressModeU: 'repeat',
             addressModeV: 'repeat',
@@ -200,7 +200,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             };
 
             const mipmapPipeline = device.createRenderPipeline(mipmapPipelineDesc);
-
+//cs_start: mipmaps_mipmap_js
             let srcView = texture.createView({
                 baseMipLevel: 0,
                 mipLevelCount: 1
@@ -248,6 +248,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 srcView = dstView;
             }
             device.queue.submit([commandEncoder.finish()]);
+//cs_end: mipmaps_mipmap_js
         }
 
         let translateMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),

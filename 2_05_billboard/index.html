@@ -167,7 +167,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 arrayStride: 4 * 2, // sizeof(float) * 3
                 stepMode: 'vertex'
             };
-
+//cs_start: billboard_setting_billboard_geometry
             const positions = new Float32Array([
                 10.0, -10.0, 0.0,
                 -10.0, -10.0, 0.0,
@@ -185,7 +185,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             ]);
 
             this.texCoordsBuffer = createGPUBuffer(device, texCoords, GPUBufferUsage.VERTEX);
-
+//cs_end: billboard_setting_billboard_geometry
             let uniformBindGroupLayout = device.createBindGroupLayout({
                 entries: [
                     {
@@ -217,7 +217,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             const colorState = {
                 format: 'bgra8unorm'
             };
-
+//cs_start: billboard_setting_billboard_geometry
             const pipelineDesc = {
                 layout,
                 vertex: {
@@ -241,7 +241,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                     format: 'depth24plus-stencil8'
                 }
             };
-
+//cs_end: billboard_setting_billboard_geometry
             this.pipeline = device.createRenderPipeline(pipelineDesc);
 
             this.uniformBindGroup = device.createBindGroup({
@@ -510,12 +510,12 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             let modelViewMatrixUniformBufferUpdate = createGPUBuffer(device, modelViewMatrix, GPUBufferUsage.COPY_SRC);
 
             let modelViewMatrixInverse = glMatrix.mat4.invert(glMatrix.mat4.create(), modelViewMatrix);
-
+//cs_start: billboard_modify_transformation_matrix
             let modelViewMatrixBillboard = glMatrix.mat4.fromValues(1, 0, 0, modelViewMatrix[3],
                 0, 1, 0, modelViewMatrix[7],
                 0, 0, 1, modelViewMatrix[11],
                 modelViewMatrix[12], modelViewMatrix[13], modelViewMatrix[14], modelViewMatrix[15]);
-
+//cs_end: billboard_modify_transformation_matrix
             let modelViewMatrixBillboardUniformBufferUpdate = createGPUBuffer(device, modelViewMatrixBillboard, GPUBufferUsage.COPY_SRC);
 
             let normalMatrix = glMatrix.mat4.transpose(glMatrix.mat4.create(), modelViewMatrixInverse);

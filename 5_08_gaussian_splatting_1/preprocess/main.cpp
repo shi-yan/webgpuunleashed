@@ -6,7 +6,7 @@
 
 int main()
 {
-
+//cs_start: ply_preprocessor
     happly::PLYData plyIn("../../../data/food.ply");
     std::vector<float> opacity = plyIn.getElement("vertex").getProperty<float>("opacity");
     std::vector<float> scale0 = plyIn.getElement("vertex").getProperty<float>("scale_0");
@@ -43,7 +43,7 @@ int main()
         }
     }
     outputFile << "]";
-
+//cs_end: ply_preprocessor
     std::cout << "element size " << opacity.size() << std::endl;
     return 0;
 }

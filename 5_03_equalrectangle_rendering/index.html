@@ -26,7 +26,7 @@
 <script src="../utils/utils.js"></script>
 <script id="object_with_shadow_shader" type="wgsl">
     // Vertex shader
-    
+
     @group(0) @binding(0)
     var<uniform> modelView: mat4x4<f32>;
     @group(0) @binding(1)
@@ -139,7 +139,7 @@
 
                 //var lightDir:vec3<f32> =  
                 var align:f32 = dot( normalize(wldLoc2light),lightDir);
-           
+//cs_start: equirectangular_reflect_environment_map
                 let nn:vec3<f32> = reflect(-viewDir, n);
 
                 var len:f32 = sqrt (nn.x *nn.x + nn.y*nn.y);
@@ -151,7 +151,7 @@
                 var tex_coord:vec2<f32> = vec2(s , ((asin(nn.z) * -2.0 / pi ) + 1.0) * 0.5);
                 var diffuseColor:vec4<f32> =
                         textureSampleLevel(t_diffuse, s_diffuse, tex_coord, 0);
-
+//cs_end: equirectangular_reflect_environment_map
                 if (align > 0.9) {
                     var radiance:vec3<f32>  = ambientColor.rgb * ambientConstant + 
                         diffuse(-lightDir, n, diffuseColor.rgb) * diffuseConstant +
@@ -166,7 +166,7 @@
 
 <script id="light_view_shader" type="wgsl">
     // Vertex shader
-    
+
     @group(0) @binding(0)
     var<uniform> modelView: mat4x4<f32>;
     @group(0) @binding(1)
@@ -211,7 +211,7 @@
 
 <script id="skybox" type="wgsl">
     // Vertex shader
-    
+//cs_start: equirectangular_texture_sample
     @group(0) @binding(0)
     var<uniform> modelView: mat4x4<f32>;
     @group(0) @binding(1)
@@ -243,22 +243,24 @@
 
     @fragment
     fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
+//cs_start: equirectangular_longitude
         var n:vec3<f32> = normalize(in.worldPos);
 
         var len:f32 = sqrt (n.x *n.x + n.y*n.y);
 
         var s:f32 = acos( n.x / len);
-
+//cs_end: equirectangular_longitude
+//cs_start: equirectangular_latitude
         if (n.y < 0) {
             s = 2.0 * pi - s;
         }
 
         s = s / (2.0 * pi);
-
+//cs_end: equirectangular_latitude
         var tex_coord:vec2<f32> = vec2(s , ((asin(n.z) * -2.0 / pi ) + 1.0) * 0.5);
         return textureSampleLevel(t_diffuse, s_diffuse, tex_coord, 0);
     }
-
+//cs_end: equirectangular_texture_sample
 </script>
 
 <script>

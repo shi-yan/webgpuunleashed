@@ -38,7 +38,7 @@ var t_diffuse: texture_2d<f32>;
 @group(0) @binding(4)
 var s_diffuse: sampler;
 
-
+//cs_start: gaussian_blur_2_naive
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     const kernelSize = 8.0;
@@ -46,11 +46,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     var intensity: f32 = 0.0;
     const sigma = 8.0;
     const PI = 3.1415926538;
-
-    // need to discuss uniformity
-    //'textureSample' must only be called from uniform control flow
-    // try using textureSample see what happens
-
 
     for(var y: f32 = - kernelSize; y <= kernelSize; y+=1.0) {
         let offsettedY = y + in.pixel_coord.y;
@@ -68,13 +63,12 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         }
     }
       
-
       color /= intensity;
       color.w = 1.0;
 
       return color;
 }
-
+//cs_end: gaussian_blur_2_naive
 </script>
 
 <script>

@@ -1,3 +1,4 @@
+//cs_start: dae_preprocessor
 #include <iostream>
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
@@ -243,3 +244,4 @@ int main()
 
     return 0;
 }
+//cs_end: dae_preprocessor

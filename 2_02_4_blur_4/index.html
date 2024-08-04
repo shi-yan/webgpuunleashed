@@ -30,6 +30,7 @@ fn vs_main(
 }
 
 // Fragment shader
+//cs_start: gaussian_blur_4_first_pass
 @group(0) @binding(0)
 var<uniform> img_size: vec2<f32>;
 //texture doesn't need <uniform>, because it is non-host-sharable (what does it mean?)
@@ -65,6 +66,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
     return color;
 }
+//cs_end: gaussian_blur_4_first_pass
 </script>
 
 <script id="shader-horizontal" type="wgsl">
@@ -92,6 +94,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     }
     
     // Fragment shader
+//cs_start: gaussian_blur_4_second_pass
     @group(0) @binding(2)
     var<uniform> img_size: vec2<f32>;
     @group(0) @binding(3)
@@ -103,7 +106,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     @group(0) @binding(6)
     var<uniform> kernel_size: f32;
 
-    
     @fragment
     fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     
@@ -128,6 +130,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     
         return color;
     }
+//cs_end: gaussian_blur_4_second_pass
 </script>
 
 <script>
@@ -242,7 +245,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
         const imgSizeUniformBuffer = createGPUBuffer(device, imgSizeBuffer, GPUBufferUsage.UNIFORM);
 
-
+//cs_start: gaussian_blur_4_kernel_setup
         let kValues = []
 
         const kernelSize = 8.0;
@@ -250,7 +253,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         let intensity = 0.0;
 
         for (let y = - kernelSize; y <= kernelSize; y += 1.0) {
-            let gaussian_v = 1.0 / (2.0 * Math.PI * sigma * sigma) * Math.exp(-(y * y) / (2.0 * sigma * sigma));
+            let gaussian_v = 1.0 / Math.sqrt(2.0 * Math.PI * sigma * sigma) * Math.exp(-(y * y) / (2.0 * sigma * sigma));
             intensity += gaussian_v;
             kValues.push(gaussian_v);
         }
@@ -262,7 +265,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         const kernelSizeBuffer = new Float32Array([kernelSize]);
 
         const kernelBufferSizeUniformBuffer = createGPUBuffer(device, kernelSizeBuffer, GPUBufferUsage.UNIFORM);
-
+//cs_end: gaussian_blur_4_kernel_setup
         let translateMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
             glMatrix.vec3.fromValues(0, 0, 10), glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(0.0, 1.0, 0.0));
 
@@ -337,7 +340,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 }
             ]
         });
-
+//cs_start: gaussian_blur_4_two_passes
         const pipelineLayoutDescPass1 = { bindGroupLayouts: [uniformBindGroupLayoutPass1] };
         const pipelineLayoutPass1 = device.createPipelineLayout(pipelineLayoutDescPass1);
 
@@ -385,9 +388,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         passEncoder.setVertexBuffer(0, pixelCoordsBuffer);
         passEncoder.draw(4, 1);
         passEncoder.end();
-
-
-
+//cs_end: gaussian_blur_4_two_passes
 
         let uniformBindGroupLayoutPass2 = device.createBindGroupLayout({
             entries: [
@@ -430,7 +431,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 }
             ]
         });
-
+//cs_start: gaussian_blur_4_two_passes
         let uniformBindGroupPass2 = device.createBindGroup({
             layout: uniformBindGroupLayoutPass2,
             entries: [
@@ -476,13 +477,8 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             ]
         });
 
-
-
-
-
         const pipelineLayoutDescPass2 = { bindGroupLayouts: [uniformBindGroupLayoutPass2] };
         const pipelineLayoutPass2 = device.createPipelineLayout(pipelineLayoutDescPass2);
-
 
         const colorStatePass2 = {
             format: 'bgra8unorm'
@@ -509,11 +505,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
         const pipelinePass2 = device.createRenderPipeline(pipelineDescPass2);
 
-
-
-
-
-
         let pass2texture = context.getCurrentTexture();
 
         let colorAttachmentPass2 = {
@@ -527,7 +518,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             colorAttachments: [colorAttachmentPass2]
         }
 
-
         let passEncoder2 = commandEncoder.beginRenderPass(renderPassDescPass2);
         passEncoder2.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
         passEncoder2.setPipeline(pipelinePass2);
@@ -539,6 +529,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
 
         device.queue.submit([commandEncoder.finish()]);
+//cs_end: gaussian_blur_4_two_passes
     }
 
     webgpu();

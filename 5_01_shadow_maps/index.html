@@ -89,13 +89,14 @@
         out.viewDir = normalize((normalMatrix * vec4<f32>(-viewDirection, 0.0)).xyz);
         out.lightDir = normalize((normalMatrix * vec4<f32>(-lightDirection, 0.0)).xyz);
         out.normal = normalize(normalMatrix * vec4<f32>(inNormal, 0.0)).xyz;  
+//cs_start: shadow_map_spot_light_vectors
         var wldLoc:vec4<f32> = modelView * vec4<f32>(inPos, 1.0);
         out.clip_position = projection * wldLoc;
         out.wldLoc = wldLoc.xyz / wldLoc.w;
         out.inPos = inPos;
         var lightLoc:vec4<f32> = modelView * vec4<f32>(lightDirection, 1.0);
         out.lightLoc = lightLoc.xyz / lightLoc.w;
-
+//cs_end: shadow_map_spot_light_vectors
         return out;
     }
     
@@ -115,11 +116,13 @@
         var lightDir:vec3<f32> = normalize(in.lightDir);
         var n:vec3<f32> = normalize(in.normal);
         var viewDir: vec3<f32> = in.viewDir;
-
-        var fragmentPosInScreenSpace: vec4<f32> = lightProjectionMatrix * lightModelViewMatrix * vec4(in.inPos, 1.0);
-        fragmentPosInScreenSpace = fragmentPosInScreenSpace / fragmentPosInScreenSpace.w;
-        var depth: f32 = fragmentPosInScreenSpace.z;
-        var uv:vec2<f32> = 0.5*(fragmentPosInScreenSpace.xy + vec2(1.0,1.0));
+//cs_start: shadow_map_fragment_position_in_shadow_map
+        var fragmentPosInShadowMapSpace: vec4<f32> = lightProjectionMatrix * lightModelViewMatrix * vec4(in.inPos, 1.0);
+        fragmentPosInShadowMapSpace = fragmentPosInShadowMapSpace / fragmentPosInShadowMapSpace.w;
+        var depth: f32 = fragmentPosInShadowMapSpace.z;
+//cs_end: shadow_map_fragment_position_in_shadow_map
+//cs_start: shadow_map_fragment_visibility
+        var uv:vec2<f32> = 0.5*(fragmentPosInShadowMapSpace.xy + vec2(1.0,1.0));
 
         var visibility = 0.0;
             let oneOverShadowDepthTextureSize = 1.0 / 1024.0;
@@ -134,37 +137,26 @@
               }
             }
             visibility /= 25.0;
-
-
-        //var light2ClosestSurfaceDist = textureSample(t_depth, s_depth, vec2(uv.x, 1.0-uv.y));
+//cs_end: shadow_map_fragment_visibility
+//cs_start: shadow_map_spot_light_shader
         if (face) {
-            //if (depth < light2ClosestSurfaceDist+0.0001) {
-
-                var wldLoc2light:vec3<f32> =   in.wldLoc-lightLoc;
-
-                //var lightDir:vec3<f32> =  
-                var align:f32 = dot( normalize(wldLoc2light),lightDir);
-
-                if (align > 0.9) {
-                    var radiance:vec3<f32>  = ambientColor.rgb * ambientConstant + 
-                        diffuse(-lightDir, n, diffuseColor.rgb)* diffuseConstant +
-                        specular(-lightDir, viewDir, n, specularColor.rgb, shininess) * specularConstant;
+            var wldLoc2light:vec3<f32> =   in.wldLoc-lightLoc;
+            if (align > 0.9) {
+                var radiance:vec3<f32>  = ambientColor.rgb * ambientConstant + 
+                    diffuse(-lightDir, n, diffuseColor.rgb)* diffuseConstant +
+                    specular(-lightDir, viewDir, n, specularColor.rgb, shininess) * specularConstant;
         
-                    return vec4<f32>(radiance * visibility ,1.0);
-                   // return vec4<f32>(0.0,0.0,light2ClosestSurfaceDist,1.0);
-                }
-
-                //return vec4<f32>(1.0,1.0,0.0,1.0);
-            //}
-          
+                return vec4<f32>(radiance * visibility ,1.0);
+            }
         } 
         return vec4<f32>( 0.0,0.0,0.0,1.0);
+//cs_end: shadow_map_spot_light_shader
     }
 </script>
 
 <script id="light_view_shader" type="wgsl">
     // Vertex shader
-    
+//cs_start: shadow_map_shadow_map_shader
     @group(0) @binding(0)
     var<uniform> modelView: mat4x4<f32>;
     @group(0) @binding(1)
@@ -180,7 +172,6 @@
         @location(0) inPos: vec3<f32>
     ) -> VertexOutput {
         var out: VertexOutput;
-
         var wldLoc:vec4<f32> = modelView * vec4<f32>(inPos, 1.0);
         out.clip_position = projection * wldLoc;
         out.depth = out.clip_position.z / out.clip_position.w;
@@ -196,15 +187,18 @@
     @fragment
     fn fs_main(in: VertexOutput,   @builtin(front_facing) isFront: bool) -> FragOutputs {
         var out:FragOutputs;
+//cs_start: shadow_map_shadow_map_shader_depth_offset
         if (isFront) {
             out.depth = in.depth;
         }
         else {
             out.depth = in.depth -0.001;
         }
+//cs_end: shadow_map_shadow_map_shader_depth_offset
         out.color = vec4<f32>(0.0,1.0,0.0,1.0);
         return out;
     }
+//cs_end: shadow_map_shadow_map_shader
 </script>
 
 <script>
@@ -911,12 +905,12 @@
 
         let projectionMatrixUniformBuffer = createGPUBuffer(device, projectionMatrix, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
-
+//cs_start: shadow_map_light_projection_matrix
         let lightProjectionMatrix = glMatrix.mat4.perspective(glMatrix.mat4.create(),
             Math.acos(0.9) * 2.0, 1.0, 1.0, 100.0);
 
         let lightProjectionMatrixUniformBuffer = createGPUBuffer(device, lightProjectionMatrix, GPUBufferUsage.UNIFORM);
-
+//cs_end: shadow_map_light_projection_matrix
         let lightModelViewMatrixUniformBuffer = createGPUBuffer(device, modelViewMatrix, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
         let teapot = new Teapot();
@@ -979,8 +973,9 @@
             colorAttachments: [lightColorAttachment],
             depthStencilAttachment: lightDepthAttachment
         };
-
+//cs_start: shadow_map_dumping
         let copiedBuffer = createGPUBuffer(device, new Float32Array(1024 * 1024), GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
+//cs_end: shadow_map_dumping        
         let hasDumped = true;
         async function render() {
             const devicePixelRatio = window.devicePixelRatio || 1;
@@ -1032,20 +1027,18 @@
 
             let viewDir = glMatrix.vec3.fromValues(-arcball.forwardVector[0], -arcball.forwardVector[1], -arcball.forwardVector[2]);
             let viewDirectionUniformBufferUpdate = createGPUBuffer(device, viewDir, GPUBufferUsage.COPY_SRC);
-
+//cs_start: shadow_map_light_direction_calculation
             let lightDir = glMatrix.vec3.fromValues(Math.cos(angle) * 8.0, Math.sin(angle) * 8.0, 10);
             let lightDirectionUniformBufferUpdate = createGPUBuffer(device, lightDir, GPUBufferUsage.COPY_SRC);
             spotlight.upsertSpotLight(spotLightId, lightDir, glMatrix.vec3.fromValues(-Math.cos(angle) * 8.0, -Math.sin(angle) * 8.0, -10), glMatrix.vec3.fromValues(0.0, 1.0, 0.0));
             spotlight.refreshBuffer(device);
-
-            //console.log("spot light dis:", glMatrix.vec3.length(glMatrix.vec3.fromValues(-Math.cos(angle) * 8.0, -Math.sin(angle) * 8.0, -10)));
 
             let lightModelViewMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
                 glMatrix.vec3.fromValues(Math.cos(angle) * 8.0, Math.sin(angle) * 8.0, 10),
                 glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(0.0, 0.0, 1.0));
 
             let lightModelViewMatrixUniformBufferUpdate = createGPUBuffer(device, lightModelViewMatrix, GPUBufferUsage.COPY_SRC);
-
+//cs_end: shadow_map_light_direction_calculation
 
             let colorTexture = context.getCurrentTexture();
             let colorTextureView = colorTexture.createView();
@@ -1093,7 +1086,9 @@
             lightPassEncoder.setViewport(0, 0, 1024, 1024, 0, 1);
             teapot.encodeForLight(lightPassEncoder);
             lightPassEncoder.end();
+//cs_start: shadow_map_dumping
             commandEncoder.copyTextureToBuffer({ texture: lightDepthTexture, origin: { x: 0, y: 0 } }, { buffer: copiedBuffer, bytesPerRow: 1024 * 4 }, { width: 1024, height: 1024 });
+//cs_end: shadow_map_dumping            
             //device.queue.submit([commandEncoder.finish()]);
             const passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
             passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
@@ -1111,7 +1106,7 @@
 
 
             await device.queue.onSubmittedWorkDone();
-
+//cs_start: shadow_map_dumping
             if (!hasDumped) {
                 hasDumped = true;
                 await copiedBuffer.mapAsync(GPUMapMode.READ, 0, 1024 * 1024 * 4);
@@ -1139,6 +1134,7 @@
                 imagedataToImage(imageData);
                 console.log("max min: ", maxv, minv);
             }
+//cs_end: shadow_map_dumping
             if (projectionMatrixUniformBufferUpdate) {
                 projectionMatrixUniformBufferUpdate.destroy();
             }

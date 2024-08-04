@@ -50,6 +50,7 @@ fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -> @location(0)
             showWarning("WebGPU support is not available. A WebGPU capable browser is required to run this sample.");
             throw new Error("WebGPU support is not available");
         }
+//cs_start: model_loading_loading
         const objResponse = await fetch('../data/teapot.obj');
         const objBody = await objResponse.text();
 
@@ -60,7 +61,7 @@ fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -> @location(0)
                 resolve(obj);
             })
         })();
-
+//cs_end: model_loading_loading
 
         const adapter = await navigator.gpu.requestAdapter();
         console.log(adapter);
@@ -78,7 +79,6 @@ fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -> @location(0)
             mipmapFilter: 'linear',
         });
 
-
         let shaderModule = shaderModuleFromCode(device, 'shader');
 
         const positionAttribDesc = {
@@ -92,7 +92,7 @@ fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -> @location(0)
             arrayStride: 4 * 3, // sizeof(float) * 3
             stepMode: 'vertex'
         };
-
+//cs_start: model_loading_setting_position_index_buffer
         let positions = [];
 
         for (let v of obj.result.models[0].vertices) {
@@ -102,7 +102,6 @@ fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -> @location(0)
         }
 
         positions = new Float32Array(positions);
-
 
         let positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
 
@@ -119,7 +118,7 @@ fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -> @location(0)
         indices = new Uint16Array(indices);
 
         const indexBuffer = createGPUBuffer(device, indices, GPUBufferUsage.INDEX);
-
+//cs_end: model_loading_setting_position_index_buffer
         let translateMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
             glMatrix.vec3.fromValues(3, 3, 3), glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(0.0, 0.0, 1.0));
 

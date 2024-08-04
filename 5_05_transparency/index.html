@@ -35,8 +35,7 @@
 <script src="../utils/utils.js"></script>
 
 <script id="blend" type="wgsl">
-// Vertex shader
-
+//cs_start: blending_shader
 struct VertexOutput {
     @builtin(position) clip_position: vec4<f32>,
     @location(0) tex_coords: vec2<f32>
@@ -60,35 +59,15 @@ var s: sampler;
 
 @fragment
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    return textureSample(t_src, s, in.tex_coords);
+    var color:vec4<f32> = textureSample(t_src, s, in.tex_coords);
+    return color;
 }
-</script>
-
-<script id="cleanup" type="wgsl">
-    // Vertex shader
-    
-    struct VertexOutput {
-        @builtin(position) clip_position: vec4<f32>,
-    };
-    
-    @vertex
-    fn vs_main(
-        @location(0) inPos: vec2<f32>
-    ) -> VertexOutput {
-        var out: VertexOutput;
-        out.clip_position = vec4<f32>(inPos.xy, 0.0, 1.0);
-        return out;
-    }
-    
-    @fragment
-    fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-        return vec4(0.0,0.0,0.0,1.0);
-    }
+//cs_end: blending_shader
 </script>
 
 <script id="final" type="wgsl">
     // Vertex shader
-    
+//cs_start: final_shader
     struct VertexOutput {
         @builtin(position) clip_position: vec4<f32>,
         @location(0) tex_coords: vec2<f32>
@@ -110,16 +89,15 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     @group(0) @binding(1 )
     var s_composed: sampler;
     
-    
     @fragment
     fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         return textureSample(t_composed, s_composed, in.tex_coords);
     }
+//cs_end: final_shader
 </script>
 
 <script id="object_shader" type="wgsl">
-    // Vertex shader
-
+//cs_start: depth_peel_shader
     @group(0) @binding(0)
     var<uniform> modelView: mat4x4<f32>;
     @group(0) @binding(1)
@@ -177,9 +155,10 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         out.lightDir = normalize((normalMatrix * vec4<f32>(-lightDirection, 0.0)).xyz);
         out.normal = normalize(normalMatrix * vec4<f32>(inNormal, 0.0)).xyz;  
         var wldLoc:vec4<f32> = modelView * vec4<f32>(inPos+offset, 1.0);
+//cs_start: depth_peel_shader_coord
         out.clip_position = projection * wldLoc;
         out.inPos = projection * wldLoc;
-
+//cs_end: depth_peel_shader_coord
         return out;
     }
 
@@ -193,14 +172,17 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
     @fragment
     fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -> @location(0) vec4<f32> {
+//cs_start: depth_peel_shader_coord
         var uv:vec2<f32> = 0.5*(in.inPos.xy/in.inPos.w + vec2(1.0,1.0));
         var visibility:f32 = textureSampleCompare(
             t_depth, s_depth,
-            vec2(uv.x, 1.0-uv.y),  in.inPos.z/in.inPos.w - 0.0001
+            vec2(uv.x, 1.0-uv.y),  in.clip_position.z - 0.0001
         );
-        //debug = in.clip_position;
-        debug = vec4(uv,in.inPos.z/in.inPos.w,in.inPos.z/in.inPos.w);
-    
+
+        debug = in.clip_position;
+        //debug = in.inPos;
+        //debug = vec4(uv,in.inPos.z/in.inPos.w, in.clip_position.z);
+//cs_end: depth_peel_shader_coord
         if (visibility < 0.5) {
             discard;
         }
@@ -220,91 +202,13 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                         diffuse(-lightDir, n, color)* diffuseConstant +
                         specular(-lightDir, viewDir, n, specularColor.rgb, shininess) * specularConstant;
         //return vec4<f32>(uv.xy,0.0,1.0);
-        return vec4<f32>(radiance , diffuseColor.w);
+        return vec4<f32>(radiance * diffuseColor.w, diffuseColor.w);
     }
+//cs_end: depth_peel_shader
 </script>
 
 <script>
     let angle = 0.0;
-
-    class Cleanup {
-        constructor() {
-            this.positionBuffer = null;
-            this.pipeline = null;
-        }
-
-        async setup(device) {
-            let shaderModule = shaderModuleFromCode(device, 'cleanup');
-
-            let positions = new Float32Array([
-                -1, -1,
-                1, -1,
-                -1, 1,
-                1, 1
-            ]);
-
-            this.positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
-
-            const positionAttribDesc = {
-                shaderLocation: 0, // @location(0)
-                offset: 0,
-                format: 'float32x2'
-            };
-
-            const positionBufferLayoutDesc = {
-                attributes: [positionAttribDesc],
-                arrayStride: 4 * 2, // sizeof(float) * 3
-                stepMode: 'vertex'
-            };
-
-            const pipelineLayoutDesc = { bindGroupLayouts: [] };
-            const layout = device.createPipelineLayout(pipelineLayoutDesc);
-
-            const colorState = {
-                format: 'bgra8unorm',
-                /*blend: {
-                    alpha: {
-                        operation: "add",
-                        srcFactor: 'src-alpha',
-                        dstFactor: 'one-minus-src-alpha',
-                    },
-                    color: {
-                        operation: "add",
-                        srcFactor: 'src-alpha',
-                        dstFactor: 'one-minus-src-alpha',
-                    }
-                }*/
-            };
-
-            const pipelineDesc = {
-                layout,
-                vertex: {
-                    module: shaderModule,
-                    entryPoint: 'vs_main',
-                    buffers: [positionBufferLayoutDesc]
-                },
-                fragment: {
-                    module: shaderModule,
-                    entryPoint: 'fs_main',
-                    targets: [colorState]
-                },
-                primitive: {
-                    topology: 'triangle-strip',
-                    frontFace: 'ccw',
-                    cullMode: 'none'
-                }
-            };
-
-            this.pipeline = device.createRenderPipeline(pipelineDesc);
-
-        }
-
-        encode(encoder) {
-            encoder.setPipeline(this.pipeline);
-            encoder.setVertexBuffer(0, this.positionBuffer);
-            encoder.draw(4, 1);
-        }
-    }
 
     class Final {
         constructor() {
@@ -365,22 +269,23 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
             const pipelineLayoutDesc = { bindGroupLayouts: [this.uniformBindGroupLayout] };
             const layout = device.createPipelineLayout(pipelineLayoutDesc);
-
+//cs_start: final_shader
             const colorState = {
                 format: 'bgra8unorm',
-                /*blend: {
+                blend: {
                     alpha: {
                         operation: "add",
-                        srcFactor: 'src-alpha',
+                        srcFactor: 'one',
                         dstFactor: 'one-minus-src-alpha',
                     },
                     color: {
                         operation: "add",
-                        srcFactor: 'src-alpha',
+                        srcFactor: 'one',
                         dstFactor: 'one-minus-src-alpha',
                     }
-                }*/
+                }
             };
+//cs_end: final_shader
 
             const pipelineDesc = {
                 layout,
@@ -491,7 +396,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             const pipelineLayoutDesc = { bindGroupLayouts: [this.uniformBindGroupLayout] };
             const layout = device.createPipelineLayout(pipelineLayoutDesc);
             //return vec4<f32>(dst.a * (src.a * src.rgb) + dst.rgb, (1.0 - src.a) * dst.a);
-
+            //cs_start: blending_config
             const colorState = {
                 format: 'bgra8unorm',
                 blend: {
@@ -507,7 +412,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                     }
                 }
             };
-
+            //cs_end: blending_config
             const pipelineDesc = {
                 layout,
                 vertex: {
@@ -528,7 +433,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             };
 
             this.pipeline = device.createRenderPipeline(pipelineDesc);
-
         }
 
         updateTexture(device, srcTexture) {
@@ -1036,7 +940,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             this.indexSize = indexSize;
 
             const ambientUniformBuffer = createGPUBuffer(device, new Float32Array([0.05, 0.01, 0.01, 1.0]), GPUBufferUsage.UNIFORM);
-            const diffuseUniformBuffer = createGPUBuffer(device, new Float32Array([0.05, 0.05, 0.05, 0.05]), GPUBufferUsage.UNIFORM);
+            const diffuseUniformBuffer = createGPUBuffer(device, new Float32Array([0.85, 0.05, 0.05, 0.5]), GPUBufferUsage.UNIFORM);
             const specularUniformBuffer = createGPUBuffer(device, new Float32Array([1.0, 1.0, 1.0, 1.0]), GPUBufferUsage.UNIFORM);
             const shininessUniformBuffer = createGPUBuffer(device, new Float32Array([80.0]), GPUBufferUsage.UNIFORM);
             const offsetUniformBuffer = createGPUBuffer(device, new Float32Array([0.0, 0.0, 0.0]), GPUBufferUsage.UNIFORM);
@@ -1216,9 +1120,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         let final = new Final();
         await final.setup(device);
 
-        let cleanup = new Cleanup();
-        await cleanup.setup(device);
-
         let depthTexture0 = null;
         let depthTexture1 = null;
 
@@ -1258,7 +1159,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 depthTexture1 = device.createTexture(depthTextureDesc);
 
                 pipeline.updateDepthPeelingUniformGroup(device, depthTexture0, depthTexture1);
-
+                //cs_start: pipeline_rest
                 depthAttachment0 = {
                     view: depthTexture1.createView(),
                     depthClearValue: 1,
@@ -1272,7 +1173,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                     depthLoadOp: 'clear',
                     depthStoreOp: 'store'
                 };
-
+                //cs_end: pipeline_rest
                 let projectionMatrix = glMatrix.mat4.perspective(glMatrix.mat4.create(),
                     1.4, canvas.width / canvas.height, 0.1, 1000.0);
 
@@ -1296,7 +1197,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 dstTexture = device.createTexture(colorTextureForDebuggingDesc);
 
                 blender.updateTexture(device, colorTextureForDebugging);
-                final.updateTexture(device,dstTexture);
+                final.updateTexture(device, dstTexture);
             }
 
             let modelViewMatrix = arcball.getMatrices();
@@ -1317,7 +1218,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
             let colorTexture = context.getCurrentTexture();
             let colorTextureView = colorTexture.createView();
-
+            //cs_start: pipeline_rest
             let colorAttachment0 = {
                 view: colorTextureForDebugging.createView(),
                 clearValue: { r: 0, g: 0, b: 0, a: 0 },
@@ -1331,8 +1232,9 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 loadOp: 'clear',
                 storeOp: 'store'
             };
-
-            const renderPassCleanup = {
+            //cs_end: pipeline_rest
+            //cs_start: cleanup_pipeline
+            const renderPassCleanupDesc = {
                 colorAttachments: [{
                     view: dstTexture.createView(),
                     clearValue: { r: 0, g: 0, b: 0, a: 1 },
@@ -1340,7 +1242,8 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                     storeOp: 'store'
                 }]
             }
-
+            //cs_end: cleanup_pipeline
+            //cs_start: pipeline_rest
             const renderPassDesc0 = {
                 colorAttachments: [colorAttachment0],
                 depthStencilAttachment: depthAttachment0
@@ -1350,7 +1253,8 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 colorAttachments: [colorAttachment1],
                 depthStencilAttachment: depthAttachment1
             };
-
+            //cs_end: pipeline_rest
+            //cs_start: blend_pass
             const renderPassBlend = {
                 colorAttachments: [{
                     view: dstTexture.createView(),
@@ -1359,6 +1263,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                     storeOp: 'store'
                 }]
             }
+            //cs_end: blend_pass
 
             const renderPassFinal = {
                 colorAttachments: [{
@@ -1383,13 +1288,13 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 viewDirectionUniformBuffer, 0, viewDir.byteLength);
             commandEncoder.copyBufferToBuffer(lightDirectionUniformBufferUpdate, 0,
                 lightDirectionUniformBuffer, 0, lightDir.byteLength);
-
-            let passEncoderCleanup = commandEncoder.beginRenderPass(renderPassCleanup);
+            //cs_start: cleanup_pipeline
+            let passEncoderCleanup = commandEncoder.beginRenderPass(renderPassCleanupDesc);
             passEncoderCleanup.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
             passEncoderCleanup.end();
-
+            //cs_end: cleanup_pipeline
+            //cs_start: pipeline_rest
             for (let p = 0; p < 6; ++p) {
-
                 let passEncoder0 = null;
                 if (p % 2 == 0) {
                     passEncoder0 = commandEncoder.beginRenderPass(renderPassDesc0);
@@ -1402,25 +1307,24 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 plane.encode(passEncoder0, pipeline, p);
                 sphere.encode(passEncoder0, pipeline, p);
                 passEncoder0.end();
-
+            //cs_start: blend_pass
                 let passEncoder1 = commandEncoder.beginRenderPass(renderPassBlend);
-                passEncoder1.setViewport(0,0,canvas.width,canvas.height,0,1);
+                passEncoder1.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
                 blender.encode(passEncoder1);
                 passEncoder1.end();
+            //cs_end: blend_pass
             }
-
+            //cs_end: pipeline_rest
+            //cs_start: final_shader
             let finalEncoder = commandEncoder.beginRenderPass(renderPassFinal);
             final.encode(finalEncoder);
             finalEncoder.end();
-
+            //cs_end: final_shader
+            //await downloadTexture(device, dstTexture, "pp"+".png");
+            /*commandEncoder.copyBufferToBuffer(pipeline.debugBuffer, 0,
+                pipeline.debugBufferRead, 0, 4 * 4);*/
             device.queue.submit([commandEncoder.finish()]);
             await device.queue.onSubmittedWorkDone();
-            //await downloadTexture(device, dstTexture, "pp"+".png");
-
-
-            // commandEncoder.copyBufferToBuffer(pipeline.debugBuffer, 0,
-            //   pipeline.debugBufferRead, 0, 4 * 4);
-
             if (projectionMatrixUniformBufferUpdate) {
                 projectionMatrixUniformBufferUpdate.destroy();
             }
@@ -1450,18 +1354,16 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
                 hasDumped = true;
             }*/
             // await dumpTextureF32AsImage(device, depthTexture1);
-              requestAnimationFrame(render);
-
-
+            requestAnimationFrame(render);
             /*
-                        await pipeline.debugBufferRead.mapAsync(GPUMapMode.READ, 0, 4 * 4);
-            
-                        let vb = pipeline.debugBufferRead.getMappedRange(0, 4 * 4);
-            
-                        vb = new Float32Array(vb);
-                        console.log("debug buffer ", vb);
-            
-                        pipeline.debugBufferRead.unmap();*/
+            await pipeline.debugBufferRead.mapAsync(GPUMapMode.READ, 0, 4 * 4);
+
+            let vb = pipeline.debugBufferRead.getMappedRange(0, 4 * 4);
+
+            vb = new Float32Array(vb);
+            console.log("debug buffer ", vb);
+
+            pipeline.debugBufferRead.unmap();*/
 
         }
 

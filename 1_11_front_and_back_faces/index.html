@@ -29,7 +29,7 @@ fn vs_main(
 }
 
 // Fragment shader
-
+//cs_start: culling_fragment_shader
 @fragment
 fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -> @location(0) vec4<f32> {
     if (face) {
@@ -39,7 +39,7 @@ fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -> @location(0)
         return vec4<f32>(0.0, 1.0, 0.0 ,1.0);
     }
 }
-
+//cs_end: culling_fragment_shader
 </script>
 
 <script>
@@ -152,11 +152,13 @@ fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -> @location(0)
                 entryPoint: 'fs_main',
                 targets: [colorState]
             },
+//cs_start: culling_topology_setup
             primitive: {
                 topology: 'triangle-strip',
                 frontFace: 'ccw',
                 cullMode: 'none'
             }
+//cs_end: culling_topology_setup
         };
 
         pipeline = device.createRenderPipeline(pipelineDesc);

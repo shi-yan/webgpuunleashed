@@ -264,6 +264,7 @@
         const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
 
         // 🤔 Create Depth Backing
+//cs_start: msaa_depth_texture
         const depthTextureDesc = {
             size: [canvas.width, canvas.height, 1],
             sampleCount: 4,
@@ -271,22 +272,24 @@
             format: 'depth24plus-stencil8',
             usage: GPUTextureUsage.RENDER_ATTACHMENT
         };
+//cs_end: msaa_depth_texture
 
         let depthTexture = device.createTexture(depthTextureDesc);
         let depthTextureView = depthTexture.createView();
-
+//cs_start: msaa_msaa_texture
         const msaaTexture = device.createTexture({
             size: [canvas.width, canvas.height],
             sampleCount: 4,
             format: navigator.gpu.getPreferredCanvasFormat(),
             usage: GPUTextureUsage.RENDER_ATTACHMENT,
         });
+//cs_end: msaa_msaa_texture
         const view = msaaTexture.createView();
 
 
         let colorTexture = context.getCurrentTexture();
         let colorTextureView = colorTexture.createView();
-
+//cs_start: msaa_color_attachment
         let colorAttachment = {
             view: view,
             resolveTarget: colorTextureView,
@@ -294,7 +297,7 @@
             loadOp: 'clear',
             storeOp: 'store'
         };
-
+//cs_end: msaa_color_attachment
         const depthAttachment = {
             view: depthTextureView,
             depthClearValue: 1,

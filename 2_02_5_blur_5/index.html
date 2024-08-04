@@ -85,6 +85,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     }
     
     // Fragment shader
+//cs_start: gaussian_blur_5_shader
     @group(0) @binding(2)
     var<uniform> img_size: vec2<f32>;
     @group(0) @binding(3)
@@ -98,25 +99,22 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     @group(0) @binding(7)
     var<uniform> kernel_size: u32;
 
-    
     @fragment
-    fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
-    
+    fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {    
         var color = vec4<f32>(0.0, 0.0, 0.0, 0.0);
     
         for(var x: u32 = 0; x < kernel_size; x++) {
             let offsettedX = offsets[x] + in.pixel_coord.x;
-
                 let tex_coord = vec2(offsettedX / img_size.x, in.pixel_coord.y / img_size.y);
+                // access texture in middle of two samples
                 let c = textureSampleLevel(v_result, s_diffuse, tex_coord,0);
+                // scales back by weight
                 color += c * weights[x];
-            
         }
-
         color.w = 1.0;
-    
         return color;
     }
+//cs_end: gaussian_blur_5_shader
 </script>
 
 <script>
@@ -229,7 +227,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         const imgSizeBuffer = new Float32Array([texture.width, texture.height]);
 
         const imgSizeUniformBuffer = createGPUBuffer(device, imgSizeBuffer, GPUBufferUsage.UNIFORM);
-
+//cs_start: gaussian_blur_5_kernel
         let kValues = [];
         let offsets = [];
 
@@ -238,7 +236,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         let intensity = 0.0;
 
         for (let y = - kernelSize; y <= kernelSize; y += 1.0) {
-            let gaussian_v = 1.0 / (2.0 * Math.PI * sigma * sigma) * Math.exp(-(y * y) / (2.0 * sigma * sigma));
+            let gaussian_v = 1.0 / Math.sqrt(2.0 * Math.PI * sigma * sigma) * Math.exp(-(y * y) / (2.0 * sigma * sigma));
             intensity += gaussian_v;
             kValues.push(gaussian_v);
             offsets.push(y);
@@ -247,6 +245,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         let kValues2 = [];
         let offsets2 = [];
         let i = 0;
+        // loop for all 2-texel groups
         for (; i < kValues.length - 1; i += 2) {
             const A = kValues[i];
             const B = kValues[i + 1];
@@ -256,18 +255,17 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             kValues2.push(k / intensity);
             offsets2.push(offset);
         }
-
+        // if the window size is an odd number, there should be one lingering texel left
         if (i < kValues.length) {
             const A = kValues[i];
             const offset = offsets[i];
             kValues2.push(A / intensity);
             offsets2.push(offset);
         }
-
+//cs_end: gaussian_blur_5_kernel
         const kernelBuffer = new Float32Array(kValues2);
 
         const kernelBufferStorageBuffer = createGPUBuffer(device, kernelBuffer, GPUBufferUsage.STORAGE);
-
 
         const offsetBuffer = new Float32Array(offsets2);
 

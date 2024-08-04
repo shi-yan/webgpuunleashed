@@ -54,7 +54,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
     let copyVideo = false;
     let videoTag = null;
-
+//cs_start: video_load
     function setupVideo(url) {
         const video = document.createElement('video');
 
@@ -89,7 +89,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
         return video;
     }
-
+//cs_end: video_load
 
     async function webgpu() {
         if (!navigator.gpu) {
@@ -105,7 +105,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
         const context = configContext(device, canvas);
 
         // create shaders
-
+//cs_start: video_load_texture
         const textureDescriptor = {
             size: { width: videoTag.videoWidth, height: videoTag.videoHeight },
             format: 'rgba8unorm',
@@ -118,7 +118,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             //console.log(imageData)
             device.queue.copyExternalImageToTexture({ source: imageData }, { texture }, textureDescriptor.size);
         };
-
+//cs_end: video_load_texture
         const sampler = device.createSampler({
             addressModeU: 'repeat',
             addressModeV: 'repeat',
@@ -308,6 +308,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
 
         requestAnimationFrame(render);
     }
+//cs_start: video_load
     videoTag = setupVideo('../data/Firefox.mp4');
 
     (async () => {
@@ -322,7 +323,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     })().then(() => {
         webgpu();
     });
-
+//cs_end: video_load
 </script>
 
 </html>

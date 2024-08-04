@@ -70,7 +70,7 @@ fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -> @location(0)
             arrayStride: 4 * 3, // sizeof(float) * 3
             stepMode: 'vertex'
         };
-
+//cs_start: index_buffer_vertex_pool
         const positions = new Float32Array([
             -100.0, 100.0, 0.0,
             -100.0, 100.0, 200.0,
@@ -87,7 +87,8 @@ fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -> @location(0)
         ]);
 
         const positionBuffer = createGPUBuffer(device, positions, GPUBufferUsage.VERTEX);
-
+//cs_end: index_buffer_vertex_pool
+//cs_start: index_buffer_index_buffers
         const indices = new Uint16Array([0, 1, 2, 3, 4, 5, 6, 7, 0, 1]);
 
         const indexBuffer = createGPUBuffer(device, indices, GPUBufferUsage.INDEX);
@@ -95,7 +96,7 @@ fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -> @location(0)
         const indices2 = new Uint16Array([3, 1, 5, 7]);
 
         const index2Buffer = createGPUBuffer(device, indices2, GPUBufferUsage.INDEX);
-
+//cs_end: index_buffer_index_buffers
         let translateMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
             glMatrix.vec3.fromValues(300, 300, 300), glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(0.0, 0.0, 1.0));
 
@@ -158,12 +159,14 @@ fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -> @location(0)
                 entryPoint: 'fs_main',
                 targets: [colorState]
             },
+//cs_start: index_buffer_primitive
             primitive: {
                 topology: 'triangle-strip',
                 stripIndexFormat: 'uint16',
                 frontFace: 'ccw',
                 cullMode: 'none'
             },
+//cs_end: index_buffer_primitive
             depthStencil: {
                 depthWriteEnabled: true,
                 depthCompare: 'less',
@@ -209,7 +212,7 @@ fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -> @location(0)
             depthStencilAttachment: depthAttachment
         };
         commandEncoder = device.createCommandEncoder();
-
+//cs_start: index_buffer_command_submission
         passEncoder = commandEncoder.beginRenderPass(renderPassDesc);
         passEncoder.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
         passEncoder.setPipeline(pipeline);
@@ -220,7 +223,7 @@ fn fs_main(in: VertexOutput,  @builtin(front_facing) face: bool) -> @location(0)
         passEncoder.setIndexBuffer(index2Buffer, 'uint16');
         passEncoder.drawIndexed(4);
         passEncoder.end();
-
+//cs_end: index_buffer_command_submission
         device.queue.submit([commandEncoder.finish()]);
     }
 

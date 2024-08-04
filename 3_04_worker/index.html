@@ -50,8 +50,9 @@
 </script>
 
 <script>
+//cs_start: web_worker_main_thread
     const worker = new Worker('./worker.js');
-
+//cs_end: web_worker_main_thread
 
     worker.addEventListener('message', (ev) => {
         switch (ev.data.type) {
@@ -64,7 +65,7 @@
             }
         }
     });
-
+//cs_start: web_worker_main_thread
     try {
         const offscreenCanvas = canvas.transferControlToOffscreen();
         const devicePixelRatio = window.devicePixelRatio || 1;
@@ -76,7 +77,7 @@
         console.warn(err.message);
         worker.terminate();
     }
-
+//cs_end: web_worker_main_thread
 
 </script>
 

@@ -17,20 +17,23 @@
     //https://xol.io/blah/the-trouble-with-spirv/
 </script>
 <script id="shader" type="wgsl">
-
+//cs_start: radix_sorting_modified_prefix_sum
+//cs_start: radix_sorting_modified_prefix_sum_inputs
       @binding(0) @group(0) var<storage, read> input :array<u32>;
       @binding(1) @group(0) var<storage, read_write> output :array<vec4<u32>>;
       @binding(2) @group(0) var<storage, read_write> sums: array<u32>;
-
+//cs_end: radix_sorting_modified_prefix_sum_inputs
+//cs_start: radix_sorting_modified_prefix_sum_mask_id
       @binding(0) @group(1) var<uniform> radixMaskId:u32;
-
+//cs_end: radix_sorting_modified_prefix_sum_mask_id
       const bank_size:u32 = 32;
+//cs_start: radix_sorting_temp_arrays
       const n:u32 = 512;
       var<workgroup> temp0: array<u32,532>;
       var<workgroup> temp1: array<u32,532>;
       var<workgroup> temp2: array<u32,532>;
       var<workgroup> temp3: array<u32,532>;
-
+//cs_end: radix_sorting_temp_arrays
       fn bank_conflict_free_idx( idx:u32) -> u32 {
         var chunk_id:u32 = idx / bank_size;
         return idx + chunk_id;
@@ -40,10 +43,12 @@
       fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>,
         @builtin(local_invocation_id) LocalInvocationID: vec3<u32>,
         @builtin(workgroup_id) WorkgroupID: vec3<u32>) {
+//cs_start: radix_sorting_loading
             var thid:u32 = LocalInvocationID.x;
             var globalThid:u32 = GlobalInvocationID.x;
+//cs_start: radix_sorting_modified_prefix_sum_mask
             var mask:u32 = u32(3) << (radixMaskId << 1);
-
+//cs_end: radix_sorting_modified_prefix_sum_mask
             if (thid < (n>>1)){
 
                 var val:u32 = (input[2*globalThid] & mask) >> (radixMaskId << 1);
@@ -77,7 +82,7 @@
                 }
             }
             workgroupBarrier();
-
+//cs_end: radix_sorting_loading
             var offset:u32 = 1;
 
             for (var d:u32 = n>>1; d > 0; d >>= 1)
@@ -132,37 +137,37 @@
                 } 
                 workgroupBarrier();      
             }
-
-            var count0:u32 = temp0[bank_conflict_free_idx(2*255)];
-            var count1:u32 = temp1[bank_conflict_free_idx(2*255)];
-            var count2:u32 = temp2[bank_conflict_free_idx(2*255)];
-            var count3:u32 = temp3[bank_conflict_free_idx(2*255)];
-
-            var last:u32 =  (input[2*((WorkgroupID.x+1) * 256-1)] & mask)  >> (radixMaskId << 1); 
-            switch(last) {
-                case 0: {count0 += 1;}
-                case 1: {count1 += 1;}
-                case 2: {count2 += 1;}
-                case 3: {count3 += 1;}
-                default {}
-            }
-
-            last =  (input[2*((WorkgroupID.x+1) * 256-1)+1] & mask)  >> (radixMaskId << 1); 
-            switch(last) {
-                case 0: {count0 += 1;}
-                case 1: {count1 += 1;}
-                case 2: {count2 += 1;}
-                case 3: {count3 += 1;}
-                default {}
-            }
-
+//cs_start: radix_sorting_write_back_result
             if (thid == 0) {
+                var count0:u32 = temp0[bank_conflict_free_idx(2*255)];
+                var count1:u32 = temp1[bank_conflict_free_idx(2*255)];
+                var count2:u32 = temp2[bank_conflict_free_idx(2*255)];
+                var count3:u32 = temp3[bank_conflict_free_idx(2*255)];
+
+                var last:u32 =  (input[2*((WorkgroupID.x+1) * 256-1)] & mask)  >> (radixMaskId << 1); 
+                switch(last) {
+                    case 0: {count0 += 1;}
+                    case 1: {count1 += 1;}
+                    case 2: {count2 += 1;}
+                    case 3: {count3 += 1;}
+                    default {}
+                }
+
+                last =  (input[2*((WorkgroupID.x+1) * 256-1)+1] & mask)  >> (radixMaskId << 1); 
+                switch(last) {
+                    case 0: {count0 += 1;}
+                    case 1: {count1 += 1;}
+                    case 2: {count2 += 1;}
+                    case 3: {count3 += 1;}
+                    default {}
+                }
+
                 sums[WorkgroupID.x * 4] = count0;
                 sums[WorkgroupID.x * 4+1] = count1;
                 sums[WorkgroupID.x * 4+2] = count2;
                 sums[WorkgroupID.x * 4+3] = count3;
             }
-
+//cs_end: radix_sorting_write_back_result
             if (thid < (n>>1)){
                 output[2*globalThid].x = temp0[bank_conflict_free_idx(2*thid)]; 
                 output[2*globalThid+1].x = temp0[bank_conflict_free_idx(2*thid+1)]; 
@@ -177,6 +182,7 @@
                 output[2*globalThid+1].w = temp3[bank_conflict_free_idx(2*thid+1)]; 
             }
       }
+//cs_end: radix_sorting_modified_prefix_sum
 </script>
 
 
@@ -265,6 +271,7 @@
 
 
 <script id="shuffle_shader" type="wgsl">
+//cs_start: radix_sorting_shuffling
     @binding(0) @group(0) var<storage, read> input :array<u32>;
     @binding(1) @group(0) var<storage, read> inputId :array<u32>;
     @binding(2) @group(0) var<storage, read> temp :array<vec4<u32>>;
@@ -358,6 +365,7 @@
             //output[2*globalThid+1] = id;
         }
     }
+//cs_end: radix_sorting_shuffling
 </script>
 
 <script>
@@ -403,12 +411,17 @@
         }
         const adapter = await navigator.gpu.requestAdapter();
         console.log(adapter);
-        const hasTimestampQuery = adapter.features.has('timestamp-query');
+        const hasTimestampQuery = false;// adapter.features.has('timestamp-query');
+        console.log("hasTimestampQuery",hasTimestampQuery)
 
         let device = await adapter.requestDevice({
             requiredFeatures: hasTimestampQuery ? ["timestamp-query"] : [],
         });
         console.log(device);
+
+        for (let f of device.features) {
+            console.log(f)
+        }
 
         const capacity = 3;//Max number of timestamps we can store
         const querySet = hasTimestampQuery ? device.createQuerySet({
@@ -522,15 +535,13 @@
             ]
         });
 
-
+//cs_start: radix_sorting_prepare_input
         let testArray = [];
         let testIdArray = [];
         {
             //load data
-
             const objResponse = await fetch('../data/dummy.json');
             testArray = await objResponse.json();
-
         }
 
         const actualArraySize = testArray.length; // 81946;//512*2+10;
@@ -548,7 +559,7 @@
             }
             testIdArray.push(i);
         }
-
+//cs_end: radix_sorting_prepare_input
         console.log(testArray, testIdArray);
 
         let inputArrayBuffer = createGPUBuffer(device, new Uint32Array(testArray), GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
@@ -565,6 +576,7 @@
         let readOutputArrayBuffer = createGPUBuffer(device, new Uint32Array(paddedArraySize), GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
         let readOutputIdArrayBuffer = createGPUBuffer(device, new Uint32Array(paddedArraySize), GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
         let sumSizeBuffer = createGPUBuffer(device, new Uint32Array([sumSize]), GPUBufferUsage.UNIFORM);
+//cs_start: radix_sorting_setup_mask
         let radixIdUniformBuffers = [];
 
         for (let i = 0; i < 16; ++i) {
@@ -572,7 +584,7 @@
 
             radixIdUniformBuffers.push(radixIdUniformBuffer);
         }
-
+//cs_end: radix_sorting_setup_mask
         let pass1UniformBindGroupInputOutput0 = device.createBindGroup({
             layout: pass1UniformBindGroupLayoutInputOutput,
             entries: [
@@ -799,7 +811,7 @@
 
 
         const computePassDescriptor = {};
-
+//cs_start: radix_sorting_submit_command
         const commandEncoder = device.createCommandEncoder();
         if (hasTimestampQuery) {
             commandEncoder.writeTimestamp(querySet, 0);// Initial timestamp
@@ -840,7 +852,7 @@
             pass3Encoder.dispatchWorkgroups(chunkCount);
             pass3Encoder.end();
         }
-
+//cs_end: radix_sorting_submit_command
         if (hasTimestampQuery) {
             commandEncoder.writeTimestamp(querySet, 1);// Initial timestamp
             commandEncoder.resolveQuerySet(
@@ -870,9 +882,9 @@
 
         const d = new Uint32Array(readOutputArrayBuffer.getMappedRange());
 
-        for (let i = 0; i < d.length; ++i) {
+        /*for (let i = 0; i < d.length; ++i) {
             console.log("d", (d[i]));
-        }
+        }*/
 
         readOutputArrayBuffer.unmap();
 
@@ -889,7 +901,6 @@
         }
 
         readOutputIdArrayBuffer.unmap();
-
 
         await readOutputSumArrayBuffer.mapAsync(GPUMapMode.READ, 0, sumSize * 4 * 4);
 

@@ -57,22 +57,23 @@
 
 <script>
     let angle = 0.0;
-    let takeScreenshot = false;
     let recordVideo = false;
-
+//cs_start: save_image_and_video_save_canvas_to_blob
+    let takeScreenshot = false;
 
     screenshotButton.onclick = () => {
         takeScreenshot = true;
     }
-
+//cs_end: save_image_and_video_save_canvas_to_blob
     let encoder = null;
     let webmWriter = null;
     let fileWritableStream = null;
     let frameCount = 0;
     let beginTime = 0;
-
+//cs_start: save_image_and_video_handle_record_button
     recordButton.onclick = async () => {
         if (encoder === null) {
+//cs_start: save_image_and_video_select_a_file
             const options = {
                 suggestedName: 'video.webm',
                 types: [
@@ -88,15 +89,17 @@
             let fileHandle = await window.showSaveFilePicker(options);
 
             fileWritableStream = await fileHandle.createWritable();
-
+//cs_end: save_image_and_video_select_a_file
             // This WebMWriter thing comes from the third-party library
+//cs_start: save_image_and_video_muxing
             webmWriter = new WebMWriter({
                 fileWriter: fileWritableStream,
                 codec: 'VP9',
                 width: canvas.width,
                 height: canvas.height
             });
-
+//cs_end: save_image_and_video_muxing
+//cs_start: save_image_and_video_encoder
             encoder = new VideoEncoder({
                 output: chunk => webmWriter.addFrame(chunk),
                 error: e => console.error(e)
@@ -110,10 +113,14 @@
                 latencyMode: 'realtime',
                 framerate: 25
             });
+//cs_end: save_image_and_video_encoder
+//cs_start: save_image_and_video_frame_counter_timestamp
             frameCount = 0;
             beginTime = window.performance.now();
+//cs_end: save_image_and_video_frame_counter_timestamp
             recordButton.innerText = 'Stop';
         } else {
+//cs_start: save_image_and_video_muxing_into_file
             encoder.flush();
             await webmWriter.complete();
             fileWritableStream.close();
@@ -122,9 +129,11 @@
             fileWritableStream = null;
             encoder = null;
             recordButton.innerText = 'Record';
+//cs_end: save_image_and_video_muxing_into_file
         }
     }
-
+//cs_end: save_image_and_video_handle_record_button
+//cs_start: save_image_and_video_download_blob
     const saveBlob = (function () {
         const a = document.createElement('a');
         document.body.appendChild(a);
@@ -137,7 +146,7 @@
             a.parentNode.removeChild(a);
         };
     }());
-
+//cs_end: save_image_and_video_download_blob
     class Teapot {
         constructor() {
             this.pipeline = null;
@@ -318,8 +327,9 @@
             stencilLoadOp: 'clear',
             stencilStoreOp: 'store'
         };
-
+//cs_start: save_image_and_video_encoding_a_frame
         async function render() {
+//cs_end: save_image_and_video_encoding_a_frame
             angle += 0.1;
             let modelViewMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
                 glMatrix.vec3.fromValues(Math.cos(angle) * 5.0, Math.sin(angle) * 5.0, 5), glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(0.0, 0.0, 1.0));
@@ -362,14 +372,15 @@
 
             modelViewMatrixUniformBufferUpdate.destroy();
             normalMatrixUniformBufferUpdate.destroy();
-
+//cs_start: save_image_and_video_save_canvas_to_blob
             if (takeScreenshot) {
                 takeScreenshot = false;
                 canvas.toBlob((blob) => {
                     saveBlob(blob, `screencapture-${canvas.width}x${canvas.height}.png`);
                 });
             }
-
+//cs_end: save_image_and_video_save_canvas_to_blob
+//cs_start: save_image_and_video_encoding_a_frame
             if (encoder !== null) {
                 let currentTime = window.performance.now();
                 const frame = new VideoFrame(canvas, { timestamp: (currentTime - beginTime) * 1000 });
@@ -380,6 +391,7 @@
 
             requestAnimationFrame(render);
         }
+//cs_end: save_image_and_video_encoding_a_frame
 
         requestAnimationFrame(render);
     }

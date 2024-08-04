@@ -18,15 +18,16 @@
     //https://developer.nvidia.com/gpugems/gpugems3/part-vi-gpu-computing/chapter-39-parallel-prefix-sum-scan-cuda
 </script>
 <script id="shader" type="wgsl">
-
+//cs_start: prefix_sum_compute_shader
+//cs_start: prefix_sum_pass1_inputs
       @binding(0) @group(0) var<storage, read> input :array<f32>;
       @binding(1) @group(0) var<storage, read_write> output :array<f32>;
       @binding(2) @group(0) var<storage, read_write> sums: array<f32>;
       const n:u32 = 512;
-
-      const bank_size:u32 = 32;
       var<workgroup> temp: array<f32,532>; //workgroup array must have a fixed size;
-
+//cs_end: prefix_sum_pass1_inputs
+      const bank_size:u32 = 32;
+//cs_end: prefix_sum_compute_shader
       fn bank_conflict_free_idx( idx:u32) -> u32 {
         var chunk_id:u32 = idx / bank_size;
         return idx + chunk_id;
@@ -35,18 +36,21 @@
       /*fn bank_conflict_free_idx( idx:u32) -> u32 { // fake
         return idx;
       }*/
-
+//cs_start: prefix_sum_compute_shader
+//cs_start: prefix_sum_pass1_loading
       @compute @workgroup_size(256)
       fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>,
         @builtin(local_invocation_id) LocalInvocationID: vec3<u32>,
         @builtin(workgroup_id) WorkgroupID: vec3<u32>) {
             var thid:u32 = LocalInvocationID.x;
             var globalThid:u32 = GlobalInvocationID.x;
+//cs_end: prefix_sum_compute_shader
             if (thid < (n>>1)){
                 temp[bank_conflict_free_idx(2*thid)] = input[2*globalThid]; // load input into shared memory 
                 temp[bank_conflict_free_idx(2*thid+1)] = input[2*globalThid+1];
             }
-
+//cs_end: prefix_sum_pass1_loading
+//cs_start: prefix_sum_pass1_bottom_up
             workgroupBarrier();
             var offset:u32 = 1;
 
@@ -62,19 +66,21 @@
 
                 workgroupBarrier();   
             }
+//cs_end: prefix_sum_pass1_bottom_up
             /*if (thid < (n>>1)){
                 output[2*thid] = temp[2*thid]; 
                 output[2*thid+1] = temp[2*thid+1]; 
             }*/
             //output[thid] = 1;
-
+//cs_start: prefix_sum_pass1_save_group_sum
             if (thid == 0) 
             { 
                 sums[WorkgroupID.x] = temp[bank_conflict_free_idx(n - 1)];
                 temp[bank_conflict_free_idx(n - 1)] = 0;
             } // clear the last element  
             workgroupBarrier();      
-
+//cs_end: prefix_sum_pass1_save_group_sum
+//cs_start: prefix_sum_pass1_top_down
             for (var d:u32 = 1; d < n; d *= 2) // traverse down tree & build scan 
             {      
                 offset >>= 1;      
@@ -93,8 +99,12 @@
                 output[2*globalThid] = temp[bank_conflict_free_idx(2*thid)]; 
                 output[2*globalThid+1] = temp[bank_conflict_free_idx(2*thid+1)]; 
             }
+//cs_end: prefix_sum_pass1_top_down
+//cs_start: prefix_sum_compute_shader
+//cs_start: prefix_sum_pass1_loading
       }
-
+//cs_end: prefix_sum_pass1_loading
+//cs_end: prefix_sum_compute_shader
 </script>
 
 <script id="scan_sum_shader" type="wgsl">
@@ -184,12 +194,14 @@
     fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3<u32>,
       @builtin(local_invocation_id) LocalInvocationID: vec3<u32>,
       @builtin(workgroup_id) WorkgroupID: vec3<u32>) {
+//cs_start: prefix_sum_pass3
           var thid:u32 = LocalInvocationID.x;
           var globalThid:u32 = GlobalInvocationID.x;
           if (thid < (n>>1)){
             output[2*globalThid]= output[2*globalThid] + sums[WorkgroupID.x]; // load input into shared memory 
             output[2*globalThid+1] = output[2*globalThid+1] + sums[WorkgroupID.x];
           }
+//cs_end: prefix_sum_pass3
     }
 </script>
 
@@ -272,7 +284,7 @@
         let pass1ShaderModule = shaderModuleFromCode(device, 'shader');
         let pass2ShaderModule = shaderModuleFromCode(device, 'scan_sum_shader');
         let pass3ShaderModule = shaderModuleFromCode(device, 'add_sum_shader');
-
+//cs_start: prefix_sum_buffer_setup
         let pass1UniformBindGroupLayout = device.createBindGroupLayout({
             entries: [
                 {
@@ -292,7 +304,7 @@
                 }
             ]
         });
-
+//cs_end: prefix_sum_buffer_setup
         let pass2UniformBindGroupLayout = device.createBindGroupLayout({
             entries: [
                 {
@@ -418,7 +430,7 @@
                 }
             ]
         });
-
+//cs_start: prefix_sum_pipeline_configuration
         const pass1PipelineLayoutDesc = { bindGroupLayouts: [pass1UniformBindGroupLayout] };
         const pass1Layout = device.createPipelineLayout(pass1PipelineLayoutDesc);
         const pass1ComputePipeline = device.createComputePipeline({
@@ -428,7 +440,7 @@
                 entryPoint: 'main',
             },
         });
-
+//cs_end: prefix_sum_pipeline_configuration
         const pass2PipelineLayoutDesc = { bindGroupLayouts: [pass2UniformBindGroupLayout] };
         const pass2Layout = device.createPipelineLayout(pass2PipelineLayoutDesc);
         const pass2ComputePipeline = device.createComputePipeline({
@@ -455,15 +467,16 @@
         if (hasTimestampQuery) {
             commandEncoder.writeTimestamp(querySet, 0);// Initial timestamp
         }
+//cs_start: prefix_sum_pipeline_configuration
         const passEncoder = commandEncoder.beginComputePass(
             computePassDescriptor
         );
-        
+//cs_start: prefix_sum_pass3_launch
         passEncoder.setPipeline(pass1ComputePipeline);
         passEncoder.setBindGroup(0, pass1UniformBindGroup);
         passEncoder.dispatchWorkgroups(chunkCount);
         passEncoder.end();
-
+//cs_end: prefix_sum_pipeline_configuration
         const pass2Encoder = commandEncoder.beginComputePass(computePassDescriptor);
         pass2Encoder.setPipeline(pass2ComputePipeline);
         pass2Encoder.setBindGroup(0, pass2UniformBindGroup);
@@ -475,7 +488,7 @@
         pass3Encoder.setBindGroup(0, pass3UniformBindGroup);
         pass3Encoder.dispatchWorkgroups(chunkCount);
         pass3Encoder.end();
-
+//cs_end: prefix_sum_pass3_launch
         if (hasTimestampQuery) {
             commandEncoder.writeTimestamp(querySet, 1);// Initial timestamp
             commandEncoder.resolveQuerySet(
@@ -485,12 +498,11 @@
                 queryBuffer,
                 0);// destination offset
         }
-        
+//cs_start: prefix_sum_pipeline_configuration
         commandEncoder.copyBufferToBuffer(outputArrayBuffer, 0,
             readOutputArrayBuffer, 0, arraySize * 4);
         commandEncoder.copyBufferToBuffer(outputSumArrayBuffer, 0,
             readSumArrayBuffer, 0, sumSize * 4);
-
             
         device.queue.submit([commandEncoder.finish()]);
         await device.queue.onSubmittedWorkDone();
@@ -498,7 +510,7 @@
         await readOutputArrayBuffer.mapAsync(GPUMapMode.READ, 0, arraySize * 4);
 
         const d = new Float32Array(readOutputArrayBuffer.getMappedRange());
-
+//cs_end: prefix_sum_pipeline_configuration
 
         let sum = 0;
         for (let i = 0; i < arraySize; ++i) {

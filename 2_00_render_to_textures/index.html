@@ -452,7 +452,7 @@
 
         let teapot = new Teapot();
         await teapot.setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, normalMatrixUniformBuffer);
-
+//cs_start: render2texture_generate_texture_for_first_pass
         const teapotTextureSize = 512;
 
         const depthTextureForTeapotDesc = {
@@ -481,10 +481,10 @@
             usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING 
         };
         let colorTextureForTeapot = device.createTexture(colorTextureForTeapotDesc);
-
+//cs_end: render2texture_generate_texture_for_first_pass
         let box = new Box();
         await box.setup(device, modelViewMatrixUniformBuffer, projectionMatrixUniformBuffer, colorTextureForTeapot);
-
+//cs_start: render2texture_first_render_pass
         let colorTextureForTeapotView = colorTextureForTeapot.createView();
         let colorForTeapotAttachment = {
             view: colorTextureForTeapotView,
@@ -497,8 +497,8 @@
             colorAttachments: [colorForTeapotAttachment],
             depthStencilAttachment: depthAttachmentForTeapot
         };
-
-
+//cs_end: render2texture_first_render_pass
+//cs_start: render2texture_second_render_pass
         const depthTextureDesc = {
             size: [canvas.width, canvas.height, 1],
             dimension: '2d',
@@ -518,8 +518,9 @@
             stencilLoadOp: 'clear',
             stencilStoreOp: 'store'
         };
-
+//cs_end: render2texture_second_render_pass
         async function render() {
+//cs_start: render2texture_rotate_camera
             angle += 0.01;
             let modelViewMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
                 glMatrix.vec3.fromValues(Math.cos(angle) * 15.0, Math.sin(angle) * 15.0, 15), glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(0.0, 0.0, 1.0));
@@ -531,7 +532,8 @@
             let normalMatrix = glMatrix.mat4.transpose(glMatrix.mat4.create(), modelViewMatrixInverse);
 
             let normalMatrixUniformBufferUpdate = createGPUBuffer(device, normalMatrix, GPUBufferUsage.COPY_SRC);
-
+//cs_end: render2texture_rotate_camera
+//cs_start: render2texture_second_render_pass
             let colorTexture = context.getCurrentTexture();
             let colorTextureView = colorTexture.createView();
 
@@ -546,14 +548,16 @@
                 colorAttachments: [colorAttachment],
                 depthStencilAttachment: depthAttachment
             };
-
+//cs_end: render2texture_second_render_pass
 
             const commandEncoder = device.createCommandEncoder();
+//cs_start: render2texture_rotate_camera
             commandEncoder.copyBufferToBuffer(modelViewMatrixUniformBufferUpdate, 0,
                 modelViewMatrixUniformBuffer, 0, modelViewMatrix.byteLength);
             commandEncoder.copyBufferToBuffer(normalMatrixUniformBufferUpdate, 0,
                 normalMatrixUniformBuffer, 0, normalMatrix.byteLength);
-
+//cs_end: render2texture_rotate_camera
+//cs_start: render2texture_2_pass
             let passEncoder = commandEncoder.beginRenderPass(renderPassForTeapotDesc);
             passEncoder.setViewport(0, 0, teapotTextureSize, teapotTextureSize, 0, 1);
             teapot.encode(passEncoder);
@@ -564,14 +568,14 @@
             box.encode(passEncoder);
             passEncoder.end();
 
-
             device.queue.submit([commandEncoder.finish()]);
-
+//cs_end: render2texture_2_pass
+//cs_start: render2texture_rotate_camera
             await device.queue.onSubmittedWorkDone();
 
             modelViewMatrixUniformBufferUpdate.destroy();
             normalMatrixUniformBufferUpdate.destroy();
-
+//cs_end: render2texture_rotate_camera
             requestAnimationFrame(render);
         }
 
