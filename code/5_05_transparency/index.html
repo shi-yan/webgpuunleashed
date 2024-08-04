@@ -1268,7 +1268,6 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             passEncoderCleanup.setViewport(0, 0, canvas.width, canvas.height, 0, 1);
             passEncoderCleanup.end();
             for (let p = 0; p < 6; ++p) {
-
                 let passEncoder0 = null;
                 if (p % 2 == 0) {
                     passEncoder0 = commandEncoder.beginRenderPass(renderPassDesc0);
@@ -1289,10 +1288,7 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
             let finalEncoder = commandEncoder.beginRenderPass(renderPassFinal);
             final.encode(finalEncoder);
             finalEncoder.end();
-
             //await downloadTexture(device, dstTexture, "pp"+".png");
-
-
             /*commandEncoder.copyBufferToBuffer(pipeline.debugBuffer, 0,
                 pipeline.debugBufferRead, 0, 4 * 4);*/
             device.queue.submit([commandEncoder.finish()]);
