@@ -3286,7 +3286,7 @@ li {
 @font-face {
 	font-family: "codicon";
 	font-display: block;
-	src: url(/WebGPUUnleashed/code/assets/codicon.ttf) format("truetype");
+	src: url(/webgpuunleashed/code/assets/codicon.ttf) format("truetype");
 }
 
 .codicon[class*='codicon-'] {
