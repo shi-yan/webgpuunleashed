@@ -405,7 +405,7 @@ fn main(@builtin(global_invocation_id) GlobalInvocationID : vec3&lt;u32&gt;,
         var basisVector2:vec2&lt;f32&gt; = eigenVector2 * min(sqrt(eigenValue2)*4, maxSplatSize);
         readback[gid] = vec4&lt;f32&gt;(basisVector1,basisVector2);
         var dis:vec4&lt;f32&gt; = projection * modelView * center;
-        distance[gid] = u32(dis.z / dis.w * f32(0xFFFFFFFF &gt;&gt; 8));     
+        distance[gid] = u32(((dis.z / dis.w+1.0)*0.5) * f32(0xFFFFFFFF &gt;&gt; 8));     
         basis[gid] = vec4&lt;f32&gt;(basisVector1, basisVector2);
     } else {
         distance[gid] = 0xFFFFFFFF;
