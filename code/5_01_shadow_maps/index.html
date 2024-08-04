@@ -95,7 +95,6 @@
         out.inPos = inPos;
         var lightLoc:vec4<f32> = modelView * vec4<f32>(lightDirection, 1.0);
         out.lightLoc = lightLoc.xyz / lightLoc.w;
-
         return out;
     }
     
@@ -115,7 +114,6 @@
         var lightDir:vec3<f32> = normalize(in.lightDir);
         var n:vec3<f32> = normalize(in.normal);
         var viewDir: vec3<f32> = in.viewDir;
-
         var fragmentPosInShadowMapSpace: vec4<f32> = lightProjectionMatrix * lightModelViewMatrix * vec4(in.inPos, 1.0);
         fragmentPosInShadowMapSpace = fragmentPosInShadowMapSpace / fragmentPosInShadowMapSpace.w;
         var depth: f32 = fragmentPosInShadowMapSpace.z;
@@ -134,29 +132,15 @@
               }
             }
             visibility /= 25.0;
-
-
-        //var light2ClosestSurfaceDist = textureSample(t_depth, s_depth, vec2(uv.x, 1.0-uv.y));
         if (face) {
-            //if (depth < light2ClosestSurfaceDist+0.0001) {
-
-                var wldLoc2light:vec3<f32> =   in.wldLoc-lightLoc;
-
-                //var lightDir:vec3<f32> =  
-                var align:f32 = dot( normalize(wldLoc2light),lightDir);
-
-                if (align > 0.9) {
-                    var radiance:vec3<f32>  = ambientColor.rgb * ambientConstant + 
-                        diffuse(-lightDir, n, diffuseColor.rgb)* diffuseConstant +
-                        specular(-lightDir, viewDir, n, specularColor.rgb, shininess) * specularConstant;
+            var wldLoc2light:vec3<f32> =   in.wldLoc-lightLoc;
+            if (align > 0.9) {
+                var radiance:vec3<f32>  = ambientColor.rgb * ambientConstant + 
+                    diffuse(-lightDir, n, diffuseColor.rgb)* diffuseConstant +
+                    specular(-lightDir, viewDir, n, specularColor.rgb, shininess) * specularConstant;
         
-                    return vec4<f32>(radiance * visibility ,1.0);
-                   // return vec4<f32>(0.0,0.0,light2ClosestSurfaceDist,1.0);
-                }
-
-                //return vec4<f32>(1.0,1.0,0.0,1.0);
-            //}
-          
+                return vec4<f32>(radiance * visibility ,1.0);
+            }
         } 
         return vec4<f32>( 0.0,0.0,0.0,1.0);
     }
@@ -164,7 +148,6 @@
 
 <script id="light_view_shader" type="wgsl">
     // Vertex shader
-    
     @group(0) @binding(0)
     var<uniform> modelView: mat4x4<f32>;
     @group(0) @binding(1)
@@ -180,7 +163,6 @@
         @location(0) inPos: vec3<f32>
     ) -> VertexOutput {
         var out: VertexOutput;
-
         var wldLoc:vec4<f32> = modelView * vec4<f32>(inPos, 1.0);
         out.clip_position = projection * wldLoc;
         out.depth = out.clip_position.z / out.clip_position.w;
@@ -911,12 +893,10 @@
 
         let projectionMatrixUniformBuffer = createGPUBuffer(device, projectionMatrix, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
-
         let lightProjectionMatrix = glMatrix.mat4.perspective(glMatrix.mat4.create(),
             Math.acos(0.9) * 2.0, 1.0, 1.0, 100.0);
 
         let lightProjectionMatrixUniformBuffer = createGPUBuffer(device, lightProjectionMatrix, GPUBufferUsage.UNIFORM);
-
         let lightModelViewMatrixUniformBuffer = createGPUBuffer(device, modelViewMatrix, GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST);
 
         let teapot = new Teapot();
@@ -979,7 +959,6 @@
             colorAttachments: [lightColorAttachment],
             depthStencilAttachment: lightDepthAttachment
         };
-
         let copiedBuffer = createGPUBuffer(device, new Float32Array(1024 * 1024), GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ);
         let hasDumped = true;
         async function render() {
@@ -1032,20 +1011,16 @@
 
             let viewDir = glMatrix.vec3.fromValues(-arcball.forwardVector[0], -arcball.forwardVector[1], -arcball.forwardVector[2]);
             let viewDirectionUniformBufferUpdate = createGPUBuffer(device, viewDir, GPUBufferUsage.COPY_SRC);
-
             let lightDir = glMatrix.vec3.fromValues(Math.cos(angle) * 8.0, Math.sin(angle) * 8.0, 10);
             let lightDirectionUniformBufferUpdate = createGPUBuffer(device, lightDir, GPUBufferUsage.COPY_SRC);
             spotlight.upsertSpotLight(spotLightId, lightDir, glMatrix.vec3.fromValues(-Math.cos(angle) * 8.0, -Math.sin(angle) * 8.0, -10), glMatrix.vec3.fromValues(0.0, 1.0, 0.0));
             spotlight.refreshBuffer(device);
-
-            //console.log("spot light dis:", glMatrix.vec3.length(glMatrix.vec3.fromValues(-Math.cos(angle) * 8.0, -Math.sin(angle) * 8.0, -10)));
 
             let lightModelViewMatrix = glMatrix.mat4.lookAt(glMatrix.mat4.create(),
                 glMatrix.vec3.fromValues(Math.cos(angle) * 8.0, Math.sin(angle) * 8.0, 10),
                 glMatrix.vec3.fromValues(0, 0, 0), glMatrix.vec3.fromValues(0.0, 0.0, 1.0));
 
             let lightModelViewMatrixUniformBufferUpdate = createGPUBuffer(device, lightModelViewMatrix, GPUBufferUsage.COPY_SRC);
-
 
             let colorTexture = context.getCurrentTexture();
             let colorTextureView = colorTexture.createView();
@@ -1111,7 +1086,6 @@
 
 
             await device.queue.onSubmittedWorkDone();
-
             if (!hasDumped) {
                 hasDumped = true;
                 await copiedBuffer.mapAsync(GPUMapMode.READ, 0, 1024 * 1024 * 4);
